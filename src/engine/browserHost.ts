@@ -2,8 +2,12 @@
 // (the WASM engine initializes once and is reused across compiles), and drives
 // compiles via page.evaluate. This is the Node<->browser bridge that exists
 // solely because the WASM TeX engines require DOM/Worker globals (spike finding).
+import { fileURLToPath } from 'node:url';
 import { chromium, type Browser, type Page } from 'playwright';
 import { startPreviewServer, type PreviewServerHandle } from '../preview/previewServer.js';
+import { ensureAssets } from './assets.js';
+
+const PKG_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 
 export interface EngineFile {
   path: string;
@@ -24,6 +28,7 @@ export interface CompileOutput {
 let started: Promise<{ browser: Browser; page: Page; preview: PreviewServerHandle }> | null = null;
 
 async function start() {
+  await ensureAssets(PKG_ROOT); // fetch WASM assets on first run if missing
   const preview = await startPreviewServer();
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();

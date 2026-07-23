@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "latex-live-preview": {
+      "command": "npx",
+      "args": ["-y", "latex-live-preview-mcp"]
+    }
+  }
+}
