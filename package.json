@@ -1,0 +1,30 @@
+{
+  "name": "latex-live-preview-mcp",
+  "version": "0.0.1",
+  "description": "Local live LaTeX PDF preview for Claude Code, via an MCP server. Compiles your .tex with a WASM TeX Live engine in a headless browser — no local TeX install, no Overleaf account.",
+  "type": "module",
+  "license": "AGPL-3.0-or-later",
+  "bin": {
+    "latex-live-preview-mcp": "src/server.ts"
+  },
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "chokidar": "^4.0.0",
+    "open": "^10.0.0",
+    "pdfjs-dist": "^4.10.38",
+    "playwright": "^1.40.0",
+    "texlyre-busytex": "^1.2.3",
+    "ws": "^8.18.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.5.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

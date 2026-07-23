@@ -1,0 +1,24 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{graphicx}
+
+\title{A Minimal Multi-File Paper}
+\author{Test Author}
+
+\begin{document}
+\maketitle
+
+\input{sections/intro}
+
+\section{Method}
+The estimand is defined in Equation~\ref{eq:est}.
+\begin{equation}\label{eq:est}
+  \hat{\theta} = \frac{1}{n}\sum_{i=1}^{n} x_i
+\end{equation}
+
+We build on prior work~\cite{smith2024}.
+
+\bibliographystyle{plain}
+\bibliography{refs}
+
+\end{document}
