@@ -14,6 +14,7 @@ to their respective code; this project itself is licensed under AGPL-3.0-or-late
 | [`ws`](https://github.com/websockets/ws) | MIT | WebSocket push to the preview page. |
 | [`open`](https://github.com/sindresorhus/open) | MIT | Opens the preview tab in the default browser. |
 | [`zod`](https://github.com/colinhacks/zod) | MIT | Tool input schema. |
+| [`adm-zip`](https://github.com/cthackers/adm-zip) | MIT | Builds the Overleaf export zip. |
 
 The chosen AGPL-3.0-or-later license matches `texlyre-busytex`, the core engine
 dependency.

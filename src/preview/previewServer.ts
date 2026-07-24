@@ -13,6 +13,9 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import { hostPageHtml } from '../engine/hostPage.js';
 import { viewerPageHtml } from './viewerPage.js';
 import { isGitRepo, listCheckpoints, getCheckpointDiff } from '../git/checkpoints.js';
+import { getGitHubRemote } from '../git/remote.js';
+import { buildOverleafZip } from '../export/overleafZip.js';
+import { resolveMainFile } from '../project/resolveMainFile.js';
 import { getProjectRoot } from '../session.js';
 
 const PKG_ROOT = fileURLToPath(new URL('../..', import.meta.url));
@@ -89,6 +92,33 @@ export function startPreviewServer(): Promise<PreviewServerHandle> {
       } catch (e) {
         res.writeHead(400, ISOLATION_HEADERS).end(String((e as Error).message)); return;
       }
+    }
+
+    // Overleaf export — a clean upload zip (build inputs only).
+    if (pathname === '/export.zip') {
+      try {
+        const { buffer, filename } = await buildOverleafZip(getProjectRoot());
+        res.writeHead(200, {
+          'Content-Type': 'application/zip',
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Cache-Control': 'no-store', ...ISOLATION_HEADERS,
+        });
+        res.end(buffer); return;
+      } catch (e) {
+        res.writeHead(500, ISOLATION_HEADERS).end(String((e as Error).message)); return;
+      }
+    }
+    // One-click "Open in Overleaf" link — only when the repo has a GitHub origin
+    // (Overleaf fetches its public archive zip). null otherwise.
+    if (pathname === '/overleaf/link') {
+      const root = getProjectRoot();
+      const gh = await getGitHubRemote(root);
+      if (!gh) return json(res, { url: null });
+      let main = 'main.tex';
+      try { main = await resolveMainFile(root); } catch { /* fall back */ }
+      const archive = `https://github.com/${gh.owner}/${gh.repo}/archive/refs/heads/${gh.branch}.zip`;
+      const url = `https://www.overleaf.com/docs?snip_uri=${encodeURIComponent(archive)}&main_document=${encodeURIComponent(main)}`;
+      return json(res, { url });
     }
 
     if (pathname === '/' || pathname === '/host.html') {

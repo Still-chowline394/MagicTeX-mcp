@@ -3,29 +3,16 @@
 // user's working tree, index, HEAD, or branches. History you can browse without
 // polluting `git log`. All git access is via execFile (no shell) — validated on
 // Windows git in the spike.
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
 import { randomBytes } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { rm } from 'node:fs/promises';
-
-const exec = promisify(execFile);
+import { git, gitOrNull } from './exec.js';
 
 const REF = 'refs/latex-preview/checkpoints';
 // The well-known empty tree — used to diff the very first checkpoint (no parent).
 const EMPTY_TREE = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
 const SHA_RE = /^[0-9a-f]{7,64}$/; // guards HTTP-supplied shas against git arg injection
-
-async function git(cwd: string, args: string[], env?: NodeJS.ProcessEnv): Promise<string> {
-  const { stdout } = await exec('git', args, { cwd, env: env ?? process.env, maxBuffer: 32 * 1024 * 1024, windowsHide: true });
-  return stdout;
-}
-
-/** Best-effort git call that returns null instead of throwing (e.g. ref missing). */
-async function gitOrNull(cwd: string, args: string[]): Promise<string | null> {
-  try { return await git(cwd, args); } catch { return null; }
-}
 
 export async function isGitRepo(root: string): Promise<boolean> {
   return (await gitOrNull(root, ['rev-parse', '--git-dir'])) !== null;

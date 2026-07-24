@@ -13,11 +13,11 @@ It compiles with a WASM TeX Live 2026 engine ([texlyre-busytex](https://github.c
 running inside a headless browser, so there's nothing multi-gigabyte to install —
 just a one-time WASM asset download.
 
-> **Status:** working core — `render_preview` tool, real multi-file projects
+> **Status:** working — `render_preview` tool, real multi-file projects
 > (`\input` + `.bib` + `\cite`/`\ref`), a live pdf.js viewer with auto-reload on
-> save, Download PDF, and a **change-history panel** (auto-checkpoints beside the
-> preview). Pushing changes *back to Overleaf* is a separate, later phase (official
-> paths only).
+> save, a **change-history panel** (auto-checkpoints beside the preview), and
+> **export to Overleaf** (clean zip + one-click "Open in Overleaf" for public
+> GitHub repos; Premium Git-bridge is a documented push).
 
 ## What it does
 
@@ -29,7 +29,11 @@ just a one-time WASM asset download.
   to a **hidden git ref** (`refs/latex-preview/checkpoints`) — never touching your
   real branches, `git log`, or working tree. A toggleable History panel lists the
   checkpoints and shows each one's `.tex` diff *next to the rendered PDF*, so you see
-  a source change and its effect together. Download PDF is one click.
+  a source change and its effect together.
+- **Get to Overleaf.** One-click **Download PDF**, **Export .zip** (a clean upload
+  bundle — build inputs only), and, for public GitHub repos, a one-click **Open in
+  Overleaf** link. Syncing to an existing Overleaf project uses its Git bridge (a
+  documented `git push`; your token stays with you). See [`docs/USER-GUIDE.md`](docs/USER-GUIDE.md).
 - **Real projects.** Auto-detects the main file (`\documentclass`), gathers the
   whole project (multi-file `\input`/`\include`, `.bib`, in-repo `.cls`/`.sty`/`.bst`,
   figures), runs BibTeX and multiple passes when the document needs them.

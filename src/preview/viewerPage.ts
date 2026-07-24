@@ -18,6 +18,9 @@ export function viewerPageHtml(): string {
   button:hover:not(:disabled) { background: #565656; }
   button:disabled { opacity: .5; cursor: default; }
   button.on { background: #2d6cdf; border-color: #2d6cdf; color: #fff; }
+  a.linkbtn { font-size: 12px; color: #fff; background: #159957; border: 1px solid #159957;
+              border-radius: 4px; padding: 4px 12px; cursor: pointer; text-decoration: none; }
+  a.linkbtn:hover { background: #18a862; }
   #layout { flex: 1 1 auto; display: flex; min-height: 0; }
   #main { flex: 1 1 auto; overflow: auto; }
   #err { white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: 12px;
@@ -48,7 +51,10 @@ export function viewerPageHtml(): string {
     <span id="meta"></span>
     <span id="spacer"></span>
     <button id="history" title="Show change history (auto-checkpoints)">⏱ History</button>
+    <button id="export" title="Download a clean Overleaf-ready .zip (build inputs only) to upload as a new Overleaf project">⬆ Export .zip</button>
     <button id="download" disabled title="Download the compiled PDF">⤓ Download PDF</button>
+    <a id="overleaf" class="linkbtn" target="_blank" rel="noopener" style="display:none"
+       title="One-click open in Overleaf — works only if your GitHub repo is public">Open in Overleaf ↗</a>
   </div>
   <div id="layout">
     <div id="main">
@@ -73,6 +79,8 @@ export function viewerPageHtml(): string {
   const mainEl = document.getElementById('main');
   const downloadBtn = document.getElementById('download');
   const historyBtn = document.getElementById('history');
+  const exportBtn = document.getElementById('export');
+  const overleafLink = document.getElementById('overleaf');
   const hintEl = document.getElementById('hint');
   const listEl = document.getElementById('list');
   const diffEl = document.getElementById('diff');
@@ -92,6 +100,21 @@ export function viewerPageHtml(): string {
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 4000);
   });
+
+  // ---- Export Overleaf zip (server sets Content-Disposition filename) ----
+  exportBtn.addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.href = '/export.zip'; a.download = '';
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+
+  // ---- One-click Open in Overleaf (only when a public GitHub repo exists) ----
+  (async () => {
+    try {
+      const { url } = await (await fetch('/overleaf/link')).json();
+      if (url) { overleafLink.href = url; overleafLink.style.display = ''; }
+    } catch { /* leave hidden */ }
+  })();
 
   // ---- PDF render ----
   async function render() {
