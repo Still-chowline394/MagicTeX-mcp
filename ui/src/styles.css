@@ -46,8 +46,31 @@ a.linkbtn:hover { background: #18a862; }
 .pdf-scroll { flex: 1 1 auto; overflow: auto; }
 .pdf-note { padding: 16px; color: #ccc; }
 .pdf-pages { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 14px; }
-.page { position: relative; background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,.5); max-width: 100%; }
-.page canvas { display: block; max-width: 100%; height: auto; }
+.page { position: relative; background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,.5); }
+.page canvas { display: block; }
+
+/* pdf.js text layer: invisible glyphs positioned over the canvas so text is
+   selectable; selection stays visible. */
+.textLayer { position: absolute; inset: 0; overflow: hidden; line-height: 1;
+             forced-color-adjust: none; }
+.textLayer span, .textLayer br { color: transparent; position: absolute; white-space: pre;
+                                 cursor: text; transform-origin: 0% 0%; }
+.textLayer ::selection { background: rgba(45, 108, 223, .35); }
+
+/* Anchored comment highlights */
+.hl-layer { position: absolute; inset: 0; pointer-events: none; }
+.hl { position: absolute; background: rgba(255, 212, 0, .32); border-bottom: 2px solid rgba(230, 170, 0, .8);
+      pointer-events: auto; cursor: pointer; }
+.hl.hl-resolved { background: rgba(126, 231, 135, .22); border-bottom-color: rgba(70, 180, 90, .7); }
+.hl.flash { outline: 2px solid #2d6cdf; }
+
+/* Floating comment composer */
+.composer { position: absolute; z-index: 20; width: 300px; background: #2b2d31; border: 1px solid #17181a;
+            border-radius: 6px; padding: 8px; box-shadow: 0 6px 24px rgba(0,0,0,.5); }
+.composer-quote { color: #999; font-size: 12px; margin-bottom: 6px; }
+.composer textarea { width: 100%; min-height: 60px; resize: vertical; background: #1e1f22; color: #ddd;
+                     border: 1px solid #45484e; border-radius: 4px; padding: 6px; font: inherit; }
+.composer-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 6px; }
 .compile-error { flex: 0 0 auto; margin: 8px; padding: 8px; max-height: 180px; overflow: auto;
                  white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: 12px;
                  color: #ffb3ad; background: #3a2626; border-radius: 4px; }
@@ -69,6 +92,20 @@ a.linkbtn:hover { background: #18a862; }
 .editor-scroll { flex: 1 1 auto; min-height: 0; overflow: hidden; }
 .editor-scroll .cm-editor { height: 100%; font-size: 12.5px; }
 .editor-scroll .cm-scroller { overflow: auto; }
+
+/* ── Comments panel ──────────────────────────────────────── */
+.comments { flex: 1 1 auto; overflow: auto; }
+.comments-head { padding: 8px 12px 4px; color: #999; font-size: 11px; letter-spacing: .06em;
+                 text-transform: uppercase; }
+.comment { margin: 4px 8px; padding: 8px 10px; background: #2b2d31; border: 1px solid #17181a;
+           border-radius: 6px; cursor: pointer; }
+.comment:hover { background: #2e3136; }
+.comment.sel { border-color: #2d6cdf; }
+.comment.resolved { opacity: .75; }
+.comment-quote { color: #999; font-size: 12px; margin-bottom: 4px; }
+.comment-text { color: #ddd; white-space: pre-wrap; }
+.comment-note { color: #7ee787; font-size: 12px; margin-top: 6px; white-space: pre-wrap; }
+.comment-actions { display: flex; gap: 8px; margin-top: 6px; }
 
 /* ── History ─────────────────────────────────────────────── */
 .history { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }

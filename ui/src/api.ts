@@ -16,6 +16,35 @@ export type WsMessage =
   | { type: 'compile-error'; log: string }
   | { type: 'comments-changed' };
 
+export interface CommentRect { x: number; y: number; w: number; h: number }
+export interface Comment {
+  id: string;
+  page: number;
+  quote: string;
+  rects: CommentRect[];
+  text: string;
+  status: 'pending' | 'resolved';
+  created: string;
+  resolvedNote?: string;
+}
+
+export async function fetchComments(): Promise<Comment[]> {
+  const r = await fetch('/api/comments');
+  return r.ok ? r.json() : [];
+}
+
+export async function createComment(input: { page: number; quote: string; rects: CommentRect[]; text: string }): Promise<void> {
+  await fetch('/api/comments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+}
+
+export async function patchComment(id: string, patch: { status?: 'pending' | 'resolved' }): Promise<void> {
+  await fetch(`/api/comments?id=${encodeURIComponent(id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) });
+}
+
+export async function removeComment(id: string): Promise<void> {
+  await fetch(`/api/comments?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
 export type Status = 'connecting' | 'connected' | 'compiling' | 'ok' | 'error' | 'disconnected';
 
 export async function fetchCheckpoints(): Promise<Checkpoint[]> {

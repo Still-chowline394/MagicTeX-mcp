@@ -15,6 +15,7 @@ import { viewerPageHtml } from './viewerPage.js';
 import { diffViewHtml } from './diffViewPage.js';
 import { isGitRepo, listCheckpoints, getCheckpointDiff, getWorkingDiff } from '../git/checkpoints.js';
 import { listTextFiles, readTextFile, writeTextFile } from './filesApi.js';
+import { listComments, addComment, updateComment, deleteComment } from './commentsStore.js';
 import { getGitHubRemote } from '../git/remote.js';
 import { buildOverleafZip } from '../export/overleafZip.js';
 import { resolveMainFile } from '../project/resolveMainFile.js';
@@ -93,6 +94,39 @@ export function startPreviewServer(): Promise<PreviewServerHandle> {
         const diff = await getCheckpointDiff(getProjectRoot(), sha);
         res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', ...ISOLATION_HEADERS });
         res.end(diff); return;
+      } catch (e) {
+        res.writeHead(400, ISOLATION_HEADERS).end(String((e as Error).message)); return;
+      }
+    }
+
+    // Anchored comments API. Mutations broadcast comments-changed so every open
+    // workspace tab (and the Claude-side tools) stay in sync.
+    if (pathname === '/api/comments') {
+      const root = getProjectRoot();
+      try {
+        if (req.method === 'POST') {
+          const chunks: Buffer[] = [];
+          for await (const c of req) chunks.push(c as Buffer);
+          const created = await addComment(root, JSON.parse(Buffer.concat(chunks).toString('utf8')));
+          send({ type: 'comments-changed' });
+          return json(res, created);
+        }
+        if (req.method === 'PATCH') {
+          const id = reqUrl.searchParams.get('id') ?? '';
+          const chunks: Buffer[] = [];
+          for await (const c of req) chunks.push(c as Buffer);
+          const updated = await updateComment(root, id, JSON.parse(Buffer.concat(chunks).toString('utf8')));
+          if (!updated) { res.writeHead(404, ISOLATION_HEADERS).end('unknown comment'); return; }
+          send({ type: 'comments-changed' });
+          return json(res, updated);
+        }
+        if (req.method === 'DELETE') {
+          const id = reqUrl.searchParams.get('id') ?? '';
+          const ok = await deleteComment(root, id);
+          send({ type: 'comments-changed' });
+          return json(res, { ok });
+        }
+        return json(res, await listComments(root));
       } catch (e) {
         res.writeHead(400, ISOLATION_HEADERS).end(String((e as Error).message)); return;
       }
