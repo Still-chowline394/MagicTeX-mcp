@@ -24,6 +24,7 @@ const ENGINE_DIST = join(PKG_ROOT, 'node_modules', 'texlyre-busytex', 'dist');
 const BUSYTEX_ASSETS = join(PKG_ROOT, 'assets', 'busytex');
 const PDFJS_ROOT = join(PKG_ROOT, 'node_modules', 'pdfjs-dist');
 const DIFF2HTML_ROOT = join(PKG_ROOT, 'node_modules', 'diff2html', 'bundles');
+const UI_DIST = join(PKG_ROOT, 'ui', 'dist');
 
 const MIME: Record<string, string> = {
   '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
@@ -148,6 +149,9 @@ export function startPreviewServer(): Promise<PreviewServerHandle> {
     if (pathname.startsWith('/busytex/')) return serveFrom(BUSYTEX_ASSETS, pathname.slice('/busytex/'.length), res);
     if (pathname.startsWith('/pdfjs/')) return serveFrom(PDFJS_ROOT, pathname.slice('/pdfjs/'.length), res);
     if (pathname.startsWith('/diff2html/')) return serveFrom(DIFF2HTML_ROOT, pathname.slice('/diff2html/'.length), res);
+    // The React workspace (built by `npm run build:ui` into ui/dist).
+    if (pathname === '/app' || pathname === '/app/') return serveFrom(UI_DIST, 'index.html', res);
+    if (pathname.startsWith('/app/')) return serveFrom(UI_DIST, pathname.slice('/app/'.length), res);
 
     res.writeHead(404, ISOLATION_HEADERS).end('not found');
   });
