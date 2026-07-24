@@ -33,6 +33,12 @@ a.linkbtn:hover { background: #18a862; }
 .left.closed, .right.closed { display: none; }
 .center { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: #525659; }
 
+/* Overleaf-style drag splitters between panels */
+.splitter { flex: 0 0 5px; cursor: col-resize; background: #17181a; touch-action: none; }
+.splitter:hover, body.resizing .splitter { background: #2d6cdf; }
+body.resizing { cursor: col-resize; user-select: none; }
+body.resizing .pdf-scroll, body.resizing .editor-scroll { pointer-events: none; }
+
 .edge-open { position: absolute; top: 8px; z-index: 5; padding: 4px 8px; }
 .left-edge { left: 8px; }
 .right-edge { right: 8px; }
