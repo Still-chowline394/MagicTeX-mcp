@@ -54,7 +54,10 @@ body.resizing .pdf-scroll, body.resizing .editor-scroll { pointer-events: none; 
 .panel-hint { padding: 14px; color: #999; line-height: 1.5; }
 
 /* ── PDF ─────────────────────────────────────────────────── */
-.pdf-scroll { flex: 1 1 auto; overflow: auto; }
+/* position:relative is load-bearing: the comment composer is positioned in this
+   element's scroll-content space — without it, coordinates resolve against the
+   outer layout and the composer drifts far from the selection. */
+.pdf-scroll { flex: 1 1 auto; overflow: auto; position: relative; }
 .pdf-note { padding: 16px; color: #ccc; }
 .pdf-pages { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 14px; }
 .page { position: relative; background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,.5); }

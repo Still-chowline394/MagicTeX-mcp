@@ -114,15 +114,17 @@ export function PdfView({
       .slice(0, 40)
       .map((r) => ({ x: (r.left - pageRect.left) / SCALE, y: (r.top - pageRect.top) / SCALE, w: r.width / SCALE, h: r.height / SCALE }));
     if (!rects.length) return;
-    const scRect = scrollRef.current.getBoundingClientRect();
+    const scroller = scrollRef.current;
+    const scRect = scroller.getBoundingClientRect();
     const last = range.getClientRects()[range.getClientRects().length - 1];
-    setDraft({
-      page: Number(pageEl.dataset.page),
-      quote: quote.slice(0, 600),
-      rects,
-      x: Math.min(last.right - scRect.left + scrollRef.current.scrollLeft, scrollRef.current.scrollWidth - 320),
-      y: last.bottom - scRect.top + scrollRef.current.scrollTop + 6,
-    });
+    // Position in the scroller's content space (it is position:relative), pinned
+    // near the end of the selection and clamped to the visible viewport so the
+    // composer never lands off-screen.
+    const rawX = last.right - scRect.left + scroller.scrollLeft;
+    const rawY = last.bottom - scRect.top + scroller.scrollTop + 6;
+    const x = Math.max(scroller.scrollLeft + 8, Math.min(rawX, scroller.scrollLeft + scroller.clientWidth - 316));
+    const y = Math.min(rawY, scroller.scrollTop + scroller.clientHeight - 40);
+    setDraft({ page: Number(pageEl.dataset.page), quote: quote.slice(0, 600), rects, x, y });
     setDraftText('');
   };
 

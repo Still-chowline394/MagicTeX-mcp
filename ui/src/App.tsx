@@ -93,7 +93,7 @@ export default function App() {
             <button className="ghost" onClick={() => setLeftOpen(false)} title="Collapse">«</button>
           </div>
           {leftTab === 'history' && <ErrorBoundary name="History panel"><HistoryPanel reloadTick={reloadTick} /></ErrorBoundary>}
-          {leftTab === 'source' && <ErrorBoundary name="Source editor"><SourcePanel /></ErrorBoundary>}
+          {leftTab === 'source' && <ErrorBoundary name="Source editor"><SourcePanel reloadTick={reloadTick} /></ErrorBoundary>}
         </div>
         {leftOpen && <Splitter dir="left" width={leftWidth} setWidth={setLeftWidth} />}
         {!leftOpen && <button className="edge-open left-edge" onClick={() => setLeftOpen(true)} title="Open panel">»</button>}
