@@ -5,6 +5,7 @@ import { useLive } from './api';
 import { Toolbar } from './components/Toolbar';
 import { PdfView } from './components/PdfView';
 import { HistoryPanel } from './components/HistoryPanel';
+import { SourcePanel } from './components/SourcePanel';
 
 type LeftTab = 'source' | 'history';
 
@@ -27,7 +28,7 @@ export default function App() {
             <button className="ghost" onClick={() => setLeftOpen(false)} title="Collapse">«</button>
           </div>
           {leftTab === 'history' && <HistoryPanel reloadTick={reloadTick} />}
-          {leftTab === 'source' && <div className="panel-hint">Source editor arrives in the next phase.</div>}
+          {leftTab === 'source' && <SourcePanel />}
         </div>
         {!leftOpen && <button className="edge-open left-edge" onClick={() => setLeftOpen(true)} title="Open panel">»</button>}
 

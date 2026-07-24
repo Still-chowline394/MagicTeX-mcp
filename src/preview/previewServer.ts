@@ -14,6 +14,7 @@ import { hostPageHtml } from '../engine/hostPage.js';
 import { viewerPageHtml } from './viewerPage.js';
 import { diffViewHtml } from './diffViewPage.js';
 import { isGitRepo, listCheckpoints, getCheckpointDiff, getWorkingDiff } from '../git/checkpoints.js';
+import { listTextFiles, readTextFile, writeTextFile } from './filesApi.js';
 import { getGitHubRemote } from '../git/remote.js';
 import { buildOverleafZip } from '../export/overleafZip.js';
 import { resolveMainFile } from '../project/resolveMainFile.js';
@@ -92,6 +93,27 @@ export function startPreviewServer(): Promise<PreviewServerHandle> {
         const diff = await getCheckpointDiff(getProjectRoot(), sha);
         res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', ...ISOLATION_HEADERS });
         res.end(diff); return;
+      } catch (e) {
+        res.writeHead(400, ISOLATION_HEADERS).end(String((e as Error).message)); return;
+      }
+    }
+
+    // Source-panel file API (list / read / write project text files).
+    if (pathname === '/api/files') {
+      try { return json(res, await listTextFiles(getProjectRoot())); }
+      catch (e) { res.writeHead(500, ISOLATION_HEADERS).end(String((e as Error).message)); return; }
+    }
+    if (pathname === '/api/file') {
+      const rel = reqUrl.searchParams.get('path') ?? '';
+      try {
+        if (req.method === 'PUT') {
+          const chunks: Buffer[] = [];
+          for await (const c of req) chunks.push(c as Buffer);
+          await writeTextFile(getProjectRoot(), rel, Buffer.concat(chunks).toString('utf8'));
+          return json(res, { ok: true });
+        }
+        res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', ...ISOLATION_HEADERS });
+        res.end(await readTextFile(getProjectRoot(), rel)); return;
       } catch (e) {
         res.writeHead(400, ISOLATION_HEADERS).end(String((e as Error).message)); return;
       }
