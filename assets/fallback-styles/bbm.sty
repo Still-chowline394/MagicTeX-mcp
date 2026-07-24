@@ -1,0 +1,24 @@
+% bbm.sty — PREVIEW SHIM (NOT the real bbm package).
+%
+% The real bbm package needs its own fonts, which are absent from the WASM
+% engine's TeX Live subset, so `\usepackage{bbm}` otherwise fails with
+% "File `bbm.sty' not found". This shim approximates \mathbbm for LOCAL PREVIEW
+% ONLY, so a paper using bbm still renders:
+%   - letters  -> amssymb's real blackboard-bold \mathbb
+%   - \mathbbm{1} (the indicator function) -> a poor-man's double-struck 1
+% It never errors. Your final compile on Overleaf/your submission system uses
+% the real bbm and is what counts. (Provided by latex-live-preview-mcp.)
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{bbm}[2026/01/01 v0 preview shim (approximates bbm; real fonts absent)]
+\RequirePackage{amssymb}
+\newcommand{\bbm@oneref}{1}
+\DeclareRobustCommand{\mathbbm}[1]{%
+  \def\bbm@arg{#1}%
+  \ifx\bbm@arg\bbm@oneref
+    \ensuremath{\mathrm{1\mkern-4.5mu1}}% double-struck "1" approximation
+  \else
+    \mathbb{#1}%
+  \fi}
+\providecommand{\mathbbmss}{\mathbbm}
+\providecommand{\mathbbmtt}{\mathbbm}
+\endinput

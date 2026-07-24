@@ -30,5 +30,8 @@ All are **LPPL** (LaTeX Project Public License) and redistributable:
 | `algorithm.sty`, `algorithmic.sty` | [`algorithms`](https://ctan.org/pkg/algorithms) | Rogério Brito et al. |
 | `algorithmicx.sty`, `algpseudocode.sty` | [`algorithmicx`](https://ctan.org/pkg/algorithmicx) | Szász János |
 
-Font-based packages (e.g. `bbm`) cannot be covered this way and remain unsupported
-by the local preview.
+`assets/fallback-styles/bbm.sty` is **not** the real `bbm` package (that needs fonts
+absent from the WASM subset). It is a small **preview shim** written for this project
+that approximates `\mathbbm` (letters via amssymb's `\mathbb`; the `\mathbbm{1}`
+indicator via a poor-man's double-struck 1) so papers using bbm still render locally.
+Your final compile on Overleaf uses the real bbm.

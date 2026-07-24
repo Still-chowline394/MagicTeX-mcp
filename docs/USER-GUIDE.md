@@ -46,11 +46,15 @@ After that, publishing an update is just `git push overleaf` — you can ask Cla
 ## Package coverage
 
 The WASM engine ships a **subset** of TeX Live (basic + recommended + extra). Most common
-packages are included. A few common omissions (the `algorithm`/`algorithmicx` family) are
-vendored and injected automatically, so papers using them still render. **Font-based packages
-that aren't in the subset — e.g. `bbm` — can't be added locally** and will fail with
-`File '<pkg>.sty' not found`. If you hit that, either drop the package's `.sty` (and any fonts)
-into your project, or adjust the preamble; your final compile on Overleaf still uses the real one.
+packages are included. A few common omissions are handled automatically:
+- the `algorithm`/`algorithmicx` family — the real `.sty` are vendored and injected;
+- `bbm` — a small **preview shim** approximates `\mathbbm` (letters via `\mathbb`, the
+  `\mathbbm{1}` indicator via a poor-man's double-struck 1), so the paper still renders.
+
+Anything else that's outside the subset and font-based will fail with `File '<pkg>.sty' not
+found`. If you hit that, drop the package's `.sty` (and fonts) into your project, or adjust the
+preamble. Either way, your final compile on Overleaf uses the real packages — the local preview
+is an approximation.
 
 ## Notes
 
