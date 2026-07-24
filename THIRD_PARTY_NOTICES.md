@@ -18,3 +18,17 @@ to their respective code; this project itself is licensed under AGPL-3.0-or-late
 
 The chosen AGPL-3.0-or-later license matches `texlyre-busytex`, the core engine
 dependency.
+
+## Vendored LaTeX packages (`assets/fallback-styles/`)
+
+busytex's bundled TeX Live is a subset; these common packages are omitted, so we
+vendor them **unmodified** and inject them at compile time when a project uses them.
+All are **LPPL** (LaTeX Project Public License) and redistributable:
+
+| File | Package / bundle | Author |
+|---|---|---|
+| `algorithm.sty`, `algorithmic.sty` | [`algorithms`](https://ctan.org/pkg/algorithms) | Rogério Brito et al. |
+| `algorithmicx.sty`, `algpseudocode.sty` | [`algorithmicx`](https://ctan.org/pkg/algorithmicx) | Szász János |
+
+Font-based packages (e.g. `bbm`) cannot be covered this way and remain unsupported
+by the local preview.

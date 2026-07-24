@@ -2,6 +2,7 @@
 // Both the render_preview MCP tool and (later) the file watcher call this.
 import { resolveMainFile } from './resolveMainFile.js';
 import { collectProjectFiles } from './collectProjectFiles.js';
+import { getFallbackStyles } from '../engine/fallbackStyles.js';
 import { compile, type CompileOutput } from '../engine/browserHost.js';
 
 export type Engine = 'xelatex' | 'pdflatex' | 'lualatex';
@@ -23,18 +24,24 @@ export async function compileProject(opts: CompileProjectOptions): Promise<Compi
   const mainFile = await resolveMainFile(opts.projectRoot, opts.mainFile);
   const { files, truncated } = await collectProjectFiles(opts.projectRoot);
 
-  const main = files.find((f) => f.path === mainFile || f.path.endsWith('/' + mainFile));
+  // Inject bundled fallback .sty for packages busytex omits — but only those the
+  // project doesn't already ship (a project's own copy always wins).
+  const present = new Set(files.map((f) => f.path.split('/').pop()));
+  const fallbacks = (await getFallbackStyles()).filter((f) => !present.has(f.path));
+  const allFiles = fallbacks.length ? [...files, ...fallbacks] : files;
+
+  const main = allFiles.find((f) => f.path === mainFile || f.path.endsWith('/' + mainFile));
   const mainSrc = main?.content ?? '';
   const engine: Engine = opts.engine ?? detectEngine(mainSrc);
 
   // Enable a bib pass + reruns only when the document actually needs them —
   // avoids paying for extra passes on a simple doc.
-  const hasBib = /\\(bibliography|addbibresource)\b/.test(mainSrc) || files.some((f) => f.path.endsWith('.bib'));
+  const hasBib = /\\(bibliography|addbibresource)\b/.test(mainSrc) || allFiles.some((f) => f.path.endsWith('.bib'));
   const usesCite = /\\cite[a-zA-Z]*\s*\{/.test(mainSrc);
   const needsRerun = hasBib || /\\(ref|autoref|tableofcontents|label)\b/.test(mainSrc);
   const bibtex = hasBib && usesCite;
 
-  const out = await compile(files, main ? main.path : mainFile, engine, { bibtex, rerun: needsRerun });
+  const out = await compile(allFiles, main ? main.path : mainFile, engine, { bibtex, rerun: needsRerun });
 
   return { ...out, mainFile, engine, fileCount: files.length, truncated };
 }
