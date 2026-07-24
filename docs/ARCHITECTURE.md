@@ -30,8 +30,16 @@ open is a lightweight `pdf.js` viewer with no WASM in it.
 - `src/project/*` — `resolveMainFile` (find `\documentclass`), `collectProjectFiles`
   (gather the project tree), `compileProject` (the shared compile), `parseLog`
   (TeX log → `{file, line, message}`).
-- `src/coordinator.ts` — serializes all compiles (tool + watcher) through one chain.
+- `src/coordinator.ts` — serializes all compiles (tool + watcher) through one chain;
+  after each successful compile, creates a git checkpoint.
 - `src/watch/fileWatcher.ts` — chokidar watcher for passive live-reload.
+- `src/git/checkpoints.ts` — Zed-style auto-checkpoints. On each successful compile,
+  snapshots the working tree into a parallel commit chain under a **hidden ref**
+  (`refs/latex-preview/checkpoints`) using a temp index (`GIT_INDEX_FILE`), so the
+  user's working tree / index / HEAD / branches are never touched. Read-only endpoints
+  (`/git/status`, `/git/checkpoints`, `/git/diff`) feed the viewer's History panel.
+- `src/session.ts` — the current project root, shared between the coordinator (which
+  sets it) and the git endpoints (which read it), without an import cycle.
 
 ## Compile flow
 

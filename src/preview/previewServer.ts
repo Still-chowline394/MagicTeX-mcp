@@ -12,6 +12,8 @@ import { fileURLToPath } from 'node:url';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { hostPageHtml } from '../engine/hostPage.js';
 import { viewerPageHtml } from './viewerPage.js';
+import { isGitRepo, listCheckpoints, getCheckpointDiff } from '../git/checkpoints.js';
+import { getProjectRoot } from '../session.js';
 
 const PKG_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const ENGINE_DIST = join(PKG_ROOT, 'node_modules', 'texlyre-busytex', 'dist');
@@ -65,8 +67,29 @@ export function startPreviewServer(): Promise<PreviewServerHandle> {
     for (const ws of clients) { try { ws.send(data); } catch { /* dropped */ } }
   };
 
+  const json = (res: ServerResponse, body: unknown) => {
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...ISOLATION_HEADERS });
+    res.end(JSON.stringify(body));
+  };
+
   const server = createServer(async (req, res) => {
-    const pathname = decodeURIComponent(new URL(req.url ?? '/', 'http://127.0.0.1').pathname);
+    const reqUrl = new URL(req.url ?? '/', 'http://127.0.0.1');
+    const pathname = decodeURIComponent(reqUrl.pathname);
+
+    // Git history endpoints — read-only, over the current project root (the same
+    // repo the coordinator checkpoints; git resolves the enclosing repo from there).
+    if (pathname === '/git/status') { return json(res, { isRepo: await isGitRepo(getProjectRoot()) }); }
+    if (pathname === '/git/checkpoints') { return json(res, await listCheckpoints(getProjectRoot())); }
+    if (pathname === '/git/diff') {
+      const sha = reqUrl.searchParams.get('sha') ?? '';
+      try {
+        const diff = await getCheckpointDiff(getProjectRoot(), sha);
+        res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', ...ISOLATION_HEADERS });
+        res.end(diff); return;
+      } catch (e) {
+        res.writeHead(400, ISOLATION_HEADERS).end(String((e as Error).message)); return;
+      }
+    }
 
     if (pathname === '/' || pathname === '/host.html') {
       res.writeHead(200, { 'Content-Type': 'text/html', ...ISOLATION_HEADERS }); res.end(hostPageHtml()); return;

@@ -15,16 +15,21 @@ just a one-time WASM asset download.
 
 > **Status:** working core — `render_preview` tool, real multi-file projects
 > (`\input` + `.bib` + `\cite`/`\ref`), a live pdf.js viewer with auto-reload on
-> save, and structured compile-error reporting. Pushing changes *back to Overleaf*
-> is a separate, later phase (official paths only).
+> save, Download PDF, and a **change-history panel** (auto-checkpoints beside the
+> preview). Pushing changes *back to Overleaf* is a separate, later phase (official
+> paths only).
 
 ## What it does
 
 - **One tool, `render_preview`.** Compiles your project's main `.tex` and opens/updates
-  a live preview in your browser. Git history and diffing are intentionally *not*
-  tools — Claude Code's built-in shell already handles those.
+  a live preview in your browser.
 - **Live reload.** A file watcher recompiles on every save, so the preview stays
   current between tool calls and on manual edits — no refresh needed.
+- **Change history, beside the preview.** Each successful compile is auto-snapshotted
+  to a **hidden git ref** (`refs/latex-preview/checkpoints`) — never touching your
+  real branches, `git log`, or working tree. A toggleable History panel lists the
+  checkpoints and shows each one's `.tex` diff *next to the rendered PDF*, so you see
+  a source change and its effect together. Download PDF is one click.
 - **Real projects.** Auto-detects the main file (`\documentclass`), gathers the
   whole project (multi-file `\input`/`\include`, `.bib`, in-repo `.cls`/`.sty`/`.bst`,
   figures), runs BibTeX and multiple passes when the document needs them.

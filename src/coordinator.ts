@@ -4,6 +4,8 @@
 // each compile always reads the latest files off disk.
 import { compileProject, type CompileProjectResult, type Engine } from './project/compileProject.js';
 import { getPreview } from './engine/browserHost.js';
+import { createCheckpoint } from './git/checkpoints.js';
+import { setProjectRoot } from './session.js';
 
 interface Config {
   projectRoot: string;
@@ -16,6 +18,7 @@ let chain: Promise<CompileProjectResult | null> = Promise.resolve(null);
 
 export function setConfig(next: Config): void {
   config = next;
+  setProjectRoot(next.projectRoot); // keep the git endpoints reading the same repo
 }
 
 async function doCompile(): Promise<CompileProjectResult> {
@@ -24,6 +27,10 @@ async function doCompile(): Promise<CompileProjectResult> {
   preview.broadcast({ type: 'compiling' });
   const result = await compileProject(config);
   if (result.success && result.pdf) {
+    // Snapshot BEFORE notifying viewers, so a viewer that refreshes its history
+    // on the reload event already sees this checkpoint. createCheckpoint swallows
+    // its own errors (never breaks a compile) and no-ops when not a git repo.
+    await createCheckpoint(config.projectRoot);
     preview.setLatestPdf(result.pdf, result.mainFile);
   } else {
     preview.broadcast({ type: 'compile-error', log: (result.log || result.error || 'compile failed').slice(-1800) });
