@@ -13,6 +13,7 @@ export function SourcePanel() {
   const [content, setContent] = useState('');
   const [dirty, setDirty] = useState(false);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [loadError, setLoadError] = useState<string | null>(null);
   const contentRef = useRef(content);
   contentRef.current = content;
   const activeRef = useRef(active);
@@ -26,12 +27,17 @@ export function SourcePanel() {
   }, []);
 
   const openFile = useCallback(async (path: string) => {
-    const r = await fetch(`/api/file?path=${encodeURIComponent(path)}`);
-    if (!r.ok) return;
-    setActive(path);
-    setContent(await r.text());
-    setDirty(false);
-    setSaveState('idle');
+    try {
+      const r = await fetch(`/api/file?path=${encodeURIComponent(path)}`);
+      if (!r.ok) { setLoadError(`Couldn't load ${path}: ${await r.text()}`); return; }
+      setActive(path);
+      setContent(await r.text());
+      setDirty(false);
+      setSaveState('idle');
+      setLoadError(null);
+    } catch (e) {
+      setLoadError(`Couldn't load ${path}: ${String(e)}`);
+    }
   }, []);
 
   const save = useCallback(async () => {
@@ -66,6 +72,7 @@ export function SourcePanel() {
           </button>
         ))}
       </div>
+      {loadError && <div className="panel-hint load-error">{loadError}</div>}
       {active && (
         <>
           <div className="editor-bar">

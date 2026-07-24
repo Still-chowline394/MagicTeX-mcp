@@ -46,7 +46,14 @@ async function serveFrom(root: string, rel: string, res: ServerResponse) {
   if (!filePath.startsWith(root)) { res.writeHead(403).end('forbidden'); return; }
   try {
     const body = await readFile(filePath);
-    res.writeHead(200, { 'Content-Type': MIME[extname(filePath)] || 'application/octet-stream', ...ISOLATION_HEADERS });
+    // HTML must never be cached: after a UI rebuild the old hashed chunks are
+    // gone, and a cached index.html pointing at them renders a blank page.
+    // Hashed assets are immutable by construction, so they can cache forever.
+    const ext = extname(filePath);
+    const cache = ext === '.html'
+      ? 'no-store'
+      : /[-.][A-Za-z0-9_-]{8,}\.(js|css|mjs)$/.test(filePath) ? 'public, max-age=31536000, immutable' : 'no-cache';
+    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': cache, ...ISOLATION_HEADERS });
     res.end(body);
   } catch {
     res.writeHead(404, ISOLATION_HEADERS).end('not found');

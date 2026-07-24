@@ -40,6 +40,11 @@ body.resizing { cursor: col-resize; user-select: none; }
 body.resizing .pdf-scroll, body.resizing .editor-scroll { pointer-events: none; }
 
 .edge-open { position: absolute; top: 8px; z-index: 5; padding: 4px 8px; }
+
+/* Crash cards (ErrorBoundary) + load errors — never a silent black void */
+.crash { margin: 12px; padding: 12px; background: #3a2626; border: 1px solid #5c3030; border-radius: 6px; }
+.crash pre { white-space: pre-wrap; color: #ffb3ad; font-size: 12px; margin: 8px 0; }
+.load-error { color: #ffb3ad; }
 .left-edge { left: 8px; }
 .right-edge { right: 8px; }
 

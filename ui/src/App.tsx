@@ -8,6 +8,7 @@ import { PdfView } from './components/PdfView';
 import { HistoryPanel } from './components/HistoryPanel';
 import { SourcePanel } from './components/SourcePanel';
 import { CommentsPanel } from './components/CommentsPanel';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 type LeftTab = 'source' | 'history';
 
@@ -91,15 +92,17 @@ export default function App() {
             <span className="spacer" />
             <button className="ghost" onClick={() => setLeftOpen(false)} title="Collapse">«</button>
           </div>
-          {leftTab === 'history' && <HistoryPanel reloadTick={reloadTick} />}
-          {leftTab === 'source' && <SourcePanel />}
+          {leftTab === 'history' && <ErrorBoundary name="History panel"><HistoryPanel reloadTick={reloadTick} /></ErrorBoundary>}
+          {leftTab === 'source' && <ErrorBoundary name="Source editor"><SourcePanel /></ErrorBoundary>}
         </div>
         {leftOpen && <Splitter dir="left" width={leftWidth} setWidth={setLeftWidth} />}
         {!leftOpen && <button className="edge-open left-edge" onClick={() => setLeftOpen(true)} title="Open panel">»</button>}
 
         <div className="center">
           {errorLog && <pre className="compile-error">{errorLog}</pre>}
-          <PdfView reloadTick={reloadTick} comments={comments} onPages={setPages} onSelectComment={onSelectFromPdf} />
+          <ErrorBoundary name="PDF view">
+            <PdfView reloadTick={reloadTick} comments={comments} onPages={setPages} onSelectComment={onSelectFromPdf} />
+          </ErrorBoundary>
         </div>
 
         {rightOpen && <Splitter dir="right" width={rightWidth} setWidth={setRightWidth} />}
@@ -109,7 +112,9 @@ export default function App() {
             <span className="spacer" />
             <button className="ghost" onClick={() => setRightOpen(false)} title="Collapse">»</button>
           </div>
-          <CommentsPanel comments={comments} selectedId={selectedComment} onJump={jumpToComment} />
+          <ErrorBoundary name="Comments panel">
+            <CommentsPanel comments={comments} selectedId={selectedComment} onJump={jumpToComment} />
+          </ErrorBoundary>
         </div>
         {!rightOpen && (
           <button className="edge-open right-edge" onClick={() => setRightOpen(true)} title="Comments">
