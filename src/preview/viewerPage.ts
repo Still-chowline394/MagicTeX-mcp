@@ -11,6 +11,11 @@ export function viewerPageHtml(): string {
          padding: 6px 12px; background: #333; color: #ddd; font-size: 13px; z-index: 10; }
   #status { padding: 2px 8px; border-radius: 3px; }
   #status.ok { color: #9f9; } #status.err { color: #f99; } #status.busy { color: #fd8; }
+  #spacer { margin-left: auto; }
+  button { font: inherit; font-size: 12px; color: #ddd; background: #4a4a4a; border: 1px solid #666;
+           border-radius: 4px; padding: 4px 12px; cursor: pointer; }
+  button:hover:not(:disabled) { background: #565656; }
+  button:disabled { opacity: .5; cursor: default; }
   #err { white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: 12px;
          color: #fbb; background: #3a2a2a; margin: 8px 12px; padding: 8px; border-radius: 4px; display: none; }
   #pages { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px; }
@@ -21,6 +26,8 @@ export function viewerPageHtml(): string {
     <strong>LaTeX Live Preview</strong>
     <span id="status" class="busy">connecting…</span>
     <span id="meta"></span>
+    <span id="spacer"></span>
+    <button id="download" disabled title="Download the compiled PDF">⤓ Download PDF</button>
   </div>
   <pre id="err"></pre>
   <div id="pages"></div>
@@ -32,8 +39,23 @@ export function viewerPageHtml(): string {
   const metaEl = document.getElementById('meta');
   const errEl = document.getElementById('err');
   const pagesEl = document.getElementById('pages');
+  const downloadBtn = document.getElementById('download');
 
   function setStatus(cls, text) { statusEl.className = cls; statusEl.textContent = text; }
+
+  // Download filename derived from the source main file (e.g. main.tex -> main.pdf).
+  let pdfBase = 'preview';
+  let hasPdf = false;
+  downloadBtn.addEventListener('click', async () => {
+    if (!hasPdf) return;
+    const res = await fetch('/latest.pdf?t=' + Date.now());
+    if (!res.ok) return;
+    const url = URL.createObjectURL(await res.blob());
+    const a = document.createElement('a');
+    a.href = url; a.download = pdfBase + '.pdf';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  });
 
   async function render() {
     setStatus('busy', 'rendering…');
@@ -55,6 +77,7 @@ export function viewerPageHtml(): string {
       metaEl.textContent = doc.numPages + ' page' + (doc.numPages === 1 ? '' : 's');
       errEl.style.display = 'none';
       setStatus('ok', '✓ up to date');
+      hasPdf = true; downloadBtn.disabled = false;
       window.scrollTo(0, scrollY);
     } catch (e) {
       setStatus('err', 'render failed');
@@ -68,7 +91,10 @@ export function viewerPageHtml(): string {
     ws.onopen = () => { setStatus('ok', 'connected'); render(); };
     ws.onmessage = (ev) => {
       const msg = JSON.parse(ev.data);
-      if (msg.type === 'reload') render();
+      if (msg.type === 'reload') {
+        if (msg.name) pdfBase = String(msg.name).split(/[\\\\/]/).pop().replace(/\\.tex$/i, '') || 'preview';
+        render();
+      }
       else if (msg.type === 'compile-error') {
         setStatus('err', '✖ compile error');
         errEl.style.display = 'block';

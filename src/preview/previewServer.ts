@@ -48,14 +48,16 @@ export interface PreviewServerHandle {
   port: number;
   url: string;
   viewerUrl: string;
-  /** Replace the current PDF and notify viewers to re-render. */
-  setLatestPdf: (pdf: Uint8Array) => void;
+  /** Replace the current PDF and notify viewers to re-render. `name` is the
+   *  source main-file (e.g. "main.tex") used for the download filename. */
+  setLatestPdf: (pdf: Uint8Array, name?: string) => void;
   /** Tell viewers a compile is running / failed. */
   broadcast: (msg: { type: 'compiling' } | { type: 'compile-error'; log: string }) => void;
 }
 
 export function startPreviewServer(): Promise<PreviewServerHandle> {
   let latestPdf: Buffer | null = null;
+  let latestName: string | undefined;
   const clients = new Set<WebSocket>();
 
   const send = (msg: unknown) => {
@@ -85,7 +87,13 @@ export function startPreviewServer(): Promise<PreviewServerHandle> {
   });
 
   const wss = new WebSocketServer({ server });
-  wss.on('connection', (ws) => { clients.add(ws); ws.on('close', () => clients.delete(ws)); });
+  wss.on('connection', (ws) => {
+    clients.add(ws);
+    ws.on('close', () => clients.delete(ws));
+    // A viewer that connects after a compile already ran still needs the current
+    // PDF and its name (for the download filename) — push it immediately.
+    if (latestPdf) { try { ws.send(JSON.stringify({ type: 'reload', name: latestName })); } catch { /* dropped */ } }
+  });
 
   return new Promise((resolve) => {
     server.listen(0, '127.0.0.1', () => {
@@ -94,7 +102,7 @@ export function startPreviewServer(): Promise<PreviewServerHandle> {
       const url = `http://127.0.0.1:${port}`;
       resolve({
         server, port, url, viewerUrl: `${url}/viewer`,
-        setLatestPdf: (pdf) => { latestPdf = Buffer.from(pdf); send({ type: 'reload' }); },
+        setLatestPdf: (pdf, name) => { latestPdf = Buffer.from(pdf); latestName = name; send({ type: 'reload', name }); },
         broadcast: (msg) => send(msg),
       });
     });

@@ -24,7 +24,7 @@ async function doCompile(): Promise<CompileProjectResult> {
   preview.broadcast({ type: 'compiling' });
   const result = await compileProject(config);
   if (result.success && result.pdf) {
-    preview.setLatestPdf(result.pdf);
+    preview.setLatestPdf(result.pdf, result.mainFile);
   } else {
     preview.broadcast({ type: 'compile-error', log: (result.log || result.error || 'compile failed').slice(-1800) });
   }
