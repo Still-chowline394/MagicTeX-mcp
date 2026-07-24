@@ -2,6 +2,9 @@
 // latex-live-preview-mcp — MCP stdio server exposing one tool, render_preview.
 // Everything heavy (headless browser, WASM engine, preview server, file watcher)
 // is lazily started on the first render_preview call, so merely connecting is cheap.
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import open from 'open';
@@ -20,6 +23,11 @@ import { summarizeErrors } from './project/parseLog.js';
 
 const server = new McpServer({ name: 'latex-live-preview-mcp', version: '0.0.1' });
 
+const PKG_ROOT = fileURLToPath(new URL('..', import.meta.url));
+// The React workspace is the primary UI; fall back to the legacy /viewer only
+// when ui/dist hasn't been built (e.g. a fresh clone before `npm run build:ui`).
+const hasWorkspace = existsSync(join(PKG_ROOT, 'ui', 'dist', 'index.html'));
+
 let viewerOpened = false;
 
 server.registerTool(RENDER_PREVIEW_NAME, renderPreviewConfig, async ({ mainFile, engine }) => {
@@ -31,15 +39,16 @@ server.registerTool(RENDER_PREVIEW_NAME, renderPreviewConfig, async ({ mainFile,
 
     const result = await requestCompile();
 
-    // Open the viewer tab once per server lifetime.
-    if (!viewerOpened) { viewerOpened = true; open(preview.viewerUrl).catch(() => {}); }
+    const workspaceUrl = hasWorkspace ? `${preview.url}/app` : preview.viewerUrl;
+    // Open the workspace tab once per server lifetime.
+    if (!viewerOpened) { viewerOpened = true; open(workspaceUrl).catch(() => {}); }
 
     if (result.success) {
       const truncNote = result.truncated ? ' (note: project too large — some files were skipped)' : '';
       return {
         content: [{
           type: 'text',
-          text: `✓ Compiled ${result.mainFile} with ${result.engine} in ${result.ms}ms — ${result.fileCount} files${truncNote}. Live preview (auto-reloads on edits): ${preview.viewerUrl}`,
+          text: `✓ Compiled ${result.mainFile} with ${result.engine} in ${result.ms}ms — ${result.fileCount} files${truncNote}. Workspace (live preview, source editor, history, PDF comments — auto-reloads on edits): ${workspaceUrl}`,
         }],
       };
     }

@@ -15,7 +15,10 @@ to their respective code; this project itself is licensed under AGPL-3.0-or-late
 | [`open`](https://github.com/sindresorhus/open) | MIT | Opens the preview tab in the default browser. |
 | [`zod`](https://github.com/colinhacks/zod) | MIT | Tool input schema. |
 | [`adm-zip`](https://github.com/cthackers/adm-zip) | MIT | Builds the Overleaf export zip. |
-| [`diff2html`](https://github.com/rtfpessoa/diff2html) | MIT | Renders the side-by-side diff image for `show_diff`. |
+| [`diff2html`](https://github.com/rtfpessoa/diff2html) | MIT | Renders diffs (History panel and the `show_diff` image). |
+| [`react`](https://react.dev) / [`vite`](https://vite.dev) | MIT | The workspace UI (build-time; bundled static assets). |
+| [`@uiw/react-codemirror`](https://github.com/uiwjs/react-codemirror) + [CodeMirror 6](https://codemirror.net) | MIT | The source editor panel. |
+| [`codemirror-lang-latex`](https://www.npmjs.com/package/codemirror-lang-latex) | MIT | LaTeX syntax highlighting in the editor. |
 
 The chosen AGPL-3.0-or-later license matches `texlyre-busytex`, the core engine
 dependency.

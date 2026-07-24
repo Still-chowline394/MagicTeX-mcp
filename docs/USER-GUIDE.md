@@ -3,12 +3,29 @@
 ## Everyday use
 
 1. Add the server to your paper project's `.mcp.json` (see the README), restart Claude Code.
-2. Ask Claude to *"render a preview"*. A browser tab opens with the live PDF.
-3. From then on it's automatic — every edit (Claude's or your own saves) recompiles and the
-   preview reloads. Say it once; you don't repeat it.
+2. Ask Claude to *"render a preview"*. The **workspace** opens in a browser tab: live PDF in
+   the center, Source/History panel on the left, Comments on the right.
+3. From then on it's automatic — every edit (Claude's, the built-in editor's, or your own
+   external saves) recompiles and the PDF reloads. Say it once; you don't repeat it.
 
-Toolbar: **⏱ History** (change checkpoints + diffs), **⬆ Export .zip**, **⤓ Download PDF**, and
-**Open in Overleaf ↗** (when available — see below).
+## The comment loop (review on the PDF, Claude edits the source)
+
+1. **Select text on the rendered PDF** → a composer pops up → write what you want changed
+   ("tighten this paragraph", "this equation looks wrong") → **Add comment**. The passage
+   gets an anchored highlight; the card appears in the right panel as *pending*.
+2. In Claude Code, say *"address my comments"*. Claude calls `check_comments` (each comment
+   arrives with its page, the exact quoted passage, and your instruction), edits the source,
+   and calls `resolve_comment` with a one-line note.
+3. The PDF recompiles, the card flips to *resolved ✓* with Claude's note, and the History tab
+   holds the checkpoint diff of what changed.
+
+You never have to touch LaTeX — you point at the document; Claude works on the source.
+
+## The source editor
+
+The left panel's **Source** tab lists the project's text files in a CodeMirror LaTeX editor.
+**Ctrl+S** (or Save) writes to disk — the watcher recompiles and the PDF refreshes, exactly
+like Typst's editor loop. Prefer your own editor? Saves from anywhere trigger the same loop.
 
 ### Seeing a diff inside the conversation
 

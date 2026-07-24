@@ -4,45 +4,59 @@
 [![stars](https://img.shields.io/github/stars/ZoeLinUTS/latex-live-preview-mcp?style=flat)](https://github.com/ZoeLinUTS/latex-live-preview-mcp/stargazers)
 [![license](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 
-A local **MCP server for Claude Code** that gives you an Overleaf-like **live PDF
-preview** of your LaTeX project — right on your machine, with **no local TeX
-install and no Overleaf account**. Claude edits your `.tex`, and you (and Claude)
-see the rendered PDF update instantly.
+A local **LaTeX workspace for Claude Code**, served by an MCP server — an
+Overleaf-like **one-window workspace** on your own machine, with **no local TeX
+install and no Overleaf account**: live PDF preview, a source editor, change
+history, and **comments you anchor on the rendered PDF that become edit
+instructions for Claude**.
 
 It compiles with a WASM TeX Live 2026 engine ([texlyre-busytex](https://github.com/TeXlyre/texlyre-busytex))
 running inside a headless browser, so there's nothing multi-gigabyte to install —
 just a one-time WASM asset download.
 
-> **Status:** working — `render_preview` tool, real multi-file projects
-> (`\input` + `.bib` + `\cite`/`\ref`), a live pdf.js viewer with auto-reload on
-> save, a **change-history panel** (auto-checkpoints beside the preview), and
-> **export to Overleaf** (clean zip + one-click "Open in Overleaf" for public
-> GitHub repos; Premium Git-bridge is a documented push).
+## The workspace
 
-## What it does
+One browser window (inspired by Typst's one-surface editor and LiquidText's
+anchored annotations):
 
-- **`render_preview`.** Compiles your project's main `.tex` and opens/updates a live
-  preview in your browser.
-- **`show_diff`.** Renders a **side-by-side git diff as an image, inline in the Claude
-  conversation** — so "show me the diff" gives you a real split view (Claude Code can't
-  render one itself). Defaults to your current uncommitted change; pass a checkpoint sha
-  for a saved version.
-- **Live reload.** A file watcher recompiles on every save, so the preview stays
-  current between tool calls and on manual edits — no refresh needed.
-- **Change history, beside the preview.** Each successful compile is auto-snapshotted
-  to a **hidden git ref** (`refs/latex-preview/checkpoints`) — never touching your
-  real branches, `git log`, or working tree. A toggleable History panel lists the
-  checkpoints and shows each one's `.tex` diff *next to the rendered PDF*, so you see
-  a source change and its effect together.
-- **Get to Overleaf.** One-click **Download PDF**, **Export .zip** (a clean upload
-  bundle — build inputs only), and, for public GitHub repos, a one-click **Open in
-  Overleaf** link. Syncing to an existing Overleaf project uses its Git bridge (a
-  documented `git push`; your token stays with you). See [`docs/USER-GUIDE.md`](docs/USER-GUIDE.md).
-- **Real projects.** Auto-detects the main file (`\documentclass`), gathers the
-  whole project (multi-file `\input`/`\include`, `.bib`, in-repo `.cls`/`.sty`/`.bst`,
-  figures), runs BibTeX and multiple passes when the document needs them.
-- **Actionable errors.** A failed compile returns parsed `{file, line, message}`
-  errors so Claude can fix them, and shows them in the preview.
+```
+┌──────────────────────────────────────────────────────────────┐
+│  ✓ up to date · 13 pages        Export .zip · Download PDF   │
+├────────────┬──────────────────────────────┬──────────────────┤
+│ Source /   │          PDF (live)          │    Comments      │
+│ History    │  select text → 💬 comment    │  pending → ask   │
+│  editor,   │  highlights stay anchored    │  Claude to       │
+│  timeline  │  auto-reloads on every edit  │  address them    │
+│  + diffs   │                              │  → resolved ✓    │
+└────────────┴──────────────────────────────┴──────────────────┘
+```
+
+- **Comment → Claude loop (the point of it all).** Review the *rendered* document
+  like a supervisor marking up a printout: select text, attach a comment
+  ("tighten this paragraph"). Then tell Claude to *"address my comments"* — it
+  pulls them via `check_comments` (page + quoted passage + your ask), edits the
+  source, and resolves each card with a note. You interact with the document;
+  Claude interacts with the source.
+- **Editable source panel.** A CodeMirror LaTeX editor with the project's files —
+  save (Ctrl+S) recompiles and refreshes the PDF, Typst-style. Or keep using your
+  own editor: any save triggers the same live loop.
+- **Live reload.** A file watcher recompiles on every save — Claude's edits, the
+  built-in editor's, or your external editor's.
+- **Change history.** Each successful compile is auto-snapshotted to a **hidden
+  git ref** (`refs/latex-preview/checkpoints`) — never touching your branches,
+  `git log`, or working tree. The History tab shows the timeline and each
+  checkpoint's colorized diff beside the PDF.
+- **Get to Overleaf.** **Download PDF**, **Export .zip** (clean build-inputs
+  bundle), and a one-click **Open in Overleaf** link for public GitHub repos;
+  Premium Git-bridge sync is a documented `git push`. See [`docs/USER-GUIDE.md`](docs/USER-GUIDE.md).
+- **Real projects.** Auto-detects the main file, gathers multi-file
+  `\input`/`\include`, `.bib`, in-repo `.cls`/`.sty`/`.bst` and figures, runs
+  BibTeX and reruns when needed; common missing packages are auto-injected.
+- **MCP tools:** `render_preview` (compile + open the workspace), `check_comments`
+  / `resolve_comment` (the comment loop), `show_diff` (side-by-side diff as an
+  image — useful on image-capable clients).
+- **Actionable errors.** Failed compiles return parsed `{file, line, message}`
+  errors so Claude can self-correct, and show in the workspace.
 
 ## Setup
 
