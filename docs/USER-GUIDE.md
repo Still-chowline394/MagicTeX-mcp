@@ -10,6 +10,15 @@
 Toolbar: **⏱ History** (change checkpoints + diffs), **⬆ Export .zip**, **⤓ Download PDF**, and
 **Open in Overleaf ↗** (when available — see below).
 
+### Seeing a diff inside the conversation
+
+Ask Claude *"show me the diff"* (or *"show the diff of the last checkpoint"*) and it uses the
+`show_diff` tool to return a **side-by-side diff as an image, right in the chat**. This exists
+because Claude Code has no diff-viewer of its own — if Claude just runs `git diff`, it captures
+the text and summarizes it. `show_diff` gives you the actual visual split instead. (For the same
+diff *next to the rendered PDF*, use the browser History panel; for a terminal split, `git diff`
+with [delta](https://github.com/dandavison/delta) configured.)
+
 ## Getting your paper into Overleaf
 
 There are three ways, depending on your setup. The tool can't push to Overleaf *for* you without

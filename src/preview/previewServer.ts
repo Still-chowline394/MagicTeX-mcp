@@ -12,7 +12,8 @@ import { fileURLToPath } from 'node:url';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { hostPageHtml } from '../engine/hostPage.js';
 import { viewerPageHtml } from './viewerPage.js';
-import { isGitRepo, listCheckpoints, getCheckpointDiff } from '../git/checkpoints.js';
+import { diffViewHtml } from './diffViewPage.js';
+import { isGitRepo, listCheckpoints, getCheckpointDiff, getWorkingDiff } from '../git/checkpoints.js';
 import { getGitHubRemote } from '../git/remote.js';
 import { buildOverleafZip } from '../export/overleafZip.js';
 import { resolveMainFile } from '../project/resolveMainFile.js';
@@ -22,6 +23,7 @@ const PKG_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const ENGINE_DIST = join(PKG_ROOT, 'node_modules', 'texlyre-busytex', 'dist');
 const BUSYTEX_ASSETS = join(PKG_ROOT, 'assets', 'busytex');
 const PDFJS_ROOT = join(PKG_ROOT, 'node_modules', 'pdfjs-dist');
+const DIFF2HTML_ROOT = join(PKG_ROOT, 'node_modules', 'diff2html', 'bundles');
 
 const MIME: Record<string, string> = {
   '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
@@ -127,6 +129,16 @@ export function startPreviewServer(): Promise<PreviewServerHandle> {
     if (pathname === '/viewer') {
       res.writeHead(200, { 'Content-Type': 'text/html', ...ISOLATION_HEADERS }); res.end(viewerPageHtml()); return;
     }
+    // Side-by-side diff page — screenshotted by the show_diff tool. `sha` selects a
+    // checkpoint; omitted = current uncommitted changes.
+    if (pathname === '/diff-view') {
+      const root = getProjectRoot();
+      const sha = reqUrl.searchParams.get('sha');
+      let diff = '';
+      try { diff = sha ? await getCheckpointDiff(root, sha) : await getWorkingDiff(root); } catch { /* empty */ }
+      res.writeHead(200, { 'Content-Type': 'text/html', 'Cache-Control': 'no-store', ...ISOLATION_HEADERS });
+      res.end(diffViewHtml(diff)); return;
+    }
     if (pathname === '/latest.pdf') {
       if (!latestPdf) { res.writeHead(404, ISOLATION_HEADERS).end('no pdf yet'); return; }
       res.writeHead(200, { 'Content-Type': 'application/pdf', 'Cache-Control': 'no-store', ...ISOLATION_HEADERS });
@@ -135,6 +147,7 @@ export function startPreviewServer(): Promise<PreviewServerHandle> {
     if (pathname.startsWith('/engine/')) return serveFrom(ENGINE_DIST, pathname.slice('/engine/'.length), res);
     if (pathname.startsWith('/busytex/')) return serveFrom(BUSYTEX_ASSETS, pathname.slice('/busytex/'.length), res);
     if (pathname.startsWith('/pdfjs/')) return serveFrom(PDFJS_ROOT, pathname.slice('/pdfjs/'.length), res);
+    if (pathname.startsWith('/diff2html/')) return serveFrom(DIFF2HTML_ROOT, pathname.slice('/diff2html/'.length), res);
 
     res.writeHead(404, ISOLATION_HEADERS).end('not found');
   });

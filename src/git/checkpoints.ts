@@ -86,6 +86,12 @@ export async function listCheckpoints(root: string): Promise<Checkpoint[]> {
   return checkpoints;
 }
 
+/** Current uncommitted changes vs HEAD (or everything, if there's no commit yet). */
+export async function getWorkingDiff(root: string): Promise<string> {
+  const hasHead = (await gitOrNull(root, ['rev-parse', '--verify', '-q', 'HEAD'])) !== null;
+  return (await gitOrNull(root, hasHead ? ['diff', 'HEAD'] : ['diff'])) ?? '';
+}
+
 /** Unified diff for one checkpoint (vs its parent, or the empty tree for the first). */
 export async function getCheckpointDiff(root: string, sha: string): Promise<string> {
   if (!SHA_RE.test(sha)) throw new Error('invalid checkpoint id');

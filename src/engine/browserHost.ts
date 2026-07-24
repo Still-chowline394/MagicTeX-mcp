@@ -75,6 +75,26 @@ export async function compile(
   };
 }
 
+/**
+ * Open the side-by-side diff page, wait for it to render, and screenshot it.
+ * Returns { empty: true } when there's nothing to diff. Used by the show_diff
+ * tool to return a diff image inline in the conversation.
+ */
+export async function captureDiff(path: string): Promise<{ empty: boolean; png?: Buffer }> {
+  const { browser, preview } = await ensureEngine();
+  const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+  try {
+    await page.goto(`${preview.url}${path}`, { waitUntil: 'load', timeout: 30_000 });
+    await page.waitForFunction('window.__rendered === true', { timeout: 20_000 });
+    if (await page.evaluate('window.__empty === true')) return { empty: true };
+    const el = await page.$('#diff');
+    const png = el ? await el.screenshot({ type: 'png' }) : await page.screenshot({ type: 'png', fullPage: true });
+    return { empty: false, png: png as Buffer };
+  } finally {
+    await page.close().catch(() => {});
+  }
+}
+
 export async function shutdownEngine() {
   if (!started) return;
   const { browser, preview } = await started;

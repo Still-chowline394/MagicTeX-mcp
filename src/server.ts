@@ -6,9 +6,12 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import open from 'open';
 import { RENDER_PREVIEW_NAME, renderPreviewConfig } from './tools/renderPreviewToolDef.js';
-import { getPreview } from './engine/browserHost.js';
+import { SHOW_DIFF_NAME, showDiffConfig } from './tools/showDiffToolDef.js';
+import { getPreview, captureDiff } from './engine/browserHost.js';
 import { setConfig, requestCompile } from './coordinator.js';
+import { setProjectRoot } from './session.js';
 import { startWatching } from './watch/fileWatcher.js';
+import { isGitRepo } from './git/checkpoints.js';
 import { type Engine } from './project/compileProject.js';
 import { MainFileError } from './project/resolveMainFile.js';
 import { summarizeErrors } from './project/parseLog.js';
@@ -47,6 +50,30 @@ server.registerTool(RENDER_PREVIEW_NAME, renderPreviewConfig, async ({ mainFile,
   } catch (err) {
     const msg = err instanceof MainFileError ? err.message : String((err as Error).message ?? err);
     return { isError: true, content: [{ type: 'text', text: `✖ ${msg}` }] };
+  }
+});
+
+server.registerTool(SHOW_DIFF_NAME, showDiffConfig, async ({ checkpoint }) => {
+  const projectRoot = process.cwd();
+  setProjectRoot(projectRoot); // the diff endpoints read this
+  try {
+    await getPreview(); // ensure the preview server + headless browser are up
+    if (!(await isGitRepo(projectRoot))) {
+      return { isError: true, content: [{ type: 'text', text: '✖ Not a git repository — nothing to diff.' }] };
+    }
+    const path = checkpoint ? `/diff-view?sha=${encodeURIComponent(checkpoint)}` : '/diff-view';
+    const { empty, png } = await captureDiff(path);
+    if (empty || !png) {
+      return { content: [{ type: 'text', text: 'No changes to show — the working tree is clean.' }] };
+    }
+    return {
+      content: [
+        { type: 'image', data: png.toString('base64'), mimeType: 'image/png' },
+        { type: 'text', text: checkpoint ? `Side-by-side diff of checkpoint ${checkpoint}.` : 'Side-by-side diff of your current uncommitted changes.' },
+      ],
+    };
+  } catch (err) {
+    return { isError: true, content: [{ type: 'text', text: `✖ ${String((err as Error).message)}` }] };
   }
 });
 

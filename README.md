@@ -21,8 +21,12 @@ just a one-time WASM asset download.
 
 ## What it does
 
-- **One tool, `render_preview`.** Compiles your project's main `.tex` and opens/updates
-  a live preview in your browser.
+- **`render_preview`.** Compiles your project's main `.tex` and opens/updates a live
+  preview in your browser.
+- **`show_diff`.** Renders a **side-by-side git diff as an image, inline in the Claude
+  conversation** — so "show me the diff" gives you a real split view (Claude Code can't
+  render one itself). Defaults to your current uncommitted change; pass a checkpoint sha
+  for a saved version.
 - **Live reload.** A file watcher recompiles on every save, so the preview stays
   current between tool calls and on manual edits — no refresh needed.
 - **Change history, beside the preview.** Each successful compile is auto-snapshotted
