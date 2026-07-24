@@ -7,6 +7,8 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import open from 'open';
 import { RENDER_PREVIEW_NAME, renderPreviewConfig } from './tools/renderPreviewToolDef.js';
 import { SHOW_DIFF_NAME, showDiffConfig } from './tools/showDiffToolDef.js';
+import { CHECK_COMMENTS_NAME, checkCommentsConfig, RESOLVE_COMMENT_NAME, resolveCommentConfig } from './tools/commentsToolDefs.js';
+import { listComments, updateComment } from './preview/commentsStore.js';
 import { getPreview, captureDiff } from './engine/browserHost.js';
 import { setConfig, requestCompile } from './coordinator.js';
 import { setProjectRoot } from './session.js';
@@ -75,6 +77,37 @@ server.registerTool(SHOW_DIFF_NAME, showDiffConfig, async ({ checkpoint }) => {
   } catch (err) {
     return { isError: true, content: [{ type: 'text', text: `✖ ${String((err as Error).message)}` }] };
   }
+});
+
+server.registerTool(CHECK_COMMENTS_NAME, checkCommentsConfig, async ({ includeResolved }) => {
+  const projectRoot = process.cwd();
+  setProjectRoot(projectRoot);
+  const all = await listComments(projectRoot);
+  const pending = all.filter((c) => c.status === 'pending');
+  const resolved = all.filter((c) => c.status === 'resolved');
+  const fmt = (c: (typeof all)[number]) =>
+    `[id: ${c.id}] p.${c.page} — "${c.quote.slice(0, 160)}${c.quote.length > 160 ? '…' : ''}"\n  → ${c.text}`;
+  let text: string;
+  if (!pending.length) {
+    text = 'No pending comments.' + (resolved.length ? ` (${resolved.length} already resolved.)` : '');
+  } else {
+    text = `${pending.length} pending comment${pending.length === 1 ? '' : 's'} — make each requested edit, then call ${RESOLVE_COMMENT_NAME} with its id and a one-line note:\n\n${pending.map(fmt).join('\n\n')}`;
+  }
+  if (includeResolved && resolved.length) {
+    text += `\n\nResolved:\n${resolved.map(fmt).join('\n\n')}`;
+  }
+  return { content: [{ type: 'text', text }] };
+});
+
+server.registerTool(RESOLVE_COMMENT_NAME, resolveCommentConfig, async ({ id, note }) => {
+  const projectRoot = process.cwd();
+  setProjectRoot(projectRoot);
+  const updated = await updateComment(projectRoot, id, { status: 'resolved', resolvedNote: note });
+  if (!updated) {
+    return { isError: true, content: [{ type: 'text', text: `✖ Unknown comment id: ${id}` }] };
+  }
+  try { (await getPreview()).broadcast({ type: 'comments-changed' }); } catch { /* viewer not open */ }
+  return { content: [{ type: 'text', text: `✓ Resolved comment ${id} ("${updated.quote.slice(0, 60)}…") — the card now shows: ${note}` }] };
 });
 
 const transport = new StdioServerTransport();

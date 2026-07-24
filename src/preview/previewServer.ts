@@ -61,8 +61,8 @@ export interface PreviewServerHandle {
   /** Replace the current PDF and notify viewers to re-render. `name` is the
    *  source main-file (e.g. "main.tex") used for the download filename. */
   setLatestPdf: (pdf: Uint8Array, name?: string) => void;
-  /** Tell viewers a compile is running / failed. */
-  broadcast: (msg: { type: 'compiling' } | { type: 'compile-error'; log: string }) => void;
+  /** Tell viewers a compile is running / failed, or that comments changed. */
+  broadcast: (msg: { type: 'compiling' } | { type: 'compile-error'; log: string } | { type: 'comments-changed' }) => void;
 }
 
 export function startPreviewServer(): Promise<PreviewServerHandle> {
