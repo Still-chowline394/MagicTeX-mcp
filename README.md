@@ -96,6 +96,29 @@ anchored annotations):
 The WASM assets are **not** in this repo — they're fetched on first run into
 `assets/`. To pre-fetch them manually: `npx texlyre-busytex download-assets assets`.
 
+## Install as a Claude Code plugin (slash commands)
+
+For a low-typing workflow, install MagicTeX as a plugin — one install gives you the
+MCP server **and** the slash commands:
+
+```
+/plugin marketplace add ZoeLinUTS/magictex-mcp
+/plugin install magictex
+```
+
+Then, in your paper project:
+
+- **`/magic-latex`** — compile and open the workspace (the live preview).
+- **`/ai-review [skill]`** — review the paper with a skill (default
+  `academic-paper-revision`; pass any skill name) and post comments for you to
+  Accept/Reject. Missing skills are reported with an install hint.
+- **`/address-comments`** — resolve your accepted comments (loop it with
+  `/loop 60s /address-comments`).
+
+> The plugin's bundled MCP server runs `npx magictex-mcp`, so it works once the
+> package is published to npm. Until then, keep the `.mcp.json` above for the server;
+> the slash commands work either way.
+
 ## How it works
 
 ```

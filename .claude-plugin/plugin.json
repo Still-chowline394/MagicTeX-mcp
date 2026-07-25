@@ -1,0 +1,17 @@
+{
+  "name": "magictex",
+  "displayName": "MagicTeX",
+  "version": "0.1.0",
+  "description": "MagicTeX — a LaTeX editor for AI agents: live PDF preview, PDF comments that drive edits, a Visual (WYSIWYG) mode, and git-tracked history, with slash commands to run it hands-off.",
+  "author": { "name": "ZoeLinUTS", "url": "https://github.com/ZoeLinUTS" },
+  "homepage": "https://github.com/ZoeLinUTS/magictex-mcp",
+  "repository": "https://github.com/ZoeLinUTS/magictex-mcp",
+  "license": "AGPL-3.0-or-later",
+  "keywords": ["latex", "tex", "overleaf", "academic-writing", "mcp"],
+  "mcpServers": {
+    "magictex": {
+      "command": "npx",
+      "args": ["-y", "magictex-mcp"]
+    }
+  }
+}
