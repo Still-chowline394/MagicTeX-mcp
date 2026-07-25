@@ -6,9 +6,14 @@ import { readdir, readFile, writeFile, mkdir, rename, rm, stat } from 'node:fs/p
 import { dirname, join, normalize, relative, resolve, sep } from 'node:path';
 
 const TEXT_EXT = /\.(tex|bib|cls|sty|bst|cfg|clo|def|ldf|fd|bbx|cbx|lbx|txt|md)$/i;
+// Figures/assets: shown in the tree (not editable) and allowed for upload.
+const FIGURE_EXT = /\.(png|jpe?g|gif|pdf|eps|svg)$/i;
+const isListable = (name: string) => TEXT_EXT.test(name) || FIGURE_EXT.test(name);
+const isWritable = (name: string) => TEXT_EXT.test(name) || FIGURE_EXT.test(name);
 const SKIP_DIRS = new Set(['.git', 'node_modules', '.latex-preview', '.vscode', '__pycache__']);
 const MAX_FILES = 500;
-const MAX_FILE_BYTES = 4 * 1024 * 1024; // 4 MB per file is plenty for LaTeX sources
+const MAX_FILE_BYTES = 4 * 1024 * 1024;  // 4 MB per LaTeX source
+const MAX_UPLOAD_BYTES = 25 * 1024 * 1024; // 25 MB per uploaded figure
 
 const toPosix = (p: string) => p.split(sep).join('/');
 
@@ -37,9 +42,9 @@ export async function listTextFiles(root: string): Promise<string[]> {
   });
 }
 
-export interface TreeNode { name: string; path: string; type: 'file' | 'dir'; children?: TreeNode[] }
+export interface TreeNode { name: string; path: string; type: 'file' | 'dir'; editable?: boolean; children?: TreeNode[] }
 
-/** Nested tree of folders + editable text files (Overleaf-style file tree). */
+/** Nested tree of folders + editable text files and figure assets. */
 export async function listTree(root: string): Promise<TreeNode[]> {
   async function walk(dir: string): Promise<TreeNode[]> {
     const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
@@ -50,8 +55,8 @@ export async function listTree(root: string): Promise<TreeNode[]> {
       if (e.isDirectory()) {
         if (SKIP_DIRS.has(e.name) || e.name.startsWith('.')) continue;
         nodes.push({ name: e.name, path: rel, type: 'dir', children: await walk(full) });
-      } else if (e.isFile() && TEXT_EXT.test(e.name)) {
-        nodes.push({ name: e.name, path: rel, type: 'file' });
+      } else if (e.isFile() && isListable(e.name)) {
+        nodes.push({ name: e.name, path: rel, type: 'file', editable: TEXT_EXT.test(e.name) });
       }
     }
     // folders first, then main.tex, then alphabetical.
@@ -104,4 +109,14 @@ export async function readTextFile(root: string, rel: string): Promise<string> {
 export async function writeTextFile(root: string, rel: string, content: string): Promise<void> {
   if (Buffer.byteLength(content, 'utf8') > MAX_FILE_BYTES) throw new Error('file too large');
   await writeFile(guard(root, rel), content, 'utf8');
+}
+
+/** Write an uploaded figure/asset (or text file) as raw bytes, guarded. */
+export async function writeUpload(root: string, rel: string, data: Buffer): Promise<void> {
+  const clean = String(rel).replace(/^[/\\]+/, '');
+  if (!isWritable(clean)) throw new Error('unsupported file type');
+  if (data.length > MAX_UPLOAD_BYTES) throw new Error('file too large (max 25 MB)');
+  const full = guardPath(root, clean); // path safety (traversal / protected dirs)
+  await mkdir(dirname(full), { recursive: true });
+  await writeFile(full, data);
 }

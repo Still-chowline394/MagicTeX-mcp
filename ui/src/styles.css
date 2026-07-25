@@ -142,6 +142,7 @@ body.resizing-v { cursor: row-resize; user-select: none; }
             color: #bbb; white-space: nowrap; }
 .tree-row:hover { background: #2e3136; }
 .tree-row.on { background: #24344f; color: #fff; }
+.tree-row.asset { color: #8a929c; cursor: default; }
 .tree-caret { width: 12px; text-align: center; color: #888; flex: 0 0 auto; }
 .tree-icon { flex: 0 0 auto; font-size: 12px; }
 .tree-name { overflow: hidden; text-overflow: ellipsis; }

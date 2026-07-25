@@ -14,7 +14,7 @@ import { hostPageHtml } from '../engine/hostPage.js';
 import { viewerPageHtml } from './viewerPage.js';
 import { diffViewHtml } from './diffViewPage.js';
 import { isGitRepo, listCheckpoints, getCheckpointDiff, getWorkingDiff } from '../git/checkpoints.js';
-import { listTextFiles, readTextFile, writeTextFile, listTree, createTextFile, createDir, renameEntry, deleteEntry } from './filesApi.js';
+import { listTextFiles, readTextFile, writeTextFile, listTree, createTextFile, createDir, renameEntry, deleteEntry, writeUpload } from './filesApi.js';
 import { suppressNextChange } from '../watch/fileWatcher.js';
 import { listComments, addComment, updateComment, deleteComment, addReply } from './commentsStore.js';
 import { getGitHubRemote } from '../git/remote.js';
@@ -169,6 +169,20 @@ export function startPreviewServer(): Promise<PreviewServerHandle> {
     if (pathname === '/api/tree') {
       try { return json(res, await listTree(getProjectRoot())); }
       catch (e) { res.writeHead(500, ISOLATION_HEADERS).end(String((e as Error).message)); return; }
+    }
+
+    // Upload a figure/asset: raw binary body, target path in ?path=.
+    if (pathname === '/api/upload' && req.method === 'POST') {
+      const rel = reqUrl.searchParams.get('path') ?? '';
+      try {
+        const chunks: Buffer[] = [];
+        for await (const c of req) chunks.push(c as Buffer);
+        suppressNextChange(join(getProjectRoot(), rel)); // don't auto-recompile on upload
+        await writeUpload(getProjectRoot(), rel, Buffer.concat(chunks));
+        return json(res, { ok: true });
+      } catch (e) {
+        res.writeHead(400, ISOLATION_HEADERS).end(String((e as Error).message)); return;
+      }
     }
 
     // File-system mutations: new file / new folder / rename / delete.

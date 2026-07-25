@@ -76,10 +76,15 @@ export async function fetchOverleafLink(): Promise<string | null> {
   try { return (await (await fetch('/overleaf/link')).json()).url ?? null; } catch { return null; }
 }
 
-export interface TreeNode { name: string; path: string; type: 'file' | 'dir'; children?: TreeNode[] }
+export interface TreeNode { name: string; path: string; type: 'file' | 'dir'; editable?: boolean; children?: TreeNode[] }
 export async function fetchTree(): Promise<TreeNode[]> {
   const r = await fetch('/api/tree');
   return r.ok ? r.json() : [];
+}
+/** Upload a figure/asset to `path` (relative to the project root). */
+export async function uploadFile(path: string, file: File): Promise<string | null> {
+  const r = await fetch(`/api/upload?path=${encodeURIComponent(path)}`, { method: 'POST', body: await file.arrayBuffer() });
+  return r.ok ? null : (await r.text()) || 'upload failed';
 }
 /** File-system op: mkfile | mkdir | rename | delete. Returns an error string or null. */
 export async function fsOp(op: string, path: string, to?: string): Promise<string | null> {
