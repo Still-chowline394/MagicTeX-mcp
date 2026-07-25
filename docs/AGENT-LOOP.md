@@ -84,6 +84,34 @@ The comment inbox has three states, which chain a whole review cycle:
 4. **Everything is recorded.** Each accept, edit, and resolve leaves a checkpoint + a note,
    so the whole reviewer→author round is traceable in **History**.
 
+## Ultra-agents
+
+`/ultra-agents [skill] [depth]` removes the human gate from step 2 entirely — the
+reviewer posts every comment with `add_comment(..., accepted: true)`, so it's
+actionable the instant it's raised, and the author resolves it immediately after.
+Then it repeats: review the *now-edited* paper again, fix again, up to `depth`
+rounds (default **2**), stopping the moment a round raises nothing new — a
+converged paper doesn't burn through the rest of the count.
+
+This is the fastest way to move a draft, and the least supervised — no per-round
+checkpoint for *you*, only for the tool. Ask for a depth over 5 and it stops to make
+you confirm first, because that's a lot of unattended editing to sign up for
+casually. Whatever depth you pick, run:
+
+```
+/ultra-agents academic-paper-revision 3
+```
+
+When it finishes (by depth or by converging early) it calls `list_checkpoints` and
+gives you a summary grouped by round — what was raised, what changed, and the
+checkpoint sha for each round so `/show_diff <sha>` jumps straight to it instead of
+you hunting through History. The safety net is the same one everything else here
+has: every round is still an ordinary checkpoint, reviewable and revertible (whole
+round or per file) from the History tab. That makes the *damage* recoverable, not
+the *time* — nothing watches for a round that went sideways except you reading the
+summary, so use it on drafts you're prepared to review afterward, not the version
+going out the door untouched.
+
 This is one reviewer + one author with a human in the middle. Multiple Claude Code
 sessions can already work the same project concurrently without corrupting comments or
 checkpoints (each mutation runs under a cross-process lock — see

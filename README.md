@@ -120,6 +120,12 @@ Then, in your paper project, use the **workflow commands** for the common flows:
   Accept/Reject. Missing skills are reported with an install hint.
 - **`/address-comments`** — resolve your accepted comments (loop it with
   `/loop 60s /address-comments`).
+- **`/ultra-agents [skill] [depth]`** — fully autonomous: review, auto-accept, fix,
+  repeat, up to `depth` rounds (default 2), stopping early the moment a round finds
+  nothing new. No per-round approval — that's the point, and the risk. `depth > 5`
+  asks you to confirm before starting. Ends with a summary (what was raised, what
+  changed, which checkpoints to look at) — every round is still an ordinary,
+  revertible checkpoint. See [`docs/AGENT-LOOP.md`](docs/AGENT-LOOP.md#ultra-agents).
 
 ### One command per tool
 
@@ -135,6 +141,7 @@ single step by typing the tool name. The rule to teach: *the tool is `X` → typ
 | `/add_comment ["quote"] [note]` | `add_comment` | Anchor a comment onto a passage for you to Accept/Reject. |
 | `/reply_to_comment [id] [text]` | `reply_to_comment` | Add a threaded reply to a comment. |
 | `/show_diff [sha]` | `show_diff` | Side-by-side visual diff as an image (current changes, or a checkpoint). |
+| `/list_checkpoints [limit]` | `list_checkpoints` | Recent checkpoints with their sha, newest first — find one to pass into `/show_diff`. |
 
 You never *have* to type these — plain English works too (*"render a preview"*,
 *"address my comments"*). The commands are just a fast, teachable shorthand.
@@ -164,7 +171,7 @@ flowchart LR
   A["🤖 Claude Code<br/>+ review / author agents"]
 
   H <-->|"select text →<br/>anchor comment"| SRV["Preview server<br/>HTTP + WebSocket · serves /app"]
-  A -->|"6 MCP tools"| MCP["MCP server<br/>render_preview · show_diff<br/>check / resolve / add / reply_comment"]
+  A -->|"7 MCP tools"| MCP["MCP server<br/>render_preview · show_diff · list_checkpoints<br/>check / resolve / add / reply_comment"]
 
   SRV --> CO["Compile coordinator<br/>(serialized)"]
   MCP --> CO
@@ -179,7 +186,7 @@ flowchart LR
   CJSON -->|"check_comments<br/>(your accepted asks)"| A
 ```
 
-Both front doors — you in the workspace, agents through the 6 MCP tools — meet at
+Both front doors — you in the workspace, agents through the 7 MCP tools — meet at
 the same coordinator, comment store, and git history. You act on the *rendered
 document* (anchor a comment); Claude acts on the *source* (reads your comments via
 `check_comments`, edits, `resolve_comment`). That shared substrate is what makes

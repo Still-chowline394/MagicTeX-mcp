@@ -24,7 +24,7 @@ test('review workflow over MCP: post → gate → located → thread → resolve
 
   try {
     const tools = (await client.listTools()).tools.map((t) => t.name).sort();
-    assert.deepEqual(tools, ['add_comment', 'check_comments', 'render_preview', 'reply_to_comment', 'resolve_comment', 'show_diff']);
+    assert.deepEqual(tools, ['add_comment', 'check_comments', 'list_checkpoints', 'render_preview', 'reply_to_comment', 'resolve_comment', 'show_diff']);
 
     // A reviewer suggestion is NOT actionable until accepted.
     await call('add_comment', { quote: 'large speedup on the benchmark', comment: 'Which baseline?', role: 'reviewer' });

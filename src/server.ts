@@ -10,6 +10,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import open from 'open';
 import { RENDER_PREVIEW_NAME, renderPreviewConfig } from './tools/renderPreviewToolDef.js';
 import { SHOW_DIFF_NAME, showDiffConfig } from './tools/showDiffToolDef.js';
+import { LIST_CHECKPOINTS_NAME, listCheckpointsConfig } from './tools/listCheckpointsToolDef.js';
 import { CHECK_COMMENTS_NAME, checkCommentsConfig, RESOLVE_COMMENT_NAME, resolveCommentConfig, ADD_COMMENT_NAME, addCommentConfig, REPLY_COMMENT_NAME, replyCommentConfig } from './tools/commentsToolDefs.js';
 import { listComments, updateComment, addComment, addReply } from './preview/commentsStore.js';
 import { findAnchor } from './preview/anchorMatch.js';
@@ -17,7 +18,7 @@ import { getPreview, peekPreview, captureDiff } from './engine/browserHost.js';
 import { setConfig, requestCompile } from './coordinator.js';
 import { setProjectRoot } from './session.js';
 import { startWatching } from './watch/fileWatcher.js';
-import { isGitRepo } from './git/checkpoints.js';
+import { isGitRepo, listCheckpoints } from './git/checkpoints.js';
 import { type Engine, type Backend } from './project/compileProject.js';
 import { MainFileError } from './project/resolveMainFile.js';
 import { summarizeErrors } from './project/parseLog.js';
@@ -87,6 +88,20 @@ server.registerTool(SHOW_DIFF_NAME, showDiffConfig, async ({ checkpoint }) => {
   } catch (err) {
     return { isError: true, content: [{ type: 'text', text: `✖ ${String((err as Error).message)}` }] };
   }
+});
+
+server.registerTool(LIST_CHECKPOINTS_NAME, listCheckpointsConfig, async ({ limit }) => {
+  const projectRoot = process.cwd();
+  setProjectRoot(projectRoot);
+  if (!(await isGitRepo(projectRoot))) {
+    return { content: [{ type: 'text', text: 'Not a git repository — no checkpoint history.' }] };
+  }
+  const all = await listCheckpoints(projectRoot);
+  if (!all.length) return { content: [{ type: 'text', text: 'No checkpoints yet.' }] };
+  const items = all.slice(0, limit ?? 10);
+  const lines = items.map((c) =>
+    `${c.sha.slice(0, 10)}  ${c.time}  ${c.filesChanged} file${c.filesChanged === 1 ? '' : 's'} +${c.insertions} -${c.deletions}`);
+  return { content: [{ type: 'text', text: lines.join('\n') }] };
 });
 
 server.registerTool(CHECK_COMMENTS_NAME, checkCommentsConfig, async ({ includeResolved }) => {
