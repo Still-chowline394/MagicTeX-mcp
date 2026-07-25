@@ -64,9 +64,20 @@ export async function createCheckpoint(root: string): Promise<{ created: boolean
 
 const SHORTSTAT_RE = /(\d+) files? changed(?:, (\d+) insertions?\(\+\))?(?:, (\d+) deletions?\(-\))?/;
 
-/** Newest-first list of checkpoints. Empty when no checkpoints / not a git repo. */
+// Hide non-paper noise everywhere history is read: MagicTeX's own state (the
+// comments store under .latex-preview) and Claude Code's editor/agent config
+// (.claude — e.g. slash-command .md files). Neither is part of the user's
+// paper. Passed as a git exclude pathspec — `git log -- <pathspec>` also
+// limits to commits that touch something OUTSIDE the excluded paths, so a
+// checkpoint whose only change was to .claude/.latex-preview doesn't show up
+// as a confusing, paper-unrelated entry in the History timeline at all.
+const EXCLUDE_TOOL = ['--', '.', ':(exclude).latex-preview', ':(exclude).claude'];
+
+/** Newest-first list of checkpoints that touched the paper (a checkpoint whose
+ *  only change was e.g. .claude/.latex-preview is filtered out). Empty when no
+ *  such checkpoints / not a git repo. */
 export async function listCheckpoints(root: string): Promise<Checkpoint[]> {
-  const out = await gitOrNull(root, ['log', REF, '--format=@@@%H %cI', '--shortstat']);
+  const out = await gitOrNull(root, ['log', REF, '--format=@@@%H %cI', '--shortstat', ...EXCLUDE_TOOL]);
   if (!out) return [];
   const checkpoints: Checkpoint[] = [];
   for (const line of out.split(/\r?\n/)) {
@@ -85,12 +96,6 @@ export async function listCheckpoints(root: string): Promise<Checkpoint[]> {
   }
   return checkpoints;
 }
-
-// Hide non-paper noise from every diff view: MagicTeX's own state (the comments
-// store under .latex-preview) and Claude Code's editor/agent config (.claude —
-// e.g. slash-command .md files). Neither is part of the user's paper. Passed as
-// git exclude pathspecs.
-const EXCLUDE_TOOL = ['--', '.', ':(exclude).latex-preview', ':(exclude).claude'];
 
 /** Current uncommitted changes vs HEAD (or everything, if there's no commit yet). */
 export async function getWorkingDiff(root: string): Promise<string> {

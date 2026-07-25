@@ -201,50 +201,63 @@ export function PdfView({
       }
       return -1;
     };
+    interface Span { start: number; len: number; l: number; t: number; w: number; h: number }
+    // Group ALL of a page's text spans into visual lines — "same line" means the
+    // new span's vertical range overlaps the line's accumulated range (tolerates
+    // italic/math/sub-superscript runs having a different box than roman text on
+    // the same baseline; a real line break is close to a full font-size, far
+    // bigger than any such overlap). Knowing each line's FULL extent (not just
+    // the matched words on it) is what lets middle lines get a flush, full-width
+    // box below, independent of any single word's box.
+    const groupLines = (spans: Span[]) => {
+      const sorted = [...spans].sort((a, b) => a.t - b.t || a.l - b.l);
+      const lines: { t: number; b: number; l: number; r: number; spans: Span[] }[] = [];
+      for (const s of sorted) {
+        const cur = lines[lines.length - 1];
+        const overlap = cur ? Math.min(s.t + s.h, cur.b) - Math.max(s.t, cur.t) : -1;
+        if (cur && overlap > Math.min(s.h, cur.b - cur.t) * 0.3) {
+          cur.l = Math.min(cur.l, s.l); cur.r = Math.max(cur.r, s.l + s.w);
+          cur.t = Math.min(cur.t, s.t); cur.b = Math.max(cur.b, s.t + s.h);
+          cur.spans.push(s);
+        } else {
+          lines.push({ t: s.t, b: s.t + s.h, l: s.l, r: s.l + s.w, spans: [s] });
+        }
+      }
+      return lines;
+    };
     const liveBoxes = (page: Element, quote: string): { l: number; t: number; w: number; h: number }[] | null => {
       const norm = normalize(quote);
       if (!norm) return null;
       const words = norm.split(' ').filter(Boolean);
       let concat = '';
-      const map: { start: number; len: number; el: HTMLElement }[] = [];
+      const all: Span[] = [];
       for (const s of page.querySelectorAll('.textLayer span')) {
-        const n = normalize((s as HTMLElement).textContent ?? '');
+        const el = s as HTMLElement;
+        const n = normalize(el.textContent ?? '');
         if (!n) continue;
-        map.push({ start: concat.length, len: n.length, el: s as HTMLElement });
+        all.push({ start: concat.length, len: n.length, l: el.offsetLeft, t: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight });
         concat += n + ' ';
       }
       const at = anchor(concat, words, true);
       if (at < 0) return null;
       const tailEnd = anchor(concat, words, false);
       const end = tailEnd > at ? tailEnd : Math.min(concat.length, at + norm.length);
-      // Collect the matched word spans, then MERGE them per visual line into one
-      // continuous box each (a highlighter stroke over whole lines), instead of a
-      // choppy box per word. Same line = tops within ~60% of the line height.
-      const spans: { l: number; t: number; w: number; h: number }[] = [];
-      for (const m of map) {
-        if (m.start < end && m.start + m.len > at) spans.push({ l: m.el.offsetLeft, t: m.el.offsetTop, w: m.el.offsetWidth, h: m.el.offsetHeight });
-      }
-      if (!spans.length) return null;
-      spans.sort((a, b) => a.t - b.t || a.l - b.l);
-      // "Same line" = the new span's vertical range overlaps the accumulated
-      // line's range — NOT how close their tops are. Italic runs, inline math,
-      // and sub/superscripts get taller or shifted bounding boxes from pdf.js
-      // than the surrounding roman text even on the same baseline, so a
-      // top-distance check splits them into their own tiny box; an overlap
-      // check tolerates that and still keeps genuinely different lines apart
-      // (real line gaps are ~a full font-size, far bigger than any overlap).
-      const lines: { l: number; t: number; r: number; b: number }[] = [];
-      for (const s of spans) {
-        const cur = lines[lines.length - 1];
-        const overlap = cur ? Math.min(s.t + s.h, cur.b) - Math.max(s.t, cur.t) : -1;
-        if (cur && overlap > Math.min(s.h, cur.b - cur.t) * 0.3) {
-          cur.l = Math.min(cur.l, s.l); cur.r = Math.max(cur.r, s.l + s.w);
-          cur.t = Math.min(cur.t, s.t); cur.b = Math.max(cur.b, s.t + s.h);
-        } else {
-          lines.push({ l: s.l, t: s.t, r: s.l + s.w, b: s.t + s.h });
-        }
-      }
-      return lines.map((L) => ({ l: L.l, t: L.t, w: L.r - L.l, h: L.b - L.t }));
+      const hits = (line: { spans: Span[] }) => line.spans.filter((s) => s.start < end && s.start + s.len > at);
+
+      // Shape it like a text selection: the first touched line starts at the
+      // match and runs to the LINE's own right edge; the last touched line runs
+      // from the line's own left edge to the match's end; any line fully between
+      // them is flush, full width, top to bottom — none of that depends on any
+      // single word's box, so font-metric quirks on interior words can't
+      // fragment the highlight the way per-word boxes did.
+      const touched = groupLines(all).filter((L) => hits(L).length > 0);
+      if (!touched.length) return null;
+      return touched.map((L, i) => {
+        let l = L.l, r = L.r;
+        if (i === 0) l = Math.min(...hits(L).map((s) => s.l));
+        if (i === touched.length - 1) r = Math.max(...hits(L).map((s) => s.l + s.w));
+        return { l, t: L.t, w: r - l, h: L.b - L.t };
+      });
     };
 
     for (const c of comments) {
