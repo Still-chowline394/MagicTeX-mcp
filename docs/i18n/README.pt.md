@@ -94,10 +94,26 @@ Cada ferramenta MCP também tem um comando com o **mesmo nome**, então você ex
 | `/resolve_comment [id] [nota]` | `resolve_comment` | Marca um comentário como feito após a edição; fica **verde** para sua revisão. |
 | `/add_comment ["citação"] [nota]` | `add_comment` | Ancora um comentário num trecho para você aceitar/rejeitar. |
 | `/reply_to_comment [id] [texto]` | `reply_to_comment` | Adiciona uma resposta no tópico de um comentário. |
-| `/show_diff [sha]` | `show_diff` | Diff visual lado a lado como imagem (mudanças atuais ou um checkpoint). |
+| `/show_diff [checkpoint]` | `show_diff` | Diff visual lado a lado como imagem (mudanças atuais ou um checkpoint). |
 | `/list_checkpoints [limit]` | `list_checkpoints` | Checkpoints recentes com seu sha, mais novo primeiro — para passar um ao `/show_diff`. |
 
 Você nunca precisa digitá-los: linguagem natural também funciona (*“renderize uma pré-visualização”*, *“resolva meus comentários”*). Os comandos são só um atalho rápido e fácil de ensinar.
+
+## Tools (ferramentas)
+
+A superfície MCP, para qualquer cliente que fale MCP. (No Claude Code, linguagem natural ou os comandos acima já bastam — estas são as ferramentas por baixo.)
+
+| Ferramenta | Parâmetros | O que faz |
+| ---- | ---- | ---- |
+| `render_preview` | `mainFile?` · `engine?` (`pdflatex` \| `xelatex` \| `lualatex`, padrão `xelatex`) · `backend?` (`wasm` \| `system` \| `auto`, padrão `wasm`) | Compila o projeto e abre/atualiza o espaço de trabalho ao vivo. Se omitido, o arquivo principal é detectado procurando `\documentclass`. |
+| `check_comments` | `includeResolved?` (padrão `false`) | Devolve os comentários aceitos como **tarefas localizadas**: página, citação, o `arquivo:linha` de origem e seu pedido. Sugestões de revisor à espera da sua decisão são informadas, mas não devolvidas como trabalho. |
+| `add_comment` | `quote` · `comment` · `role?` (`reviewer` \| `defender`) · `page?` · `accepted?` | Ancora um comentário num trecho. É publicado como **sugestão** aguardando seu Aceitar/Rejeitar, a menos que `accepted` seja ativado — essa flag é justamente o que torna autônomo o modo autônomo. |
+| `resolve_comment` | `id` · `note` | Marca um comentário como feito após a edição, com uma linha sobre o que mudou. Fica **verde** no espaço de trabalho, aguardando sua revisão. |
+| `reply_to_comment` | `id` · `text` · `role?` (`author` \| `reviewer` \| `defender`) | Adiciona uma resposta no tópico, para resolver uma divergência no comentário em vez de no chat. |
+| `show_diff` | `checkpoint?` | Renderiza um diff lado a lado **como imagem**, exibida na conversa. Por padrão as mudanças não commitadas; passe um sha de checkpoint para uma versão salva. |
+| `list_checkpoints` | `limit?` (padrão 10, máx. 50) | Checkpoints recentes com seu sha, mais novo primeiro — para achar qual passar ao `show_diff`. |
+
+**Os destaques são construídos *sobre* estas ferramentas, não estão entre elas.** `/magic-latex`, `/ai-review`, `/address-comments` e ⚡ `/ultra-agents` são **comandos do plugin** do Claude Code que orquestram as ferramentas acima — `/ultra-agents` encadeia revisar → aceitar automaticamente → corrigir por quantas rodadas você permitir, e é a razão de `add_comment` ter um parâmetro `accepted`. Não fazem parte da superfície MCP: outro cliente MCP vê apenas estas sete. Veja a seção do plugin acima e [docs/AGENT-LOOP.pt.md](AGENT-LOOP.pt.md).
 
 ## Documentação
 

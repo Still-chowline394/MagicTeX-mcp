@@ -42,7 +42,7 @@ also einen Befehl entfernt. Die Regel zum Weitergeben: *das Tool heißt `X` → 
 | `/resolve_comment [id] [Notiz]` | `resolve_comment` | Markiert einen Kommentar nach der Änderung als erledigt; wird **grün** zur Prüfung. |
 | `/add_comment ["Zitat"] [Notiz]` | `add_comment` | Verankert einen Kommentar an einer Stelle zum Annehmen/Ablehnen. |
 | `/reply_to_comment [id] [Text]` | `reply_to_comment` | Fügt eine Thread-Antwort zu einem Kommentar hinzu. |
-| `/show_diff [sha]` | `show_diff` | Nebeneinander-Diff als Bild (aktuelle Änderungen oder ein Checkpoint). |
+| `/show_diff [checkpoint]` | `show_diff` | Nebeneinander-Diff als Bild (aktuelle Änderungen oder ein Checkpoint). |
 | `/list_checkpoints [limit]` | `list_checkpoints` | Letzte Checkpoints mit sha — um einen an `/show_diff` zu übergeben. |
 
 Du musst sie nie tippen — normale Sprache funktioniert auch (*„zeig eine Vorschau“*, *„bearbeite

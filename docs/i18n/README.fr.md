@@ -96,10 +96,26 @@ Chaque outil MCP a aussi une commande du **même nom**, vous pouvez donc exécut
 | `/resolve_comment [id] [note]` | `resolve_comment` | Marque un commentaire comme fait après l'édition ; il passe au **vert** pour votre relecture. |
 | `/add_comment ["citation"] [note]` | `add_comment` | Ancre un commentaire sur un passage à accepter/refuser. |
 | `/reply_to_comment [id] [texte]` | `reply_to_comment` | Ajoute une réponse au fil d'un commentaire. |
-| `/show_diff [sha]` | `show_diff` | Diff visuel côte à côte en image (modifications actuelles ou un checkpoint). |
+| `/show_diff [checkpoint]` | `show_diff` | Diff visuel côte à côte en image (modifications actuelles ou un checkpoint). |
 | `/list_checkpoints [limit]` | `list_checkpoints` | Checkpoints récents avec leur sha, du plus récent — pour en passer un à `/show_diff`. |
 
 Rien ne vous oblige à les taper : le langage naturel marche aussi (*« affiche un aperçu »*, *« traite mes commentaires »*). Les commandes sont juste un raccourci rapide et facile à enseigner.
+
+## Tools (outils)
+
+La surface MCP, pour tout client qui parle MCP. (Dans Claude Code, le langage naturel ou les commandes ci-dessus suffisent — voici les outils sous-jacents.)
+
+| Outil | Paramètres | Ce que ça fait |
+| ---- | ---- | ---- |
+| `render_preview` | `mainFile?` · `engine?` (`pdflatex` \| `xelatex` \| `lualatex`, par défaut `xelatex`) · `backend?` (`wasm` \| `system` \| `auto`, par défaut `wasm`) | Compile le projet et ouvre/rafraîchit l'espace de travail en direct. Si omis, le fichier principal est détecté en cherchant `\documentclass`. |
+| `check_comments` | `includeResolved?` (par défaut `false`) | Renvoie les commentaires acceptés sous forme de **tâches localisées** : page, citation, le `fichier:ligne` source et votre demande. Les suggestions d'un relecteur en attente de votre décision sont signalées mais pas renvoyées comme travail. |
+| `add_comment` | `quote` · `comment` · `role?` (`reviewer` \| `defender`) · `page?` · `accepted?` | Ancre un commentaire sur un passage. Publié comme **suggestion** en attente de votre Accept/Refus, sauf si `accepted` est activé — c'est précisément ce drapeau qui rend le mode autonome autonome. |
+| `resolve_comment` | `id` · `note` | Marque un commentaire comme traité après l'édition, avec une ligne sur ce qui a changé. Il passe au **vert** dans l'espace de travail, en attente de votre relecture. |
+| `reply_to_comment` | `id` · `text` · `role?` (`author` \| `reviewer` \| `defender`) | Ajoute une réponse au fil, pour trancher un désaccord sur le commentaire plutôt que dans le chat. |
+| `show_diff` | `checkpoint?` | Rend un diff côte à côte **sous forme d'image**, affichée dans la conversation. Par défaut les modifications non validées ; passez un sha de checkpoint pour une version enregistrée. |
+| `list_checkpoints` | `limit?` (par défaut 10, max 50) | Checkpoints récents avec leur sha, du plus récent — pour trouver lequel passer à `show_diff`. |
+
+**Les fonctionnalités phares sont bâties *sur* ces outils, elles n'en font pas partie.** `/magic-latex`, `/ai-review`, `/address-comments` et ⚡ `/ultra-agents` sont des **commandes du plugin** Claude Code qui orchestrent les outils ci-dessus — `/ultra-agents` enchaîne relire → accepter automatiquement → corriger sur autant de tours que vous l'autorisez, et c'est la raison d'être du paramètre `accepted` d'`add_comment`. Elles ne font pas partie de la surface MCP : un autre client MCP ne voit que ces sept outils. Voir la section plugin plus haut et [docs/AGENT-LOOP.fr.md](AGENT-LOOP.fr.md).
 
 ## Documentation
 

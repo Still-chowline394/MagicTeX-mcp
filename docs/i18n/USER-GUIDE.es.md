@@ -41,7 +41,7 @@ un comando de distancia. La regla para enseñar: *la herramienta es `X` → escr
 | `/resolve_comment [id] [nota]` | `resolve_comment` | Marca un comentario como hecho tras la edición; se pone **verde** para tu revisión. |
 | `/add_comment ["cita"] [nota]` | `add_comment` | Ancla un comentario en un pasaje para que lo aceptes/rechaces. |
 | `/reply_to_comment [id] [texto]` | `reply_to_comment` | Añade una respuesta en el hilo de un comentario. |
-| `/show_diff [sha]` | `show_diff` | Diff visual en paralelo como imagen (cambios actuales o un checkpoint). |
+| `/show_diff [checkpoint]` | `show_diff` | Diff visual en paralelo como imagen (cambios actuales o un checkpoint). |
 | `/list_checkpoints [limit]` | `list_checkpoints` | Checkpoints recientes con su sha — para pasarle uno a `/show_diff`. |
 
 Nunca es obligatorio escribirlos: el lenguaje natural también funciona (*«renderiza una vista

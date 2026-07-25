@@ -40,7 +40,7 @@
 | `/resolve_comment [id] [메모]` | `resolve_comment` | 편집 후 완료 표시; 코멘트가 **초록색**으로 바뀌어 검토 대기. |
 | `/add_comment ["인용"] [메모]` | `add_comment` | 해당 구절에 코멘트를 고정해 수락/거절할 수 있게. |
 | `/reply_to_comment [id] [내용]` | `reply_to_comment` | 코멘트에 스레드 답글 추가. |
-| `/show_diff [sha]` | `show_diff` | 나란히 보는 시각적 diff 이미지(현재 변경 또는 checkpoint). |
+| `/show_diff [checkpoint]` | `show_diff` | 나란히 보는 시각적 diff 이미지(현재 변경 또는 checkpoint). |
 | `/list_checkpoints [limit]` | `list_checkpoints` | 최근 checkpoint를 sha와 함께 표시 — `/show_diff`에 넘길 sha 찾기용. |
 
 꼭 입력할 필요는 없습니다 — 평범한 말로도 됩니다(*"미리보기 렌더링"*, *"코멘트 처리해줘"*).

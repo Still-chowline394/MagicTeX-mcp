@@ -88,10 +88,26 @@ Code 에 연결되는 Overleaf 스타일의 **단일 창 작업 공간**으로, 
 | `/resolve_comment [id] [메모]` | `resolve_comment` | 편집 후 완료 표시; 코멘트가 **초록색**으로 바뀌어 검토 대기. |
 | `/add_comment ["인용"] [메모]` | `add_comment` | 해당 구절에 코멘트를 고정해 수락/거절할 수 있게. |
 | `/reply_to_comment [id] [내용]` | `reply_to_comment` | 코멘트에 스레드 답글 추가. |
-| `/show_diff [sha]` | `show_diff` | 나란히 보는 시각적 diff 이미지(현재 변경 또는 checkpoint). |
+| `/show_diff [checkpoint]` | `show_diff` | 나란히 보는 시각적 diff 이미지(현재 변경 또는 checkpoint). |
 | `/list_checkpoints [limit]` | `list_checkpoints` | 최근 checkpoint를 sha와 함께 최신순으로 표시—`/show_diff`에 넘길 sha 찾기용. |
 
 꼭 입력할 필요는 없습니다——평범한 말로도 됩니다(“미리보기 렌더링”, “코멘트 처리해줘”). 명령은 빠르고 가르치기 쉬운 단축일 뿐입니다.
+
+## Tools(도구)
+
+MCP를 지원하는 모든 클라이언트를 위한 인터페이스입니다. (Claude Code에서는 평범한 말이나 위의 슬래시 명령으로 충분합니다—이건 그 아래에 있는 실체입니다.)
+
+| 도구 | 매개변수 | 하는 일 |
+| ---- | ---- | ---- |
+| `render_preview` | `mainFile?` · `engine?`(`pdflatex` \| `xelatex` \| `lualatex`, 기본값 `xelatex`) · `backend?`(`wasm` \| `system` \| `auto`, 기본값 `wasm`) | 프로젝트를 컴파일하고 라이브 작업 공간을 열기/새로고침. 생략하면 `\documentclass`를 훑어 메인 파일을 자동 판별. |
+| `check_comments` | `includeResolved?`(기본값 `false`) | 수락된 코멘트를 **위치 정보가 포함된 작업 항목**으로 반환—페이지, 인용 구절, 대응 소스의 `파일:줄`, 요청 내용. 판단 대기 중인 reviewer 제안은 알림만 되고 작업으로 반환되지 않음. |
+| `add_comment` | `quote` · `comment` · `role?`(`reviewer` \| `defender`) · `page?` · `accepted?` | 코멘트를 본문에 고정. 기본은 Accept/Reject를 기다리는 **제안**으로 게시되며, `accepted`를 켰을 때만 즉시 유효—이 플래그가 자율 모드를 자율답게 만드는 스위치. |
+| `resolve_comment` | `id` · `note` | 편집 후 코멘트를 완료 처리하고 무엇을 바꿨는지 한 줄로 기록. 작업 공간에서 **초록색**으로 바뀌어 검토를 기다림. |
+| `reply_to_comment` | `id` · `text` · `role?`(`author` \| `reviewer` \| `defender`) | 코멘트에 스레드 답글 추가. 이견을 채팅이 아니라 코멘트 위에서 정리할 수 있음. |
+| `show_diff` | `checkpoint?` | 나란히 보는 diff를 **이미지**로 렌더링해 대화에 인라인 표시. 기본은 커밋되지 않은 현재 변경, checkpoint sha를 넘기면 해당 저장본. |
+| `list_checkpoints` | `limit?`(기본값 10, 최대 50) | 최근 checkpoint와 sha를 최신순으로—`show_diff`에 넘길 것을 찾는 용도. |
+
+**핵심 기능은 이 도구들 위에 만들어진 것이지, 이 표 안에 있지 않습니다.** `/magic-latex`, `/ai-review`, `/address-comments`, ⚡ `/ultra-agents` 는 위의 도구들을 엮어 실행하는 Claude Code **플러그인 명령**입니다—`/ultra-agents` 는 「검토 → 자동 수락 → 수정」을 허용한 라운드 수만큼 이어 돌리며, `add_comment` 의 `accepted` 플래그가 바로 그것을 위해 있습니다. MCP 표면에는 포함되지 않으므로 다른 MCP 클라이언트에는 이 7개만 보입니다. 위 플러그인 절과 [docs/AGENT-LOOP.ko.md](AGENT-LOOP.ko.md) 참고.
 
 ## 문서
 

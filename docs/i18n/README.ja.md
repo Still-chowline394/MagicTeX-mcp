@@ -89,10 +89,26 @@ Claude Code に接続する、Overleaf ライクな**ワンウィンドウ・ワ
 | `/resolve_comment [id] [メモ]` | `resolve_comment` | 編集後に解決としてマーク；コメントが**緑**になり確認待ち。 |
 | `/add_comment ["引用"] [メモ]` | `add_comment` | 該当箇所にコメントをアンカーし、承認/却下できるように。 |
 | `/reply_to_comment [id] [本文]` | `reply_to_comment` | コメントにスレッド返信を追加。 |
-| `/show_diff [sha]` | `show_diff` | 並列ビジュアル差分を画像で表示（現在の変更か checkpoint）。 |
+| `/show_diff [checkpoint]` | `show_diff` | 並列ビジュアル差分を画像で表示（現在の変更か checkpoint）。 |
 | `/list_checkpoints [limit]` | `list_checkpoints` | 直近のチェックポイントを sha 付きで新しい順に表示——`/show_diff` に渡す sha を探すのに。 |
 
 必ずしも打つ必要はありません——普通の日本語でも動きます（「プレビューを表示」「コメントに対応して」）。コマンドは速くて教えやすい省略形です。
+
+## Tools（ツール）
+
+MCP を話すあらゆるクライアント向けのインターフェース層です。（Claude Code では普通の日本語か上のスラッシュコマンドで十分——これはその下にある実体です。）
+
+| ツール | 引数 | 何をするか |
+| ---- | ---- | ---- |
+| `render_preview` | `mainFile?` · `engine?`（`pdflatex` \| `xelatex` \| `lualatex`、既定 `xelatex`）· `backend?`（`wasm` \| `system` \| `auto`、既定 `wasm`） | プロジェクトをコンパイルしてライブワークスペースを開く／更新。省略時は `\documentclass` を走査して主ファイルを自動判定。 |
+| `check_comments` | `includeResolved?`（既定 `false`） | 受理済みコメントを**位置情報付きの作業項目**として返す——ページ、引用箇所、対応するソースの `ファイル:行`、依頼内容。判断待ちの reviewer 提案は通知されるだけで作業としては返らない。 |
+| `add_comment` | `quote` · `comment` · `role?`（`reviewer` \| `defender`）· `page?` · `accepted?` | コメントを本文に固定する。既定では Accept/Reject 待ちの**提案**として投稿され、`accepted` を立てたときだけ即有効——このフラグこそが自律モードを自律たらしめている。 |
+| `resolve_comment` | `id` · `note` | 編集後にコメントを完了扱いにし、変更内容を一行で記す。ワークスペースで**緑**になり、確認待ちになる。 |
+| `reply_to_comment` | `id` · `text` · `role?`（`author` \| `reviewer` \| `defender`） | コメントにスレッド返信を追加。意見の相違をチャットではなくコメント上で解消できる。 |
+| `show_diff` | `checkpoint?` | 並列 diff を**画像**として描画し、会話内にインライン表示。既定は未コミットの変更、checkpoint の sha を渡せばその保存版。 |
+| `list_checkpoints` | `limit?`（既定 10、最大 50） | 最近の checkpoint と sha を新しい順に一覧——`show_diff` に渡すものを探すために使う。 |
+
+**看板機能はこれらの上に構築されており、この表の中にはありません。** `/magic-latex`・`/ai-review`・`/address-comments`・⚡ `/ultra-agents` は Claude Code の**プラグインコマンド**で、上の各ツールを組み立てて動かします——`/ultra-agents` は「レビュー → 自動承認 → 修正」を許可したラウンド数だけ連鎖させるもので、`add_comment` の `accepted` はそのために存在します。MCP のインターフェース層には含まれないため、他の MCP クライアントからはこの 7 つだけが見えます。上のプラグイン節と [docs/AGENT-LOOP.ja.md](AGENT-LOOP.ja.md) を参照。
 
 ## ドキュメント
 

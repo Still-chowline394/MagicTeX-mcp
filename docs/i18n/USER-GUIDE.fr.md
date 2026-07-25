@@ -41,7 +41,7 @@ près. La règle à enseigner : *l'outil est `X` → tapez `/X`*.
 | `/resolve_comment [id] [note]` | `resolve_comment` | Marque un commentaire fait après l'édition ; il passe au **vert** pour votre relecture. |
 | `/add_comment ["citation"] [note]` | `add_comment` | Ancre un commentaire sur un passage à accepter/refuser. |
 | `/reply_to_comment [id] [texte]` | `reply_to_comment` | Ajoute une réponse au fil d'un commentaire. |
-| `/show_diff [sha]` | `show_diff` | Diff visuel côte à côte en image (modifications actuelles ou un checkpoint). |
+| `/show_diff [checkpoint]` | `show_diff` | Diff visuel côte à côte en image (modifications actuelles ou un checkpoint). |
 | `/list_checkpoints [limit]` | `list_checkpoints` | Checkpoints récents avec leur sha — pour en passer un à `/show_diff`. |
 
 Rien ne vous oblige à les taper : le langage naturel marche aussi (*« affiche un aperçu »*,

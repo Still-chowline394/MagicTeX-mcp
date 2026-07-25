@@ -147,15 +147,38 @@ single step by typing the tool name. The rule to teach: *the tool is `X` → typ
 | `/resolve_comment [id] [note]` | `resolve_comment` | Mark a comment done after the edit; it turns **green** for your review. |
 | `/add_comment ["quote"] [note]` | `add_comment` | Anchor a comment onto a passage for you to Accept/Reject. |
 | `/reply_to_comment [id] [text]` | `reply_to_comment` | Add a threaded reply to a comment. |
-| `/show_diff [sha]` | `show_diff` | Side-by-side visual diff as an image (current changes, or a checkpoint). |
+| `/show_diff [checkpoint]` | `show_diff` | Side-by-side visual diff as an image (current changes, or a checkpoint). |
 | `/list_checkpoints [limit]` | `list_checkpoints` | Recent checkpoints with their sha, newest first — find one to pass into `/show_diff`. |
 
 You never *have* to type these — plain English works too (*"render a preview"*,
 *"address my comments"*). The commands are just a fast, teachable shorthand.
 
-> The plugin's bundled MCP server runs `npx magictex-mcp`, so it works once the
-> package is published to npm. Until then, keep the `.mcp.json` above for the server;
-> the slash commands work either way.
+> The plugin bundles the MCP server (`npx magictex-mcp`), so installing the plugin is
+> all you need — the `.mcp.json` above is the alternative if you'd rather not install
+> a plugin. The slash commands work either way.
+
+## Tools
+
+The MCP surface, for any client that speaks MCP. (In Claude Code you can just ask in
+plain English, or use the slash commands above — these are the underlying tools.)
+
+| Tool | Parameters | What it does |
+| ---- | ---------- | ------------ |
+| `render_preview` | `mainFile?` · `engine?` (`pdflatex` \| `xelatex` \| `lualatex`, default `xelatex`) · `backend?` (`wasm` \| `system` \| `auto`, default `wasm`) | Compiles the project and opens/refreshes the live workspace. The main file is auto-detected by scanning for `\documentclass` if omitted. |
+| `check_comments` | `includeResolved?` (default `false`) | Returns the accepted comments as located work items — page, quoted passage, the source `file:line`, and the ask. Reviewer suggestions awaiting your decision are reported but not returned as work. |
+| `add_comment` | `quote` · `comment` · `role?` (`reviewer` \| `defender`) · `page?` · `accepted?` | Anchors a comment onto a passage. Posts as a *suggestion* awaiting your Accept/Reject unless `accepted` is set — that flag is what makes autonomous mode autonomous. |
+| `resolve_comment` | `id` · `note` | Marks a comment done after the edit, with one line describing what changed. It turns **green** in the workspace for your review. |
+| `reply_to_comment` | `id` · `text` · `role?` (`author` \| `reviewer` \| `defender`) | Adds a threaded reply, so a disagreement can be worked out on the comment instead of in chat. |
+| `show_diff` | `checkpoint?` | Renders a side-by-side diff **as an image**, shown inline in the conversation. Defaults to the current uncommitted changes; pass a checkpoint sha for a saved version. |
+| `list_checkpoints` | `limit?` (default 10, max 50) | Recent checkpoints with their sha, newest first — use it to find one to pass to `show_diff`. |
+
+**The headline workflows are built on top of these, not among them.** `/magic-latex`,
+`/ai-review`, `/address-comments` and ⚡ `/ultra-agents` are Claude Code plugin
+commands that orchestrate the tools above — `/ultra-agents` chains review →
+auto-accept → fix for as many rounds as you allow, and is the reason `add_comment`
+takes an `accepted` flag. They are not part of the MCP surface, so another MCP client
+sees the seven tools only. See [the plugin section](#install-as-a-claude-code-plugin-slash-commands)
+and [docs/AGENT-LOOP.md](docs/AGENT-LOOP.md).
 
 ## See it in the terminal
 
