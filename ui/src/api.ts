@@ -65,6 +65,26 @@ export async function fetchOverleafLink(): Promise<string | null> {
   try { return (await (await fetch('/overleaf/link')).json()).url ?? null; } catch { return null; }
 }
 
+/** Trigger a compile now (the toolbar's manual "Recompile"). */
+export async function recompile(): Promise<void> {
+  try { await fetch('/api/recompile', { method: 'POST' }); } catch { /* ignore */ }
+}
+
+/** The document's \title{…} (from the main .tex) for the header, if any. */
+export async function fetchDocTitle(): Promise<string | null> {
+  try {
+    const files: string[] = await (await fetch('/api/files')).json();
+    for (const f of files) {
+      if (!/\.tex$/i.test(f)) continue;
+      const src = await (await fetch(`/api/file?path=${encodeURIComponent(f)}`)).text();
+      if (!/\\documentclass/.test(src)) continue;
+      const m = src.match(/\\title\s*(?:\[[^\]]*\])?\s*\{((?:[^{}]|\{[^{}]*\})*)\}/);
+      if (m) return m[1].replace(/\\\\|\\thanks\{[^}]*\}/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
 /** Live channel: connection state + a bump counter that increments on each reload. */
 export function useLive(onMessage?: (m: WsMessage) => void) {
   const [status, setStatus] = useState<Status>('connecting');

@@ -160,6 +160,18 @@ export function startPreviewServer(): Promise<PreviewServerHandle> {
       }
     }
 
+    // Manual recompile (the toolbar's "Recompile" button). Imported lazily to
+    // avoid a static import cycle with the coordinator (which holds this server).
+    if (pathname === '/api/recompile' && req.method === 'POST') {
+      try {
+        const { requestCompile } = await import('../coordinator.js');
+        const r = await requestCompile();
+        return json(res, { ok: r.success });
+      } catch (e) {
+        res.writeHead(500, ISOLATION_HEADERS).end(String((e as Error).message)); return;
+      }
+    }
+
     // Overleaf export — a clean upload zip (build inputs only).
     if (pathname === '/export.zip') {
       try {

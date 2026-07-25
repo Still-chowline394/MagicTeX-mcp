@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchOverleafLink, type Status } from '../api';
+import { fetchOverleafLink, fetchDocTitle, recompile, type Status } from '../api';
 
 const STATUS_LABEL: Record<Status, string> = {
   connecting: 'connecting…',
@@ -10,12 +10,16 @@ const STATUS_LABEL: Record<Status, string> = {
   disconnected: 'disconnected',
 };
 
-export function Toolbar({ status, pages, pdfName }: { status: Status; pages: number; pdfName: string }) {
+export function Toolbar({ status, pages, pdfName, reloadTick }: { status: Status; pages: number; pdfName: string; reloadTick: number }) {
   const [overleafUrl, setOverleafUrl] = useState<string | null>(null);
   const [hasPdf, setHasPdf] = useState(false);
+  const [title, setTitle] = useState<string | null>(null);
 
   useEffect(() => { fetchOverleafLink().then(setOverleafUrl); }, []);
   useEffect(() => { if (status === 'ok') setHasPdf(true); }, [status]);
+  // Refresh the \title after each compile (it may have been edited).
+  useEffect(() => { fetchDocTitle().then(setTitle); }, [reloadTick]);
+  const compiling = status === 'compiling';
 
   const downloadPdf = async () => {
     const res = await fetch('/latest.pdf?t=' + Date.now());
@@ -35,7 +39,11 @@ export function Toolbar({ status, pages, pdfName }: { status: Status; pages: num
 
   return (
     <div className="toolbar">
-      <strong>LaTeX Workspace</strong>
+      <strong className="brand" title={title ?? undefined}>{title ?? 'LaTeX Workspace'}</strong>
+      <button className="recompile on" onClick={() => void recompile()} disabled={compiling}
+              title="Compile now">
+        {compiling ? '⟳ Compiling…' : '⟳ Recompile'}
+      </button>
       <span className={`status status-${status}`}>{STATUS_LABEL[status]}</span>
       {pages > 0 && <span className="meta">{pages} page{pages === 1 ? '' : 's'}</span>}
       <span className="spacer" />

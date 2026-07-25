@@ -93,7 +93,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <Toolbar status={status} pages={pages} pdfName={pdfName} />
+      <Toolbar status={status} pages={pages} pdfName={pdfName} reloadTick={reloadTick} />
       <div className="layout">
         <div className={`left ${leftOpen ? '' : 'closed'}`} style={leftOpen ? { flexBasis: leftWidth } : undefined}>
           <div className="tabs">

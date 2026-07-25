@@ -158,6 +158,26 @@ export function SourcePanel({
     })();
   }, [syncTarget, files, openFile, jumpToLine]);
 
+  // ── Formatting toolbar: wrap the selection (or insert a snippet) ────────
+  const wrapSelection = useCallback((before: string, after: string, placeholder = '') => {
+    const view = cmRef.current?.view;
+    if (!view) return;
+    const { from, to } = view.state.selection.main;
+    const sel = view.state.sliceDoc(from, to) || placeholder;
+    const insert = before + sel + after;
+    const caret = from + before.length + sel.length; // after the wrapped text
+    view.dispatch({ changes: { from, to, insert }, selection: { anchor: caret } });
+    view.focus();
+  }, []);
+
+  const insertAtLineStart = useCallback((text: string) => {
+    const view = cmRef.current?.view;
+    if (!view) return;
+    const line = view.state.doc.lineAt(view.state.selection.main.head);
+    view.dispatch({ changes: { from: line.from, insert: text }, selection: { anchor: line.from + text.length } });
+    view.focus();
+  }, []);
+
   // source → PDF: on a click in the editor, send the current line's prose out.
   const emitSyncFromCursor = useCallback(() => {
     const view = cmRef.current?.view;
@@ -201,6 +221,20 @@ export function SourcePanel({
               ⚡ Live
             </button>
             <button onClick={() => void save()} disabled={!dirty && saveState !== 'error'}>Save</button>
+          </div>
+          <div className="format-bar">
+            <button title="Bold" onClick={() => wrapSelection('\\textbf{', '}', 'bold')}><b>B</b></button>
+            <button title="Italic" onClick={() => wrapSelection('\\emph{', '}', 'italic')}><i>I</i></button>
+            <span className="fb-sep" />
+            <button title="Section" onClick={() => insertAtLineStart('\\section{}')}>H1</button>
+            <button title="Subsection" onClick={() => insertAtLineStart('\\subsection{}')}>H2</button>
+            <span className="fb-sep" />
+            <button title="Bullet list" onClick={() => wrapSelection('\\begin{itemize}\n  \\item ', '\n\\end{itemize}', '')}>•</button>
+            <button title="Numbered list" onClick={() => wrapSelection('\\begin{enumerate}\n  \\item ', '\n\\end{enumerate}', '')}>1.</button>
+            <span className="fb-sep" />
+            <button title="Inline math" onClick={() => wrapSelection('$', '$', 'x')}>√x</button>
+            <button title="Display equation" onClick={() => wrapSelection('\\[\n  ', '\n\\]', '')}>∑</button>
+            <button title="Citation" onClick={() => wrapSelection('\\cite{', '}', 'key')}>[ ]</button>
           </div>
           <div className="editor-scroll" onClick={emitSyncFromCursor}>
             <CodeMirror

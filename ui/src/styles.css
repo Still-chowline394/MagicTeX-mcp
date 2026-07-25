@@ -8,6 +8,8 @@ body { font-family: system-ui, sans-serif; background: #1e1f22; color: #ddd; fon
 /* ── Toolbar ─────────────────────────────────────────────── */
 .toolbar { flex: 0 0 auto; display: flex; align-items: center; gap: 12px; padding: 7px 12px;
            background: #2b2d31; border-bottom: 1px solid #17181a; }
+.brand { max-width: 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recompile { padding: 3px 10px; }
 .status { padding: 2px 8px; border-radius: 3px; }
 .status-ok { color: #7ee787; } .status-error { color: #ff7b72; }
 .status-compiling { color: #ffcf6b; } .status-connecting, .status-disconnected { color: #999; }
@@ -39,7 +41,8 @@ a.linkbtn:hover { background: #18a862; }
 body.resizing { cursor: col-resize; user-select: none; }
 body.resizing .pdf-scroll, body.resizing .editor-scroll { pointer-events: none; }
 
-.edge-open { position: absolute; top: 8px; z-index: 5; padding: 4px 8px; }
+/* Sits below the tab / PDF-control rows so it never overlaps the zoom controls. */
+.edge-open { position: absolute; top: 46px; z-index: 5; padding: 4px 8px; }
 
 /* Crash cards (ErrorBoundary) + load errors — never a silent black void */
 .crash { margin: 12px; padding: 12px; background: #3a2626; border: 1px solid #5c3030; border-radius: 6px; }
@@ -54,6 +57,16 @@ body.resizing .pdf-scroll, body.resizing .editor-scroll { pointer-events: none; 
 .panel-hint { padding: 14px; color: #999; line-height: 1.5; }
 
 /* ── PDF ─────────────────────────────────────────────────── */
+.pdf-wrap { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.pdf-toolbar { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 5px 10px;
+               background: #2b2d31; border-bottom: 1px solid #17181a; color: #ccc; }
+.pdf-toolbar .pager, .pdf-toolbar .zoom { display: flex; align-items: center; gap: 4px; }
+.pdf-toolbar .of { color: #999; }
+.page-input { width: 42px; text-align: center; background: #1e1f22; color: #ddd;
+              border: 1px solid #45484e; border-radius: 4px; padding: 2px 4px; font: inherit; }
+.zoom-val { min-width: 52px; background: #3a3d42; border: 1px solid #55585e; }
+.pdf-toolbar button.ghost { color: #bbb; font-size: 11px; padding: 3px 7px; }
+
 /* position:relative is load-bearing: the comment composer is positioned in this
    element's scroll-content space — without it, coordinates resolve against the
    outer layout and the composer drifts far from the selection. */
@@ -107,6 +120,10 @@ body.resizing .pdf-scroll, body.resizing .editor-scroll { pointer-events: none; 
                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .save-state { font-size: 12px; }
 .save-saved { color: #7ee787; } .save-error { color: #ff7b72; } .save-saving { color: #ffcf6b; }
+.format-bar { flex: 0 0 auto; display: flex; align-items: center; gap: 3px; flex-wrap: wrap;
+              padding: 4px 8px; border-bottom: 1px solid #17181a; background: #26282c; }
+.format-bar button { padding: 2px 8px; min-width: 26px; font-size: 12px; background: #3a3d42; }
+.format-bar .fb-sep { width: 1px; align-self: stretch; background: #3a3d42; margin: 2px 3px; }
 .editor-scroll { flex: 1 1 auto; min-height: 0; overflow: hidden; }
 .editor-scroll .cm-editor { height: 100%; font-size: 12.5px; }
 .editor-scroll .cm-scroller { overflow: auto; }
