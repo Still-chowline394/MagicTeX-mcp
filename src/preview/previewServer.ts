@@ -173,6 +173,11 @@ export function startPreviewServer(): Promise<PreviewServerHandle> {
         if (req.method === 'DELETE') {
           const id = reqUrl.searchParams.get('id') ?? '';
           const ok = await deleteComment(root, id);
+          // 404 like PATCH and /reply above, rather than 200 with ok:false — a
+          // caller checking res.ok would otherwise read a no-op as a success.
+          // Broadcasting only on a real deletion also spares every connected
+          // client a refetch when several agents are working at once.
+          if (!ok) { res.writeHead(404, ISOLATION_HEADERS).end('unknown comment'); return; }
           send({ type: 'comments-changed' });
           return json(res, { ok });
         }
