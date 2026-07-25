@@ -10,6 +10,13 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# This job only checks out the repo and runs npm — it never writes issues, pull
+# requests, packages, checks or deployments. Without this block the GITHUB_TOKEN
+# would inherit the repository default, which is broader, on a public workflow
+# that runs `npm ci` for fork pull requests.
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
