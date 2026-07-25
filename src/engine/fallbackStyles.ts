@@ -1,5 +1,5 @@
 // Common LaTeX packages that busytex's bundled TeX Live subset omits (the
-// algorithms / algorithmicx family). We vendor their .sty under
+// algorithms / algorithmicx family, multirow, bbm). We vendor their .sty under
 // assets/fallback-styles and inject them at compile time when the project
 // doesn't already ship its own copy — so real papers using these still render
 // without a self-hosted package server. Font-based packages (e.g. bbm) can't be

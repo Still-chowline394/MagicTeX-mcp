@@ -112,7 +112,7 @@ MCP server **and** the slash commands:
 /plugin install magictex
 ```
 
-Then, in your paper project:
+Then, in your paper project, use the **workflow commands** for the common flows:
 
 - **`/magic-latex`** — compile and open the workspace (the live preview).
 - **`/ai-review [skill]`** — review the paper with a skill (default
@@ -120,6 +120,24 @@ Then, in your paper project:
   Accept/Reject. Missing skills are reported with an install hint.
 - **`/address-comments`** — resolve your accepted comments (loop it with
   `/loop 60s /address-comments`).
+
+### One command per tool
+
+Every MCP tool also has a slash command with the **same name**, so you can drive any
+single step by typing the tool name. The rule to teach: *the tool is `X` → type
+`/X`.*
+
+| Type this      | Runs tool         | What it does |
+| -------------- | ----------------- | ------------ |
+| `/render_preview` | `render_preview` | Compile the paper and open/refresh the live preview. |
+| `/check_comments` | `check_comments` | List the comments you've accepted, as edit instructions (no edits yet). |
+| `/resolve_comment [id] [note]` | `resolve_comment` | Mark a comment done after the edit; it turns **green** for your review. |
+| `/add_comment ["quote"] [note]` | `add_comment` | Anchor a comment onto a passage for you to Accept/Reject. |
+| `/reply_to_comment [id] [text]` | `reply_to_comment` | Add a threaded reply to a comment. |
+| `/show_diff [sha]` | `show_diff` | Side-by-side visual diff as an image (current changes, or a checkpoint). |
+
+You never *have* to type these — plain English works too (*"render a preview"*,
+*"address my comments"*). The commands are just a fast, teachable shorthand.
 
 > The plugin's bundled MCP server runs `npx magictex-mcp`, so it works once the
 > package is published to npm. Until then, keep the `.mcp.json` above for the server;

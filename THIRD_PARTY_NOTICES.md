@@ -34,6 +34,7 @@ All are **LPPL** (LaTeX Project Public License) and redistributable:
 |---|---|---|
 | `algorithm.sty`, `algorithmic.sty` | [`algorithms`](https://ctan.org/pkg/algorithms) | Rogério Brito et al. |
 | `algorithmicx.sty`, `algpseudocode.sty` | [`algorithmicx`](https://ctan.org/pkg/algorithmicx) | Szász János |
+| `multirow.sty` (v2.9, verbatim) | [`multirow`](https://ctan.org/pkg/multirow) | Jerry Leichter, Pieter van Oostrum |
 
 `assets/fallback-styles/bbm.sty` is **not** the real `bbm` package (that needs fonts
 absent from the WASM subset). It is a small **preview shim** written for this project

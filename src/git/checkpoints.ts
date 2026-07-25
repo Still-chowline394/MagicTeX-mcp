@@ -86,9 +86,11 @@ export async function listCheckpoints(root: string): Promise<Checkpoint[]> {
   return checkpoints;
 }
 
-// Hide MagicTeX's own state (the comments store) from every diff view — it's not
-// part of the user's paper. Passed as a git exclude pathspec.
-const EXCLUDE_TOOL = ['--', '.', ':(exclude).latex-preview'];
+// Hide non-paper noise from every diff view: MagicTeX's own state (the comments
+// store under .latex-preview) and Claude Code's editor/agent config (.claude —
+// e.g. slash-command .md files). Neither is part of the user's paper. Passed as
+// git exclude pathspecs.
+const EXCLUDE_TOOL = ['--', '.', ':(exclude).latex-preview', ':(exclude).claude'];
 
 /** Current uncommitted changes vs HEAD (or everything, if there's no commit yet). */
 export async function getWorkingDiff(root: string): Promise<string> {
