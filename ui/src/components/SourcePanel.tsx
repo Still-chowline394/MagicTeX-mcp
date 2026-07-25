@@ -16,6 +16,7 @@ import { undo, redo } from '@codemirror/commands';
 import { latex } from 'codemirror-lang-latex';
 import { normalize, phrase, stripLatex } from '../sync';
 import { visualMode } from '../visual';
+import { FileTree } from './FileTree';
 
 const LIVE_DEBOUNCE_MS = 1200; // Live mode: recompile this long after you stop typing
 const AUTOSAVE_MS = 30000;      // safety net: persist edits (no recompile) every 30s
@@ -218,13 +219,7 @@ export function SourcePanel({
 
   return (
     <div className="source">
-      <div className="file-list">
-        {files.map((f) => (
-          <button key={f} className={`file ${f === active ? 'on' : ''}`} onClick={() => openFile(f)} title={f}>
-            {f}{f === active && dirty ? ' •' : ''}
-          </button>
-        ))}
-      </div>
+      <FileTree active={active} onOpen={openFile} refreshKey={reloadTick} />
       {loadError && <div className="panel-hint load-error">{loadError}</div>}
       {active && (
         <>

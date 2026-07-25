@@ -127,6 +127,25 @@ body.resizing .pdf-scroll, body.resizing .editor-scroll { pointer-events: none; 
 .source { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
 .file-list { flex: 0 0 auto; max-height: 28%; overflow: auto; border-bottom: 1px solid #17181a;
              display: flex; flex-direction: column; }
+
+/* Overleaf-style file tree */
+.file-tree { flex: 0 0 auto; max-height: 34%; display: flex; flex-direction: column;
+             border-bottom: 1px solid #17181a; }
+.tree-head { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; padding: 5px 8px;
+             color: #999; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.tree-head button { font-size: 11px; padding: 2px 7px; }
+.tree-body { flex: 1 1 auto; overflow: auto; }
+.tree-row { display: flex; align-items: center; gap: 4px; padding: 3px 8px 3px 0; cursor: pointer;
+            color: #bbb; white-space: nowrap; }
+.tree-row:hover { background: #2e3136; }
+.tree-row.on { background: #24344f; color: #fff; }
+.tree-caret { width: 12px; text-align: center; color: #888; flex: 0 0 auto; }
+.tree-icon { flex: 0 0 auto; font-size: 12px; }
+.tree-name { overflow: hidden; text-overflow: ellipsis; }
+.tree-actions { margin-left: auto; display: none; gap: 2px; padding-right: 6px; }
+.tree-row:hover .tree-actions { display: flex; }
+.tree-actions button { background: none; border: none; color: #9aa3ad; padding: 0 4px; font-size: 12px; }
+.tree-actions button:hover { color: #fff; background: none; }
 .file { text-align: left; background: none; border: none; border-radius: 0; padding: 5px 12px;
         color: #bbb; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .file:hover { background: #2e3136; }

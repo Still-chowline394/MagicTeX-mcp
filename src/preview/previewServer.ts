@@ -14,7 +14,7 @@ import { hostPageHtml } from '../engine/hostPage.js';
 import { viewerPageHtml } from './viewerPage.js';
 import { diffViewHtml } from './diffViewPage.js';
 import { isGitRepo, listCheckpoints, getCheckpointDiff, getWorkingDiff } from '../git/checkpoints.js';
-import { listTextFiles, readTextFile, writeTextFile } from './filesApi.js';
+import { listTextFiles, readTextFile, writeTextFile, listTree, createTextFile, createDir, renameEntry, deleteEntry } from './filesApi.js';
 import { suppressNextChange } from '../watch/fileWatcher.js';
 import { listComments, addComment, updateComment, deleteComment, addReply } from './commentsStore.js';
 import { getGitHubRemote } from '../git/remote.js';
@@ -163,6 +163,30 @@ export function startPreviewServer(): Promise<PreviewServerHandle> {
     if (pathname === '/api/files') {
       try { return json(res, await listTextFiles(getProjectRoot())); }
       catch (e) { res.writeHead(500, ISOLATION_HEADERS).end(String((e as Error).message)); return; }
+    }
+
+    // File tree (folders + editable files) for the Overleaf-style panel.
+    if (pathname === '/api/tree') {
+      try { return json(res, await listTree(getProjectRoot())); }
+      catch (e) { res.writeHead(500, ISOLATION_HEADERS).end(String((e as Error).message)); return; }
+    }
+
+    // File-system mutations: new file / new folder / rename / delete.
+    if (pathname === '/api/fs' && req.method === 'POST') {
+      const root = getProjectRoot();
+      try {
+        const chunks: Buffer[] = [];
+        for await (const c of req) chunks.push(c as Buffer);
+        const { op, path: rel, to } = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+        if (op === 'mkfile') await createTextFile(root, rel);
+        else if (op === 'mkdir') await createDir(root, rel);
+        else if (op === 'rename') await renameEntry(root, rel, to);
+        else if (op === 'delete') await deleteEntry(root, rel);
+        else throw new Error('unknown op');
+        return json(res, { ok: true });
+      } catch (e) {
+        res.writeHead(400, ISOLATION_HEADERS).end(String((e as Error).message)); return;
+      }
     }
     if (pathname === '/api/file') {
       const rel = reqUrl.searchParams.get('path') ?? '';

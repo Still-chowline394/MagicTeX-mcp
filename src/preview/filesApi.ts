@@ -2,8 +2,8 @@
 // Writes go straight to disk — the file watcher then recompiles and the WS
 // reload refreshes the PDF, so "save in the browser editor" reuses the exact
 // same live loop as any other edit (Claude's or an external editor's).
-import { readdir, readFile, writeFile } from 'node:fs/promises';
-import { join, normalize, relative, resolve, sep } from 'node:path';
+import { readdir, readFile, writeFile, mkdir, rename, rm, stat } from 'node:fs/promises';
+import { dirname, join, normalize, relative, resolve, sep } from 'node:path';
 
 const TEXT_EXT = /\.(tex|bib|cls|sty|bst|cfg|clo|def|ldf|fd|bbx|cbx|lbx|txt|md)$/i;
 const SKIP_DIRS = new Set(['.git', 'node_modules', '.latex-preview', '.vscode', '__pycache__']);
@@ -37,13 +37,64 @@ export async function listTextFiles(root: string): Promise<string[]> {
   });
 }
 
-/** Resolve a client-supplied relative path safely inside the project root. */
-function guard(root: string, rel: string): string {
-  if (!TEXT_EXT.test(rel)) throw new Error('unsupported file type');
-  const full = normalize(resolve(root, rel));
+export interface TreeNode { name: string; path: string; type: 'file' | 'dir'; children?: TreeNode[] }
+
+/** Nested tree of folders + editable text files (Overleaf-style file tree). */
+export async function listTree(root: string): Promise<TreeNode[]> {
+  async function walk(dir: string): Promise<TreeNode[]> {
+    const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
+    const nodes: TreeNode[] = [];
+    for (const e of entries) {
+      const full = join(dir, e.name);
+      const rel = toPosix(relative(root, full));
+      if (e.isDirectory()) {
+        if (SKIP_DIRS.has(e.name) || e.name.startsWith('.')) continue;
+        nodes.push({ name: e.name, path: rel, type: 'dir', children: await walk(full) });
+      } else if (e.isFile() && TEXT_EXT.test(e.name)) {
+        nodes.push({ name: e.name, path: rel, type: 'file' });
+      }
+    }
+    // folders first, then main.tex, then alphabetical.
+    return nodes.sort((a, b) =>
+      (a.type === b.type ? 0 : a.type === 'dir' ? -1 : 1) ||
+      (/^main\.tex$/i.test(a.name) ? -1 : /^main\.tex$/i.test(b.name) ? 1 : 0) ||
+      a.name.localeCompare(b.name));
+  }
+  return walk(root);
+}
+
+/** Resolve a client path safely inside the root. `requireText` for edit ops. */
+function guardPath(root: string, rel: string, requireText = false): string {
+  const clean = String(rel).replace(/^[/\\]+/, '');
+  if (!clean || clean.split(/[/\\]/).some((s) => s === '..' || s === '.')) throw new Error('invalid path');
+  if (requireText && !TEXT_EXT.test(clean)) throw new Error('unsupported file type');
+  const full = normalize(resolve(root, clean));
   const rootAbs = normalize(resolve(root)) + sep;
   if (!full.startsWith(rootAbs)) throw new Error('path outside project');
+  if (SKIP_DIRS.has(clean.split(/[/\\]/)[0])) throw new Error('protected directory');
   return full;
+}
+
+const guard = (root: string, rel: string) => guardPath(root, rel, true);
+
+export async function createTextFile(root: string, rel: string): Promise<void> {
+  const full = guard(root, rel);
+  if (await stat(full).then(() => true, () => false)) throw new Error('file already exists');
+  await mkdir(dirname(full), { recursive: true });
+  await writeFile(full, '', 'utf8');
+}
+
+export async function createDir(root: string, rel: string): Promise<void> {
+  await mkdir(guardPath(root, rel), { recursive: true });
+}
+
+export async function renameEntry(root: string, from: string, to: string): Promise<void> {
+  await mkdir(dirname(guardPath(root, to)), { recursive: true });
+  await rename(guardPath(root, from), guardPath(root, to));
+}
+
+export async function deleteEntry(root: string, rel: string): Promise<void> {
+  await rm(guardPath(root, rel), { recursive: true, force: true });
 }
 
 export async function readTextFile(root: string, rel: string): Promise<string> {

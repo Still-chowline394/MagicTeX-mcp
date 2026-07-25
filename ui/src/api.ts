@@ -76,6 +76,19 @@ export async function fetchOverleafLink(): Promise<string | null> {
   try { return (await (await fetch('/overleaf/link')).json()).url ?? null; } catch { return null; }
 }
 
+export interface TreeNode { name: string; path: string; type: 'file' | 'dir'; children?: TreeNode[] }
+export async function fetchTree(): Promise<TreeNode[]> {
+  const r = await fetch('/api/tree');
+  return r.ok ? r.json() : [];
+}
+/** File-system op: mkfile | mkdir | rename | delete. Returns an error string or null. */
+export async function fsOp(op: string, path: string, to?: string): Promise<string | null> {
+  const r = await fetch('/api/fs', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ op, path, to }),
+  });
+  return r.ok ? null : (await r.text()) || 'operation failed';
+}
+
 /** Trigger a compile now (the toolbar's manual "Recompile"). */
 export async function recompile(): Promise<void> {
   try { await fetch('/api/recompile', { method: 'POST' }); } catch { /* ignore */ }
