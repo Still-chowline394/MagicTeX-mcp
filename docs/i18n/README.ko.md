@@ -23,6 +23,13 @@ Code 에 연결되는 Overleaf 스타일의 **단일 창 작업 공간**으로, 
 ([texlyre-busytex](https://github.com/TeXlyre/texlyre-busytex))으로 컴파일하므로, 수 GB를
 설치할 필요가 없습니다 — 한 번만 WASM 자산을 내려받으면 됩니다.
 
+## 설치 전에 먼저 보기
+
+**[zoelin.dev/tools/magictex](https://zoelin.dev/tools/magictex)** 에 코멘트 → 에이전트 루프를
+단계별로 따라가는 워크스루가 있습니다. 모든 내용은 실제 도구 출력에서 가져왔습니다. 호스팅된
+인스턴스가 아니라 리플레이입니다——TeX 엔진은 약 480 MB를 한 번 내려받아야 하고, 에이전트 쪽
+절반은 Claude 그 자체이므로, MagicTeX는 웹페이지 안이 아니라 당신의 프로젝트 옆에서 실행됩니다.
+
 ## 작업 공간
 
 하나의 브라우저 창(Typst의 단일 화면 편집과 LiquidText의 고정 주석에서 영감):

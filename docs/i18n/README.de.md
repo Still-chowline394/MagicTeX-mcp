@@ -24,6 +24,14 @@ Kompiliert wird mit einer WASM-TeX-Live-2026-Engine
 ([texlyre-busytex](https://github.com/TeXlyre/texlyre-busytex)) in einem Headless-Browser — es
 gibt also nichts Mehrere-GB-Großes zu installieren, nur einen einmaligen WASM-Asset-Download.
 
+## Vor der Installation ansehen
+
+Unter **[zoelin.dev/tools/magictex](https://zoelin.dev/tools/magictex)** gibt es einen
+geführten Durchlauf der Kommentar-→-Agent-Schleife, gebaut aus echter Tool-Ausgabe. Es ist
+ein Replay, keine gehostete Instanz — die TeX-Engine ist ein einmaliger Download von
+~480 MB, und die Agent-Hälfte ist Claude selbst. MagicTeX läuft daher neben deinem Projekt,
+nicht in einer Webseite.
+
 ## Der Arbeitsbereich
 
 Ein einziges Browserfenster (inspiriert von Typsts Ein-Flächen-Editor und LiquidTexts

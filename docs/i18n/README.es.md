@@ -25,6 +25,14 @@ Compila con un motor WASM TeX Live 2026
 navegador headless, así que no hay nada de varios GB que instalar — solo una descarga única
 de recursos WASM.
 
+## Véalo antes de instalar
+
+En **[zoelin.dev/tools/magictex](https://zoelin.dev/tools/magictex)** hay un recorrido guiado
+del bucle comentario → agente, construido con salida real de la herramienta. Es una
+repetición, no una instancia alojada: el motor TeX es una descarga única de ~480 MB y la
+mitad del agente es el propio Claude, así que MagicTeX corre junto a tu proyecto, no en una
+página web.
+
 ## El espacio de trabajo
 
 Una sola ventana del navegador (inspirada en la edición de una superficie de Typst y las
