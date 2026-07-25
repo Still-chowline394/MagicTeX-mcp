@@ -78,7 +78,9 @@ export function PdfView({
         hlDiv.className = 'hl-layer';
         wrap.appendChild(hlDiv);
         next.appendChild(wrap);
-        await pg.render({ canvasContext: canvas.getContext('2d')!, viewport: vp }).promise;
+        // pdf.js v5 made `canvas` the required parameter and demoted
+        // `canvasContext` to a back-compat alias, so pass the element.
+        await pg.render({ canvas, viewport: vp }).promise;
         const textLayer = new pdfjs.TextLayer({ textContentSource: pg.streamTextContent(), container: textDiv, viewport: vp });
         await textLayer.render();
       }

@@ -132,7 +132,11 @@ export function viewerPageHtml(): string {
         const canvas = document.createElement('canvas');
         canvas.width = vp.width; canvas.height = vp.height;
         pagesEl.appendChild(canvas);
-        await pg.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+        // Same v6 signature as the workspace's PdfView: pass the canvas element.
+        // This file is a template string, so no type check guards it — it has to
+        // be kept in step by hand. It is still reachable: server.ts falls back to
+        // /viewer whenever ui/dist hasn't been built.
+        await pg.render({ canvas, viewport: vp }).promise;
       }
       metaEl.textContent = doc.numPages + ' page' + (doc.numPages === 1 ? '' : 's');
       errEl.style.display = 'none';
