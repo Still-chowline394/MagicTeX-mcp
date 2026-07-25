@@ -1,6 +1,6 @@
 {
   "name": "magictex-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MagicTeX — a LaTeX editor for AI agents (Claude Code), via an MCP server: live PDF preview, an editable source panel with a Visual (WYSIWYG) mode, anchored PDF comments that drive edits, and git-backed history. Compiles your .tex with a WASM TeX Live engine in a headless browser — no local TeX install, no Overleaf account.",
   "type": "module",
   "license": "AGPL-3.0-or-later",

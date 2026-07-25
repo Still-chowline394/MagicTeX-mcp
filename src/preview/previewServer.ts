@@ -7,7 +7,8 @@
 // need cross-origin isolation (spike finding).
 import { createServer, type Server, type ServerResponse } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
-import { extname, join, normalize } from 'node:path';
+import { dirname, extname, join, normalize } from 'node:path';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { hostPageHtml } from '../engine/hostPage.js';
@@ -23,10 +24,24 @@ import { resolveMainFile } from '../project/resolveMainFile.js';
 import { getProjectRoot } from '../session.js';
 
 const PKG_ROOT = fileURLToPath(new URL('../..', import.meta.url));
-const ENGINE_DIST = join(PKG_ROOT, 'node_modules', 'texlyre-busytex', 'dist');
+
+// Locate a dependency's install directory via Node's OWN resolver rather than
+// assuming `<pkg-root>/node_modules/<dep>`. When MagicTeX is installed from npm,
+// npm hoists dependencies to the CONSUMER's top-level node_modules, so that
+// assumed path doesn't exist and every asset below 404s — which silently breaks
+// the compile engine, since the engine only loads on the first render_preview.
+// It only looked fine in development because a cloned repo does have its own
+// node_modules. Resolving `<dep>/package.json` walks the real lookup chain, so
+// it works hoisted, nested, or linked.
+const require = createRequire(import.meta.url);
+function depDir(pkg: string): string {
+  return dirname(require.resolve(`${pkg}/package.json`));
+}
+
+const ENGINE_DIST = join(depDir('texlyre-busytex'), 'dist');
 const BUSYTEX_ASSETS = join(PKG_ROOT, 'assets', 'busytex');
-const PDFJS_ROOT = join(PKG_ROOT, 'node_modules', 'pdfjs-dist');
-const DIFF2HTML_ROOT = join(PKG_ROOT, 'node_modules', 'diff2html', 'bundles');
+const PDFJS_ROOT = depDir('pdfjs-dist');
+const DIFF2HTML_ROOT = join(depDir('diff2html'), 'bundles');
 const UI_DIST = join(PKG_ROOT, 'ui', 'dist');
 
 const MIME: Record<string, string> = {
