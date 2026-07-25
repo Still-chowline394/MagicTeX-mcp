@@ -141,6 +141,13 @@ body.resizing .pdf-scroll, body.resizing .editor-scroll { pointer-events: none; 
 .cm-vi { font-style: italic; }
 .cm-vt { font-family: ui-monospace, monospace; color: #9cd; }
 .cm-vcomment { opacity: .45; font-style: italic; }
+.cm-vpreamble { opacity: .38; }
+.cm-vtitle { font-size: 1.7em; font-weight: 700; color: #fff; }
+.cm-vauthor { color: #cfd6df; }
+.cm-vabstract { display: inline-block; margin-top: 4px; }
+.cm-vand { color: #8a94a2; }
+.cm-vkw-label { font-weight: 700; color: #cfd6df; }
+.cm-vkw { color: #cfd6df; }
 .cm-math { padding: 0 1px; }
 .cm-math-display { display: block; text-align: center; margin: 4px 0; }
 .cm-math .katex { font-size: 1.05em; }

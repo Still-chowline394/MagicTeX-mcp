@@ -13,8 +13,12 @@ import 'katex/dist/katex.min.css';
 
 const STYLE: Record<string, string> = {
   section: 'cm-vh1', subsection: 'cm-vh2', subsubsection: 'cm-vh3',
+  title: 'cm-vtitle', author: 'cm-vauthor', institute: 'cm-vauthor',
   textbf: 'cm-vb', emph: 'cm-vi', textit: 'cm-vi', texttt: 'cm-vt', underline: 'cm-vu',
 };
+
+// Standalone commands (no argument) that are structural noise in Visual mode.
+const DROP = new Set(['maketitle', 'noindent', 'bigskip', 'medskip', 'smallskip', 'clearpage', 'newpage']);
 
 const conceal = Decoration.replace({});
 
@@ -73,9 +77,12 @@ export function visualMode(): Extension {
 function build(view: EditorView): DecorationSet {
   const deco: Range<Decoration>[] = [];
   const touches = (a: number, b: number) => view.state.selection.ranges.some((r) => r.from <= b && r.to >= a);
+  // Everything before \begin{document} is the preamble — dim it (Overleaf hides it).
+  const beginDoc = view.state.doc.toString().indexOf('\\begin{document}');
 
   for (const { from, to } of view.visibleRanges) {
     const t = view.state.sliceDoc(from, to);
+    if (beginDoc > 0 && from < beginDoc) deco.push(Decoration.mark({ class: 'cm-vpreamble' }).range(from, Math.min(to, beginDoc)));
     scan(0, t.length);
 
     // Recursively decorate [lo, hi) of the slice; `base`-relative offsets go out.
@@ -119,16 +126,42 @@ function build(view: EditorView): DecorationSet {
     // Handle a `\name` starting at `s`, args begin at `argAt`. Returns the new
     // scan index, or null if this command isn't special (caller advances by 1).
     function command(name: string, s: number, argAt: number): number | null {
-      // Environments: conceal \begin{itemize|enumerate} / \end{…}.
+      // Structural standalone commands (\maketitle, \noindent, …) → hide.
+      if (DROP.has(name)) {
+        if (!touches(from + s, from + argAt)) deco.push(conceal.range(from + s, from + argAt));
+        return argAt;
+      }
+      // \and (author/keyword separator) → a middot, like the rendered doc.
+      if (name === 'and') {
+        if (!touches(from + s, from + argAt)) deco.push(Decoration.replace({ widget: new TokenWidget(' · ', 'cm-vand') }).range(from + s, from + argAt));
+        return argAt;
+      }
+      // Environments.
       if ((name === 'begin' || name === 'end') && t[argAt] === '{') {
         const close = matchBrace(t, argAt, t.length);
         if (close < 0) return null;
         const env = t.slice(argAt + 1, close);
-        if (env === 'itemize' || env === 'enumerate') {
-          if (!touches(from + s, from + close + 1)) deco.push(conceal.range(from + s, from + close + 1));
-          return close + 1;
+        const full = close + 1;
+        const drop = () => { if (!touches(from + s, from + full)) deco.push(conceal.range(from + s, from + full)); };
+        if (env === 'itemize' || env === 'enumerate' || env === 'document' || env === 'figure' || env === 'table' || env === 'center') { drop(); return full; }
+        if (env === 'abstract') {
+          if (name === 'begin') { if (!touches(from + s, from + full)) deco.push(Decoration.replace({ widget: new TokenWidget('Abstract', 'cm-vh2 cm-vabstract') }).range(from + s, from + full)); }
+          else drop();
+          return full;
         }
         return null;
+      }
+      // \keywords{…} → "Keywords: …" (its \and become middots via nested scan).
+      if (name === 'keywords' && t[argAt] === '{') {
+        const close = matchBrace(t, argAt, t.length);
+        if (close < 0) return null;
+        if (!touches(from + s, from + close + 1)) {
+          deco.push(Decoration.replace({ widget: new TokenWidget('Keywords: ', 'cm-vkw-label') }).range(from + s, from + argAt + 1));
+          deco.push(Decoration.mark({ class: 'cm-vkw' }).range(from + argAt + 1, from + close));
+          deco.push(conceal.range(from + close, from + close + 1));
+          scan(argAt + 1, close);
+        }
+        return close + 1;
       }
       // \item → bullet marker.
       if (name === 'item') {

@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import CodeMirror, { type ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { EditorView, keymap } from '@codemirror/view';
 import { EditorSelection, Prec } from '@codemirror/state';
+import { undo, redo } from '@codemirror/commands';
 import { latex } from 'codemirror-lang-latex';
 import { normalize, phrase, stripLatex } from '../sync';
 import { visualMode } from '../visual';
@@ -232,6 +233,9 @@ export function SourcePanel({
             <button onClick={() => void save()} disabled={!dirty && saveState !== 'error'}>Save</button>
           </div>
           <div className="format-bar">
+            <button title="Undo (Ctrl+Z)" onClick={() => { const v = cmRef.current?.view; if (v) { undo(v); v.focus(); } }}>↶</button>
+            <button title="Redo (Ctrl+Y)" onClick={() => { const v = cmRef.current?.view; if (v) { redo(v); v.focus(); } }}>↷</button>
+            <span className="fb-sep" />
             <button title="Bold" onClick={() => wrapSelection('\\textbf{', '}', 'bold')}><b>B</b></button>
             <button title="Italic" onClick={() => wrapSelection('\\emph{', '}', 'italic')}><i>I</i></button>
             <span className="fb-sep" />
