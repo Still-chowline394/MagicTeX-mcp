@@ -13,6 +13,10 @@ export const renderPreviewInputSchema = {
     .enum(['pdflatex', 'xelatex', 'lualatex'])
     .optional()
     .describe('TeX engine. Defaults to xelatex.'),
+  backend: z
+    .enum(['wasm', 'system', 'auto'])
+    .optional()
+    .describe('Compiler backend: "wasm" (bundled, zero-install; default), "system" (local latexmk for full package fidelity), or "auto" (system if installed, else wasm).'),
 };
 
 export const renderPreviewConfig = {

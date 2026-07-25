@@ -2,7 +2,7 @@
 // watcher (passive). All compiles are serialized through one promise chain so a
 // watcher-triggered compile and a tool-triggered compile never run at once, and
 // each compile always reads the latest files off disk.
-import { compileProject, type CompileProjectResult, type Engine } from './project/compileProject.js';
+import { compileProject, type CompileProjectResult, type Engine, type Backend } from './project/compileProject.js';
 import { getPreview } from './engine/browserHost.js';
 import { createCheckpoint } from './git/checkpoints.js';
 import { setProjectRoot } from './session.js';
@@ -11,6 +11,7 @@ interface Config {
   projectRoot: string;
   mainFile?: string;
   engine?: Engine;
+  backend?: Backend;
 }
 
 let config: Config | null = null;

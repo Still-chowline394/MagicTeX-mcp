@@ -18,7 +18,7 @@ import { setConfig, requestCompile } from './coordinator.js';
 import { setProjectRoot } from './session.js';
 import { startWatching } from './watch/fileWatcher.js';
 import { isGitRepo } from './git/checkpoints.js';
-import { type Engine } from './project/compileProject.js';
+import { type Engine, type Backend } from './project/compileProject.js';
 import { MainFileError } from './project/resolveMainFile.js';
 import { summarizeErrors } from './project/parseLog.js';
 
@@ -31,11 +31,11 @@ const hasWorkspace = existsSync(join(PKG_ROOT, 'ui', 'dist', 'index.html'));
 
 let viewerOpened = false;
 
-server.registerTool(RENDER_PREVIEW_NAME, renderPreviewConfig, async ({ mainFile, engine }) => {
+server.registerTool(RENDER_PREVIEW_NAME, renderPreviewConfig, async ({ mainFile, engine, backend }) => {
   const projectRoot = process.cwd();
   try {
     const preview = await getPreview();
-    setConfig({ projectRoot, mainFile, engine: engine as Engine | undefined });
+    setConfig({ projectRoot, mainFile, engine: engine as Engine | undefined, backend: backend as Backend | undefined });
     startWatching(projectRoot); // passive live-reload for saves between tool calls
 
     const result = await requestCompile();
