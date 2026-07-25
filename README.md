@@ -258,6 +258,20 @@ CI (`.github/workflows/ci.yml`) runs typecheck + UI build + tests on Node 20 and
 for every push and pull request. The tests are engine-free (no headless browser), so
 they're fast and deterministic; please keep them green and add coverage with changes.
 
+## Documentation
+
+- [**User guide**](docs/USER-GUIDE.md) — everyday use, the comment loop, Visual mode, the
+  file tree, getting your paper into Overleaf, package coverage.
+- [**The agent loop**](docs/AGENT-LOOP.md) — comments as triggers, running it hands-off with
+  `/loop`, the reviewer → gate → resolver workflow, and ⚡ `/ultra-agents`.
+- [**Roadmap**](docs/ROADMAP.md) — what's shipped for concurrent agents, and what real
+  parallel multi-agent editing still needs.
+- [**Architecture**](docs/ARCHITECTURE.md) — why a headless browser, what every module does,
+  the compile flow.
+
+All four are translated into the same 8 languages as this README — each page has its own
+language switcher at the top.
+
 ## Roadmap
 
 Multiple Claude Code sessions can already work the same project concurrently without

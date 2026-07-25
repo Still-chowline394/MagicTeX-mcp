@@ -96,6 +96,20 @@ Cada herramienta MCP tiene también un comando con el **mismo nombre**, así que
 
 Nunca es obligatorio escribirlos: el lenguaje natural también funciona (*«renderiza una vista previa»*, *«atiende mis comentarios»*). Los comandos son solo un atajo rápido y fácil de enseñar.
 
+## Documentación
+
+- [**Guía de usuario**](USER-GUIDE.es.md) — uso diario, el bucle de comentarios, modo Visual,
+  el árbol de archivos, llevar tu artículo a Overleaf, cobertura de paquetes.
+- [**El bucle del agente**](AGENT-LOOP.es.md) — los comentarios como disparadores, ejecutarlo
+  sin manos con `/loop`, el flujo revisor → visto bueno → resolutor, y ⚡ `/ultra-agents`.
+- [**Hoja de ruta**](ROADMAP.es.md) — qué está listo para agentes concurrentes y qué falta aún
+  para la edición multi-agente realmente paralela.
+- [**Arquitectura**](ARCHITECTURE.es.md) — por qué un navegador headless, qué hace cada módulo,
+  el flujo de compilación.
+
+Las cuatro están traducidas a los mismos 8 idiomas que este README — cada página tiene su
+propio selector de idioma arriba.
+
 ## Patrocina este proyecto
 
 MagicTeX es libre y de código abierto (AGPL-3.0). Si te ahorra tiempo con tus artículos,

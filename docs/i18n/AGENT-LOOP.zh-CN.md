@@ -109,6 +109,6 @@ sha,这样 `/show_diff <sha>` 能直接跳到任意一轮,不用在 History 里�
 这仍然是"一个 reviewer + 一个 author,中间站着一个人"的模式。多个 Claude
 Code 会话已经可以安全地同时在同一个项目上工作,不会破坏评论或 checkpoint
 (每次写操作都在一把跨进程锁下运行——见
-[`docs/ROADMAP.md`](ROADMAP.md)),但它们依然是轮流干活,不是真的并行编辑。
+[`ROADMAP.zh-CN.md`](ROADMAP.zh-CN.md)),但它们依然是轮流干活,不是真的并行编辑。
 真正的并发 multi-agent(reviewer / author / defender 各自在自己的 git 分支上,
-协调着轮流推进)是下一个里程碑——见 [`docs/ROADMAP.md`](ROADMAP.md)。
+协调着轮流推进)是下一个里程碑——见 [`ROADMAP.zh-CN.md`](ROADMAP.zh-CN.md)。

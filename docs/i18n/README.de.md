@@ -96,6 +96,20 @@ Jedes MCP-Tool hat auch einen Slash-Befehl mit **demselben Namen**, du kannst al
 
 Du musst sie nie tippen – normale Sprache funktioniert auch (*„zeig eine Vorschau“*, *„bearbeite meine Kommentare“*). Die Befehle sind nur eine schnelle, gut vermittelbare Kurzform.
 
+## Dokumentation
+
+- [**Benutzerhandbuch**](USER-GUIDE.de.md) — täglicher Einsatz, die Kommentar-Schleife,
+  Visual-Modus, der Dateibaum, dein Paper nach Overleaf bringen, Paketabdeckung.
+- [**Die Agent-Schleife**](AGENT-LOOP.de.md) — Kommentare als Auslöser, unbeaufsichtigt mit `/loop`,
+  der Ablauf Reviewer → Freigabe → Resolver, und ⚡ `/ultra-agents`.
+- [**Roadmap**](ROADMAP.de.md) — was für gleichzeitige Agents fertig ist und was echtes paralleles
+  Multi-Agent-Bearbeiten noch braucht.
+- [**Architektur**](ARCHITECTURE.de.md) — warum ein Headless-Browser, was jedes Modul tut, der
+  Kompilierungsablauf.
+
+Alle vier sind in dieselben 8 Sprachen übersetzt wie dieses README — jede Seite hat oben ihre
+eigene Sprachauswahl.
+
 ## Dieses Projekt unterstützen
 
 MagicTeX ist frei und quelloffen (AGPL-3.0). Wenn es dir Zeit bei deinen Papern spart, erwäge
