@@ -1,11 +1,15 @@
 {
   "name": "magictex",
-  "owner": { "name": "ZoeLinUTS", "url": "https://github.com/ZoeLinUTS" },
+  "owner": {
+    "name": "ZoeLinUTS",
+    "url": "https://github.com/ZoeLinUTS"
+  },
+  "description": "MagicTeX — an Overleaf-like LaTeX workspace for Claude Code, with no local TeX install required.",
   "plugins": [
     {
       "name": "magictex",
       "source": "./",
-      "description": "LaTeX editor for AI agents: live PDF preview, PDF comments that drive edits, a Visual (WYSIWYG) mode, git-tracked history, and /magic-latex · /ai-review · /address-comments slash commands."
+      "description": "LaTeX editor for AI agents: live PDF preview, PDF comments that become edit instructions, a Visual (WYSIWYG) mode, and git-tracked history. Commands: /magic-latex, /ai-review, /address-comments, /ultra-agents, plus one per MCP tool."
     }
   ]
 }
