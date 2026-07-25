@@ -51,12 +51,23 @@ anchored annotations):
 - **Get to Overleaf.** **Download PDF**, **Export .zip** (clean build-inputs
   bundle), and a one-click **Open in Overleaf** link for public GitHub repos;
   Premium Git-bridge sync is a documented `git push`. See [`docs/USER-GUIDE.md`](docs/USER-GUIDE.md).
+- **Review workflow (reviewer → gate → resolver).** A reviewer/defender agent posts
+  comments via `add_comment`; you **Accept/Reject** them (or flip *Auto-accept* for
+  copilot mode); an author loop resolves the accepted ones. Comments carry roles and
+  a reply thread. See [`docs/AGENT-LOOP.md`](docs/AGENT-LOOP.md).
+- **Save vs. recompile, your call.** The built-in editor auto-saves every 30s without
+  recompiling; **Ctrl+S** / **Save** / **Recompile** rebuild the PDF on demand. (Flip
+  **⚡ Live** for recompile-as-you-type.) Your own editor and Claude's edits still
+  auto-recompile via the watcher.
 - **Real projects.** Auto-detects the main file, gathers multi-file
   `\input`/`\include`, `.bib`, in-repo `.cls`/`.sty`/`.bst` and figures, runs
   BibTeX and reruns when needed; common missing packages are auto-injected.
-- **MCP tools:** `render_preview` (compile + open the workspace), `check_comments`
-  / `resolve_comment` (the comment loop), `show_diff` (side-by-side diff as an
-  image — useful on image-capable clients).
+- **Compile backend.** Zero-install **WASM** TeX Live by default; pass
+  `backend: "system"` (or `"auto"`) to `render_preview` to compile with your local
+  **latexmk** for full package fidelity.
+- **MCP tools:** `render_preview` (compile + open the workspace), `check_comments` /
+  `resolve_comment` / `add_comment` / `reply_to_comment` (the review loop), `show_diff`
+  (side-by-side diff as an image — useful on image-capable clients).
 - **Actionable errors.** Failed compiles return parsed `{file, line, message}`
   errors so Claude can self-correct, and show in the workspace.
 

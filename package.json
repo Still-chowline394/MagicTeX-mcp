@@ -1,17 +1,53 @@
 {
   "name": "latex-live-preview-mcp",
   "version": "0.0.1",
-  "description": "Local live LaTeX PDF preview for Claude Code, via an MCP server. Compiles your .tex with a WASM TeX Live engine in a headless browser — no local TeX install, no Overleaf account.",
+  "description": "Local Overleaf-like LaTeX workspace for Claude Code, via an MCP server: live PDF preview, an editable source panel with a Visual (WYSIWYG) mode, anchored PDF comments that drive edits, and git-backed history. Compiles your .tex with a WASM TeX Live engine in a headless browser — no local TeX install, no Overleaf account.",
   "type": "module",
   "license": "AGPL-3.0-or-later",
-  "bin": {
-    "latex-live-preview-mcp": "src/server.ts"
+  "keywords": [
+    "latex",
+    "tex",
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "claude-code",
+    "overleaf",
+    "pdf",
+    "preview",
+    "wasm",
+    "academic-writing"
+  ],
+  "homepage": "https://github.com/ZoeLinUTS/latex-live-preview-mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZoeLinUTS/latex-live-preview-mcp.git"
   },
+  "bugs": {
+    "url": "https://github.com/ZoeLinUTS/latex-live-preview-mcp/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "latex-live-preview-mcp": "bin/cli.mjs"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "ui/dist/",
+    "assets/fallback-styles/",
+    "docs/",
+    ".mcp.json.example",
+    "README.md",
+    "THIRD_PARTY_NOTICES.md",
+    "LICENSE"
+  ],
   "scripts": {
     "start": "tsx src/server.ts",
     "typecheck": "tsc --noEmit && tsc -p ui --noEmit",
     "build:ui": "vite build ui",
-    "dev:ui": "vite ui"
+    "dev:ui": "vite ui",
+    "prepublishOnly": "npm run build:ui"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
@@ -23,6 +59,7 @@
     "pdfjs-dist": "^4.10.38",
     "playwright": "^1.40.0",
     "texlyre-busytex": "^1.2.3",
+    "tsx": "^4.19.0",
     "ws": "^8.18.0",
     "zod": "^3.23.0"
   },
@@ -37,7 +74,6 @@
     "codemirror-lang-latex": "^0.4.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "tsx": "^4.19.0",
     "typescript": "^5.6.0",
     "vite": "^8.1.5"
   }
