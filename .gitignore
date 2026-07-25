@@ -13,6 +13,7 @@ dist/
 *.pdf
 *.png
 !docs/images/*.png
+*.tgz
 .latex-preview/
 
 # OS / editor
