@@ -74,6 +74,12 @@ os comandos de barra:
 - **`/ai-review [skill]`** — revisa o artigo com uma skill (padrão `academic-paper-revision`;
   qualquer nome funciona) e publica comentários para aceitar/rejeitar.
 - **`/address-comments`** — resolve seus comentários aceitos (`/loop 60s /address-comments`).
+- **`/ultra-agents [skill] [depth]`** — modo totalmente autônomo: revisa, aceita
+  automaticamente, corrige, repete, até `depth` rodadas (padrão 2), parando mais
+  cedo se uma rodada não encontrar nada novo. Sem aprovação entre rodadas — esse é
+  o ponto, e o risco. Acima de `depth = 5` pede confirmação antes de começar.
+  Termina com um resumo (o que foi apontado, o que mudou, quais checkpoints
+  conferir) — cada rodada continua sendo um checkpoint normal e reversível.
 
 ### Um comando por ferramenta
 
@@ -87,6 +93,7 @@ Cada ferramenta MCP também tem um comando com o **mesmo nome**, então você ex
 | `/add_comment ["citação"] [nota]` | `add_comment` | Ancora um comentário num trecho para você aceitar/rejeitar. |
 | `/reply_to_comment [id] [texto]` | `reply_to_comment` | Adiciona uma resposta no tópico de um comentário. |
 | `/show_diff [sha]` | `show_diff` | Diff visual lado a lado como imagem (mudanças atuais ou um checkpoint). |
+| `/list_checkpoints [limit]` | `list_checkpoints` | Checkpoints recentes com seu sha, mais novo primeiro — para passar um ao `/show_diff`. |
 
 Você nunca precisa digitá-los: linguagem natural também funciona (*“renderize uma pré-visualização”*, *“resolva meus comentários”*). Os comandos são só um atalho rápido e fácil de ensinar.
 

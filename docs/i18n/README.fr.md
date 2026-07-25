@@ -75,6 +75,13 @@ MCP **et** les commandes slash :
   `academic-paper-revision` ; n'importe quel nom fonctionne) et publie des commentaires à
   accepter/refuser.
 - **`/address-comments`** — résout vos commentaires acceptés (`/loop 60s /address-comments`).
+- **`/ultra-agents [skill] [depth]`** — mode entièrement autonome : relit, accepte
+  automatiquement, corrige, recommence, jusqu'à `depth` tours (2 par défaut), en
+  s'arrêtant plus tôt si un tour ne trouve rien de nouveau. Aucune approbation entre
+  les tours — c'est le principe, et le risque. Au-delà de `depth = 5`, une
+  confirmation est demandée avant de démarrer. Se termine par un résumé (ce qui a
+  été relevé, ce qui a changé, quels checkpoints regarder) — chaque tour reste un
+  checkpoint normal et réversible.
 
 ### Une commande par outil
 
@@ -88,6 +95,7 @@ Chaque outil MCP a aussi une commande du **même nom**, vous pouvez donc exécut
 | `/add_comment ["citation"] [note]` | `add_comment` | Ancre un commentaire sur un passage à accepter/refuser. |
 | `/reply_to_comment [id] [texte]` | `reply_to_comment` | Ajoute une réponse au fil d'un commentaire. |
 | `/show_diff [sha]` | `show_diff` | Diff visuel côte à côte en image (modifications actuelles ou un checkpoint). |
+| `/list_checkpoints [limit]` | `list_checkpoints` | Checkpoints récents avec leur sha, du plus récent — pour en passer un à `/show_diff`. |
 
 Rien ne vous oblige à les taper : le langage naturel marche aussi (*« affiche un aperçu »*, *« traite mes commentaires »*). Les commandes sont juste un raccourci rapide et facile à enseigner.
 

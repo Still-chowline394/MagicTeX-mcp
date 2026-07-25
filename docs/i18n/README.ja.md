@@ -70,6 +70,11 @@ Claude Code に接続する、Overleaf ライクな**ワンウィンドウ・ワ
 - **`/ai-review [skill]`** — スキルで論文を査読（既定は `academic-paper-revision`、
   任意のスキル名も可）し、承認用のコメントを投稿。未導入のスキルは案内を表示。
 - **`/address-comments`** — 承認済みコメントを解決（`/loop 60s /address-comments` も可）。
+- **`/ultra-agents [skill] [depth]`** — 完全自動モード：査読・自動承認・修正を繰り返す。
+  最大 `depth` ラウンド（既定 2）、あるラウンドで新規指摘がゼロなら早期停止。ラウンド間
+  で承認確認は挟まない——それがこのモードの目的でありリスクでもある。`depth` が 5 を
+  超えると開始前に確認を求める。終了後は要約（何を指摘し何を変更したか、対応する
+  checkpoint）を提示。各ラウンドも通常どおり取り消し可能な checkpoint のまま。
 
 ### ツールごとに 1 コマンド
 
@@ -83,6 +88,7 @@ Claude Code に接続する、Overleaf ライクな**ワンウィンドウ・ワ
 | `/add_comment ["引用"] [メモ]` | `add_comment` | 該当箇所にコメントをアンカーし、承認/却下できるように。 |
 | `/reply_to_comment [id] [本文]` | `reply_to_comment` | コメントにスレッド返信を追加。 |
 | `/show_diff [sha]` | `show_diff` | 並列ビジュアル差分を画像で表示（現在の変更か checkpoint）。 |
+| `/list_checkpoints [limit]` | `list_checkpoints` | 直近のチェックポイントを sha 付きで新しい順に表示——`/show_diff` に渡す sha を探すのに。 |
 
 必ずしも打つ必要はありません——普通の日本語でも動きます（「プレビューを表示」「コメントに対応して」）。コマンドは速くて教えやすい省略形です。
 

@@ -69,6 +69,11 @@ Code 에 연결되는 Overleaf 스타일의 **단일 창 작업 공간**으로, 
 - **`/ai-review [skill]`** — 스킬로 논문을 검토(기본값 `academic-paper-revision`, 임의 스킬
   이름 가능)하고 확인용 코멘트를 게시. 미설치 스킬은 설치 안내를 표시.
 - **`/address-comments`** — 수락된 코멘트 해결(`/loop 60s /address-comments` 가능).
+- **`/ultra-agents [skill] [depth]`** — 완전 자동 모드: 검토·자동 수락·수정을 반복. 최대
+  `depth` 라운드(기본 2), 한 라운드에서 새 의견이 없으면 조기 종료. 라운드 사이에 승인
+  확인이 없음—그게 이 모드의 목적이자 위험 요소. `depth`가 5를 넘으면 시작 전에 확인을
+  요청. 종료 후 요약(무엇을 지적했고 무엇을 바꿨는지, 해당 checkpoint) 제공. 각 라운드도
+  여전히 되돌릴 수 있는 일반 checkpoint.
 
 ### 도구마다 명령 하나
 
@@ -82,6 +87,7 @@ Code 에 연결되는 Overleaf 스타일의 **단일 창 작업 공간**으로, 
 | `/add_comment ["인용"] [메모]` | `add_comment` | 해당 구절에 코멘트를 고정해 수락/거절할 수 있게. |
 | `/reply_to_comment [id] [내용]` | `reply_to_comment` | 코멘트에 스레드 답글 추가. |
 | `/show_diff [sha]` | `show_diff` | 나란히 보는 시각적 diff 이미지(현재 변경 또는 checkpoint). |
+| `/list_checkpoints [limit]` | `list_checkpoints` | 최근 checkpoint를 sha와 함께 최신순으로 표시—`/show_diff`에 넘길 sha 찾기용. |
 
 꼭 입력할 필요는 없습니다——평범한 말로도 됩니다(“미리보기 렌더링”, “코멘트 처리해줘”). 명령은 빠르고 가르치기 쉬운 단축일 뿐입니다.
 

@@ -71,6 +71,10 @@ Overleaf 账号**：实时 PDF 预览、带**可视化（所见即所得）模�
 - **`/ai-review [skill]`** — 用某个 skill 审阅论文（默认 `academic-paper-revision`，
   也可传入任意 skill 名）并留下评论供你确认；skill 未安装时会给出安装提示。
 - **`/address-comments`** — 解决你已接受的评论（可 `/loop 60s /address-comments`）。
+- **`/ultra-agents [skill] [depth]`** — 全自动模式：审阅、自动接受、修改、重复，最多
+  `depth` 轮（默认 2），某一轮没有新意见就提前停止。轮与轮之间不经过你确认——这既是它
+  的意义，也是风险所在。`depth` 超过 5 会先让你确认才开始。跑完给一份总结（提了什么、
+  改了什么、对应哪些 checkpoint），每一轮依然是普通的、可撤销的 checkpoint。
 
 ### 每个工具一个命令
 
@@ -84,6 +88,7 @@ Overleaf 账号**：实时 PDF 预览、带**可视化（所见即所得）模�
 | `/add_comment ["引文"] [说明]` | `add_comment` | 把评论锚定到某段文字，供你接受/拒绝。 |
 | `/reply_to_comment [id] [内容]` | `reply_to_comment` | 给某条评论追加线程回复。 |
 | `/show_diff [sha]` | `show_diff` | 并排可视化 diff（图片；当前改动或某个 checkpoint）。 |
+| `/list_checkpoints [limit]` | `list_checkpoints` | 列出最近的 checkpoint 及其 sha（按时间倒序）——找一个传给 `/show_diff`。 |
 
 其实不打命令也行——直接说人话同样有效（“渲染预览”、“处理我的评论”）。命令只是更快、更好教的简写。
 

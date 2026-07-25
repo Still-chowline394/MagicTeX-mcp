@@ -73,6 +73,12 @@ Para escribir menos, instala MagicTeX como plugin — una sola instalación te d
 - **`/ai-review [skill]`** — revisa el artículo con una skill (por defecto
   `academic-paper-revision`; admite cualquier nombre) y publica comentarios para aceptar/rechazar.
 - **`/address-comments`** — resuelve tus comentarios aceptados (`/loop 60s /address-comments`).
+- **`/ultra-agents [skill] [depth]`** — modo totalmente autónomo: revisa, acepta
+  automáticamente, corrige y repite, hasta `depth` rondas (2 por defecto), parando
+  antes si una ronda no encuentra nada nuevo. Sin aprobación entre rondas — ese es
+  el punto, y el riesgo. Si `depth` supera 5, te pide confirmar antes de empezar.
+  Termina con un resumen (qué se señaló, qué se cambió, qué checkpoints revisar) —
+  cada ronda sigue siendo un checkpoint normal y reversible.
 
 ### Un comando por herramienta
 
@@ -86,6 +92,7 @@ Cada herramienta MCP tiene también un comando con el **mismo nombre**, así que
 | `/add_comment ["cita"] [nota]` | `add_comment` | Ancla un comentario en un pasaje para que lo aceptes/rechaces. |
 | `/reply_to_comment [id] [texto]` | `reply_to_comment` | Añade una respuesta en el hilo de un comentario. |
 | `/show_diff [sha]` | `show_diff` | Diff visual en paralelo como imagen (cambios actuales o un checkpoint). |
+| `/list_checkpoints [limit]` | `list_checkpoints` | Checkpoints recientes con su sha, más nuevo primero — para pasarle uno a `/show_diff`. |
 
 Nunca es obligatorio escribirlos: el lenguaje natural también funciona (*«renderiza una vista previa»*, *«atiende mis comentarios»*). Los comandos son solo un atajo rápido y fácil de enseñar.
 

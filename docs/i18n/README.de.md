@@ -72,6 +72,13 @@ Für weniger Tippen installiere MagicTeX als Plugin — eine Installation gibt d
 - **`/ai-review [skill]`** — das Paper mit einer Skill prüfen (Standard
   `academic-paper-revision`; jeder Name geht) und Kommentare zum Akzeptieren/Ablehnen posten.
 - **`/address-comments`** — deine akzeptierten Kommentare lösen (`/loop 60s /address-comments`).
+- **`/ultra-agents [skill] [depth]`** — vollautonomer Modus: prüfen, automatisch
+  akzeptieren, korrigieren, wiederholen — bis zu `depth` Runden (Standard 2),
+  vorzeitiger Stopp, sobald eine Runde nichts Neues findet. Keine Freigabe zwischen
+  den Runden — das ist der Sinn und das Risiko zugleich. Über `depth = 5` wird vor
+  dem Start eine Bestätigung verlangt. Endet mit einer Zusammenfassung (was
+  angemerkt, was geändert wurde, welche Checkpoints anzuschauen sind) — jede Runde
+  bleibt ein normaler, rückgängig machbarer Checkpoint.
 
 ### Ein Befehl pro Tool
 
@@ -85,6 +92,7 @@ Jedes MCP-Tool hat auch einen Slash-Befehl mit **demselben Namen**, du kannst al
 | `/add_comment ["Zitat"] [Notiz]` | `add_comment` | Verankert einen Kommentar an einer Stelle zum Annehmen/Ablehnen. |
 | `/reply_to_comment [id] [Text]` | `reply_to_comment` | Fügt eine Thread-Antwort zu einem Kommentar hinzu. |
 | `/show_diff [sha]` | `show_diff` | Nebeneinander-Diff als Bild (aktuelle Änderungen oder ein Checkpoint). |
+| `/list_checkpoints [limit]` | `list_checkpoints` | Letzte Checkpoints mit sha, neueste zuerst — um einen an `/show_diff` zu übergeben. |
 
 Du musst sie nie tippen – normale Sprache funktioniert auch (*„zeig eine Vorschau“*, *„bearbeite meine Kommentare“*). Die Befehle sind nur eine schnelle, gut vermittelbare Kurzform.
 
