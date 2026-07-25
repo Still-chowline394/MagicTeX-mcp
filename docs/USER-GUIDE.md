@@ -22,6 +22,10 @@ and drive it with minimal typing:
 - **`/ai-review [skill]`** — review the paper with a skill (default `academic-paper-revision`;
   any skill name works) and post comments for you to accept.
 - **`/address-comments`** — resolve your accepted comments (loop it: `/loop 60s /address-comments`).
+- **`/ultra-agents [skill] [depth]`** — fully autonomous: review, auto-accept, fix, repeat, up
+  to `depth` rounds (default 2), stopping early the moment a round finds nothing new. No
+  per-round approval — that's the point, and the risk. See
+  [`AGENT-LOOP.md`](AGENT-LOOP.md#ultra-agents).
 
 ### One command per tool
 
@@ -36,6 +40,7 @@ is one command away. The rule to teach anyone: *the tool is `X` → type `/X`.*
 | `/add_comment ["quote"] [note]` | `add_comment` | Anchor a comment onto a passage for you to Accept/Reject. |
 | `/reply_to_comment [id] [text]` | `reply_to_comment` | Add a threaded reply to a comment. |
 | `/show_diff [sha]` | `show_diff` | Side-by-side visual diff as an image (current changes, or a checkpoint). |
+| `/list_checkpoints [limit]` | `list_checkpoints` | Recent checkpoints with their sha, newest first — find one to pass into `/show_diff`. |
 
 You never *have* to type these — plain English works too (*"render a preview"*,
 *"address my comments"*). The commands are just a fast, teachable shorthand.
@@ -148,7 +153,8 @@ After that, publishing an update is just `git push overleaf` — you can ask Cla
 
 The WASM engine ships a **subset** of TeX Live (basic + recommended + extra). Most common
 packages are included. A few common omissions are handled automatically:
-- the `algorithm`/`algorithmicx` family — the real `.sty` are vendored and injected;
+- the `algorithm`/`algorithmicx` family and `multirow` — the real `.sty` are vendored
+  (verbatim, LPPL) and injected;
 - `bbm` — a small **preview shim** approximates `\mathbbm` (letters via `\mathbb`, the
   `\mathbbm{1}` indicator via a poor-man's double-struck 1), so the paper still renders.
 

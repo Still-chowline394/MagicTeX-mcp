@@ -127,7 +127,7 @@ server.registerTool(CHECK_COMMENTS_NAME, checkCommentsConfig, async ({ includeRe
   const fmtPlain = (c: (typeof all)[number]) =>
     `[id: ${c.id}] p.${c.page} — "${c.quote.slice(0, 160)}${c.quote.length > 160 ? '…' : ''}"\n  → ${c.text}`;
   const awaiting = suggested.length
-    ? `\n\n(${suggested.length} reviewer suggestion${suggested.length === 1 ? '' : 's'} still await the human's accept in the workspace — not actionable yet.)`
+    ? `\n\n(${suggested.length} reviewer suggestion${suggested.length === 1 ? '' : 's'} still ${suggested.length === 1 ? 'awaits' : 'await'} the human's accept in the workspace — not actionable yet.)`
     : '';
   let text: string;
   if (!accepted.length) {

@@ -150,6 +150,50 @@ You never *have* to type these — plain English works too (*"render a preview"*
 > package is published to npm. Until then, keep the `.mcp.json` above for the server;
 > the slash commands work either way.
 
+## See it in the terminal
+
+These are real tool outputs, captured verbatim from an actual run against the sample
+paper — not mocked up. This is what you see in Claude Code while the browser
+workspace (screenshot above) reflects the same state live.
+
+You type:
+```
+/magic-latex
+```
+Claude calls `render_preview` and replies:
+```
+✓ Compiled main.tex with xelatex in 1900ms — 2 files. Workspace (live preview,
+source editor, history, PDF comments — auto-reloads on edits):
+http://127.0.0.1:52042/app
+```
+
+You (or a reviewer skill) leave a comment, then ask what's ready to act on. Claude
+calls `check_comments`:
+```
+1 accepted comment — edit each at its source location per the instruction, then
+call resolve_comment with its id and a one-line note:
+
+[id: 2fce9e3c8b5f] p.1 — "Sorting widgets efficiently is a long-standing problem"
+  ↳ source: main.tex:15
+  → Tighten this opening sentence.
+
+(1 reviewer suggestion still awaits the human's accept in the workspace — not
+actionable yet.)
+```
+Claude makes the edit and calls `resolve_comment`:
+```
+✓ Resolved comment 2fce9e3c8b5f ("Sorting widgets efficiently is a long-standing
+problem…") — the card now shows: Rewrote the opening sentence.
+```
+Ask again, and the accepted queue is empty — only the still-unaccepted suggestion
+remains, waiting on you:
+```
+No accepted comments. (2 already resolved.)
+
+(1 reviewer suggestion still awaits the human's accept in the workspace — not
+actionable yet.)
+```
+
 ## How it works
 
 ```
