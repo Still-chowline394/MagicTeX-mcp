@@ -176,25 +176,18 @@ body.resizing .pdf-scroll, body.resizing .editor-scroll { pointer-events: none; 
 .ck-s { color: #888; margin-top: 2px; }
 .ck-s .add { color: #56d364; } .ck-s .del { color: #f85149; }
 
-/* Dark, readable diff — the default diff2html theme is light and washed-out
-   against the dark UI. Key rule: exactly ONE background layer per line (the
-   table cell), and a clearer tint only on the individual changed words. The old
-   version also tinted the inner .d2h-code-line-ctn, a content-width box that
-   stacked on the cell and appeared to overlap the text when the panel resized. */
-.history-diff { flex: 1 1 auto; overflow: auto; background: #0d1117; }
-.history-diff .d2h-wrapper { font-size: 11px; }
-.history-diff .d2h-file-wrapper { border-color: #30363d; background: #0d1117; }
-.history-diff .d2h-file-header { background: #161b22; border-color: #30363d; color: #c9d1d9; }
-.history-diff .d2h-code-line, .history-diff .d2h-code-side-line { color: #c9d1d9; }
-.history-diff .d2h-code-linenumber, .history-diff .d2h-code-side-linenumber {
-  background: #0d1117; color: #6e7681; border-color: #30363d; }
-.history-diff td { border-color: #21262d; }
-/* No background on the inner content box — the line's cell carries the tint. */
-.history-diff .d2h-code-line-ctn, .history-diff .d2h-code-side-line .d2h-code-line-ctn { background: none; }
-.history-diff .d2h-ins { background: #10251a; color: #d3ead9; }
-.history-diff .d2h-del { background: #291619; color: #ecd2d6; }
-.history-diff .d2h-cntx { background: #0d1117; }
-.history-diff .d2h-info { background: #161b22; color: #8b949e; }
-/* Changed words: a solid, calm tint with readable text (not neon, no strike). */
-.history-diff ins { background: #1c7a3a; color: #eafff0; text-decoration: none; border-radius: 2px; padding: 0 1px; }
-.history-diff del { background: #8b2f39; color: #ffe6ea; text-decoration: none; border-radius: 2px; padding: 0 1px; }
+/* Our own diff renderer (DiffView): calm line-level coloring, dark palette,
+   long lines WRAP so nothing overflows the panel and the gutter stays aligned. */
+.diffview { flex: 1 1 auto; overflow: auto; background: #0d1117;
+            font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 11.5px;
+            line-height: 1.5; color: #c9d1d9; }
+.dv-file { position: sticky; top: 0; z-index: 1; padding: 6px 10px; background: #161b22;
+           color: #c9d1d9; border-bottom: 1px solid #30363d; font-weight: 600; }
+.dv-hunk { padding: 3px 10px; color: #7d8894; background: #0d1117; }
+.dv-row { display: flex; align-items: flex-start; }
+.dv-num { flex: 0 0 auto; width: 34px; padding: 0 6px; text-align: right; color: #6e7681;
+          user-select: none; font-variant-numeric: tabular-nums; }
+.dv-sign { flex: 0 0 auto; width: 14px; text-align: center; user-select: none; }
+.dv-code { flex: 1 1 auto; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; padding-right: 10px; }
+.dv-add { background: #0f2318; } .dv-add .dv-num { background: #0f2318; } .dv-add .dv-sign { color: #3fb950; }
+.dv-del { background: #2a1519; } .dv-del .dv-num { background: #2a1519; } .dv-del .dv-sign { color: #f85149; }

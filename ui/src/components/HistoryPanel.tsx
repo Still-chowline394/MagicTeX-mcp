@@ -1,15 +1,14 @@
 // Left-panel History tab: checkpoint timeline (hidden git ref) + colorized diff.
-// Reuses the existing /git/* endpoints; diff rendered with diff2html (bundled).
+// Reuses the existing /git/* endpoints; diff rendered by our own DiffView.
 import { useEffect, useState } from 'react';
-import { html as diff2html } from 'diff2html';
-import 'diff2html/bundles/css/diff2html.min.css';
 import { fetchCheckpoints, fetchDiff, fetchGitStatus, type Checkpoint } from '../api';
+import { DiffView } from './DiffView';
 
 export function HistoryPanel({ reloadTick }: { reloadTick: number }) {
   const [isRepo, setIsRepo] = useState<boolean | null>(null);
   const [items, setItems] = useState<Checkpoint[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
-  const [diffHtml, setDiffHtml] = useState('');
+  const [diff, setDiff] = useState('');
 
   useEffect(() => { fetchGitStatus().then(setIsRepo); }, []);
 
@@ -22,10 +21,8 @@ export function HistoryPanel({ reloadTick }: { reloadTick: number }) {
   }, [reloadTick, isRepo]);
 
   useEffect(() => {
-    if (!selected) { setDiffHtml(''); return; }
-    fetchDiff(selected).then((d) =>
-      setDiffHtml(d ? diff2html(d, { drawFileList: false, matching: 'lines', outputFormat: 'line-by-line' }) : ''),
-    );
+    if (!selected) { setDiff(''); return; }
+    fetchDiff(selected).then(setDiff);
   }, [selected]);
 
   if (isRepo === false) {
@@ -54,7 +51,7 @@ export function HistoryPanel({ reloadTick }: { reloadTick: number }) {
           </div>
         ))}
       </div>
-      <div className="history-diff" dangerouslySetInnerHTML={{ __html: diffHtml }} />
+      {diff ? <DiffView diff={diff} /> : <div className="panel-hint">Select a checkpoint to see its diff.</div>}
     </div>
   );
 }
