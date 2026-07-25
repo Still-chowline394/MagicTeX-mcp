@@ -19,6 +19,11 @@ body { font-family: system-ui, sans-serif; background: #1e1f22; color: #ddd; fon
 .toolbar { flex: 0 0 auto; display: flex; align-items: center; gap: 12px; padding: 7px 12px;
            background: #2b2d31; border-bottom: 1px solid #17181a; }
 .brand { max-width: 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Prominent comments toggle: highlights when open, glows when there are open items. */
+.comments-toggle { border-color: #55585e; }
+.comments-toggle.on { background: #2d6cdf; border-color: #2d6cdf; color: #fff; }
+.comments-toggle.has-open:not(.on) { border-color: #a371f7; color: #d3bbff; }
+.comments-toggle.has-open.on { background: #7a4fd0; border-color: #7a4fd0; }
 .recompile { padding: 3px 10px; }
 .status { padding: 2px 8px; border-radius: 3px; }
 .status-ok { color: #7ee787; } .status-error { color: #ff7b72; }

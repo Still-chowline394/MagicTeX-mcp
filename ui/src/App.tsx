@@ -93,7 +93,12 @@ export default function App() {
 
   return (
     <div className="app">
-      <Toolbar status={status} pages={pages} pdfName={pdfName} reloadTick={reloadTick} />
+      <Toolbar
+        status={status} pages={pages} pdfName={pdfName} reloadTick={reloadTick}
+        commentsOpen={rightOpen}
+        openCount={comments.filter((c) => c.status !== 'resolved').length}
+        onToggleComments={() => setRightOpen((o) => !o)}
+      />
       <div className="layout">
         <div className={`left ${leftOpen ? '' : 'closed'}`} style={leftOpen ? { flexBasis: leftWidth } : undefined}>
           <div className="tabs">
@@ -126,11 +131,6 @@ export default function App() {
             <CommentsPanel comments={comments} selectedId={selectedComment} onJump={jumpToComment} />
           </ErrorBoundary>
         </div>
-        {!rightOpen && (
-          <button className="edge-open right-edge" onClick={() => setRightOpen(true)} title="Comments">
-            💬{comments.filter((c) => c.status === 'pending').length > 0 ? ` ${comments.filter((c) => c.status === 'pending').length}` : ''}
-          </button>
-        )}
       </div>
     </div>
   );

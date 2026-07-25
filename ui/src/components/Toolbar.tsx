@@ -10,7 +10,12 @@ const STATUS_LABEL: Record<Status, string> = {
   disconnected: 'disconnected',
 };
 
-export function Toolbar({ status, pages, pdfName, reloadTick }: { status: Status; pages: number; pdfName: string; reloadTick: number }) {
+export function Toolbar({
+  status, pages, pdfName, reloadTick, commentsOpen, openCount, onToggleComments,
+}: {
+  status: Status; pages: number; pdfName: string; reloadTick: number;
+  commentsOpen: boolean; openCount: number; onToggleComments: () => void;
+}) {
   const [overleafUrl, setOverleafUrl] = useState<string | null>(null);
   const [hasPdf, setHasPdf] = useState(false);
   const [title, setTitle] = useState<string | null>(null);
@@ -47,6 +52,13 @@ export function Toolbar({ status, pages, pdfName, reloadTick }: { status: Status
       <span className={`status status-${status}`}>{STATUS_LABEL[status]}</span>
       {pages > 0 && <span className="meta">{pages} page{pages === 1 ? '' : 's'}</span>}
       <span className="spacer" />
+      <button
+        className={`comments-toggle ${commentsOpen ? 'on' : ''} ${openCount > 0 ? 'has-open' : ''}`}
+        onClick={onToggleComments}
+        title={commentsOpen ? 'Hide the comments panel' : 'Show the comments panel'}
+      >
+        💬 Comments{openCount > 0 ? ` · ${openCount}` : ''}
+      </button>
       <button onClick={exportZip} title="Download a clean Overleaf-ready .zip (build inputs only)">⬆ Export .zip</button>
       <button onClick={downloadPdf} disabled={!hasPdf} title="Download the compiled PDF">⤓ Download PDF</button>
       {overleafUrl && (
