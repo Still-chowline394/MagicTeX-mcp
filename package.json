@@ -1,10 +1,11 @@
 {
-  "name": "latex-live-preview-mcp",
+  "name": "magictex-mcp",
   "version": "0.0.1",
-  "description": "Local Overleaf-like LaTeX workspace for Claude Code, via an MCP server: live PDF preview, an editable source panel with a Visual (WYSIWYG) mode, anchored PDF comments that drive edits, and git-backed history. Compiles your .tex with a WASM TeX Live engine in a headless browser — no local TeX install, no Overleaf account.",
+  "description": "MagicTeX — a LaTeX editor for AI agents (Claude Code), via an MCP server: live PDF preview, an editable source panel with a Visual (WYSIWYG) mode, anchored PDF comments that drive edits, and git-backed history. Compiles your .tex with a WASM TeX Live engine in a headless browser — no local TeX install, no Overleaf account.",
   "type": "module",
   "license": "AGPL-3.0-or-later",
   "keywords": [
+    "magictex",
     "latex",
     "tex",
     "mcp",
@@ -17,19 +18,19 @@
     "wasm",
     "academic-writing"
   ],
-  "homepage": "https://github.com/ZoeLinUTS/latex-live-preview-mcp#readme",
+  "homepage": "https://github.com/ZoeLinUTS/magictex-mcp#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ZoeLinUTS/latex-live-preview-mcp.git"
+    "url": "git+https://github.com/ZoeLinUTS/magictex-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/ZoeLinUTS/latex-live-preview-mcp/issues"
+    "url": "https://github.com/ZoeLinUTS/magictex-mcp/issues"
   },
   "engines": {
     "node": ">=18"
   },
   "bin": {
-    "latex-live-preview-mcp": "bin/cli.mjs"
+    "magictex-mcp": "bin/cli.mjs"
   },
   "files": [
     "bin/",

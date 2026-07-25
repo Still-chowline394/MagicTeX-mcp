@@ -34,6 +34,7 @@ export function SourcePanel({
   const [dirty, setDirty] = useState(false);
   const [live, setLive] = useState(() => localStorage.getItem('ws-live') === '1'); // recompile-as-you-type, default off
   const [visual, setVisual] = useState(() => localStorage.getItem('ws-visual') === '1');
+  const [wrap, setWrap] = useState(() => localStorage.getItem('ws-wrap') === '1');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'compiling' | 'error'>('idle');
   const [loadError, setLoadError] = useState<string | null>(null);
   const contentRef = useRef(content);
@@ -208,10 +209,12 @@ export function SourcePanel({
     () => [
       latex(),
       Prec.high(keymap.of([{ key: 'Mod-s', run: () => { void save(true); return true; } }])),
+      ...(wrap ? [EditorView.lineWrapping] : []),
       ...(visual ? [visualMode()] : []),
     ],
-    [save, visual],
+    [save, visual, wrap],
   );
+  useEffect(() => { localStorage.setItem('ws-wrap', wrap ? '1' : '0'); }, [wrap]);
 
   return (
     <div className="source">
@@ -235,6 +238,13 @@ export function SourcePanel({
             <span className={`save-state save-${saveState}`}>
               {saveState === 'saving' ? 'saving…' : saveState === 'compiling' ? '✓ saved — recompiling' : saveState === 'saved' ? '✓ saved' : saveState === 'error' ? 'save failed' : ''}
             </span>
+            <button
+              className={wrap ? 'on' : ''}
+              onClick={() => setWrap((v) => !v)}
+              title="Wrap long lines (for LaTeX written without line breaks)"
+            >
+              ⏎ Wrap
+            </button>
             <button
               className={live ? 'on' : ''}
               onClick={() => setLive((v) => !v)}

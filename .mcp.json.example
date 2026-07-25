@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "latex-live-preview": {
+    "magictex": {
       "command": "npx",
-      "args": ["-y", "latex-live-preview-mcp"]
+      "args": ["-y", "magictex-mcp"]
     }
   }
 }

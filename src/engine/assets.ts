@@ -10,7 +10,7 @@ export async function ensureAssets(pkgRoot: string): Promise<void> {
   const marker = join(pkgRoot, 'assets', 'busytex', 'busytex.wasm');
   if (existsSync(marker)) return;
 
-  console.error('[latex-live-preview-mcp] First run: downloading TeX Live WASM assets (~480 MB, one time). This can take a few minutes…');
+  console.error('[magictex-mcp] First run: downloading TeX Live WASM assets (~480 MB, one time). This can take a few minutes…');
   await new Promise<void>((resolve, reject) => {
     const child = spawn('npx', ['texlyre-busytex', 'download-assets', 'assets'], {
       cwd: pkgRoot,
@@ -24,5 +24,5 @@ export async function ensureAssets(pkgRoot: string): Promise<void> {
   if (!existsSync(marker)) {
     throw new Error('Assets download finished but busytex.wasm is still missing. Run manually: npx texlyre-busytex download-assets assets');
   }
-  console.error('[latex-live-preview-mcp] Assets ready.');
+  console.error('[magictex-mcp] Assets ready.');
 }

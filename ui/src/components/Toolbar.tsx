@@ -29,9 +29,14 @@ export function Toolbar({
   const downloadPdf = async () => {
     const res = await fetch('/latest.pdf?t=' + Date.now());
     if (!res.ok) return;
+    // Auto-name: <title|main>_YYYY-MM-DD_HHMMSS.pdf — unique each time, no manual renaming.
+    const base = (title || pdfName || 'paper').replace(/[^\w一-龥-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'paper';
+    const d = new Date();
+    const p2 = (n: number) => String(n).padStart(2, '0');
+    const stamp = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}_${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`;
     const url = URL.createObjectURL(await res.blob());
     const a = document.createElement('a');
-    a.href = url; a.download = `${pdfName}.pdf`;
+    a.href = url; a.download = `${base}_${stamp}.pdf`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 4000);
   };
@@ -44,7 +49,7 @@ export function Toolbar({
 
   return (
     <div className="toolbar">
-      <strong className="brand" title={title ?? undefined}>{title ?? 'LaTeX Workspace'}</strong>
+      <strong className="brand" title={title ?? undefined}>{title ?? 'MagicTeX'}</strong>
       <button className="recompile on" onClick={() => void recompile()} disabled={compiling}
               title="Compile now">
         {compiling ? '⟳ Compiling…' : '⟳ Recompile'}

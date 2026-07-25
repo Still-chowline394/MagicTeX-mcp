@@ -1,15 +1,15 @@
-# latex-live-preview-mcp
+# MagicTeX — LaTeX Editor for AI Agents
 
 <!-- badges -->
-[![CI](https://github.com/ZoeLinUTS/latex-live-preview-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/ZoeLinUTS/latex-live-preview-mcp/actions/workflows/ci.yml)
-[![stars](https://img.shields.io/github/stars/ZoeLinUTS/latex-live-preview-mcp?style=flat)](https://github.com/ZoeLinUTS/latex-live-preview-mcp/stargazers)
+[![CI](https://github.com/ZoeLinUTS/magictex-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/ZoeLinUTS/magictex-mcp/actions/workflows/ci.yml)
+[![stars](https://img.shields.io/github/stars/ZoeLinUTS/magictex-mcp?style=flat)](https://github.com/ZoeLinUTS/magictex-mcp/stargazers)
 [![license](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 
-A local **LaTeX workspace for Claude Code**, served by an MCP server — an
-Overleaf-like **one-window workspace** on your own machine, with **no local TeX
-install and no Overleaf account**: live PDF preview, a source editor, change
-history, and **comments you anchor on the rendered PDF that become edit
-instructions for Claude**.
+**MagicTeX** is a **LaTeX editor built for AI agents** — an Overleaf-like
+one-window workspace for Claude Code, served by an MCP server, with **no local TeX
+install and no Overleaf account**: live PDF preview, a source editor with a Visual
+(WYSIWYG) mode, change history, and **comments you anchor on the rendered PDF that
+become edit instructions for the agent**. (npm package: `magictex-mcp`.)
 
 It compiles with a WASM TeX Live 2026 engine ([texlyre-busytex](https://github.com/TeXlyre/texlyre-busytex))
 running inside a headless browser, so there's nothing multi-gigabyte to install —
@@ -79,13 +79,13 @@ anchored annotations):
    ```json
    {
      "mcpServers": {
-       "latex-live-preview": { "command": "npx", "args": ["-y", "latex-live-preview-mcp"] }
+       "magictex": { "command": "npx", "args": ["-y", "magictex-mcp"] }
      }
    }
    ```
 
    For local development from a clone, point it at the source instead:
-   `"command": "npx", "args": ["tsx", "/absolute/path/to/latex-live-preview-mcp/src/server.ts"]`
+   `"command": "npx", "args": ["tsx", "/absolute/path/to/magictex-mcp/src/server.ts"]`
 
 2. **Restart Claude Code** (or `/mcp` reconnect) so it picks up the server.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// latex-live-preview-mcp — MCP stdio server exposing one tool, render_preview.
+// magictex-mcp — MCP stdio server exposing one tool, render_preview.
 // Everything heavy (headless browser, WASM engine, preview server, file watcher)
 // is lazily started on the first render_preview call, so merely connecting is cheap.
 import { existsSync } from 'node:fs';
@@ -22,7 +22,7 @@ import { type Engine, type Backend } from './project/compileProject.js';
 import { MainFileError } from './project/resolveMainFile.js';
 import { summarizeErrors } from './project/parseLog.js';
 
-const server = new McpServer({ name: 'latex-live-preview-mcp', version: '0.0.1' });
+const server = new McpServer({ name: 'magictex-mcp', version: '0.0.1' });
 
 const PKG_ROOT = fileURLToPath(new URL('..', import.meta.url));
 // The React workspace is the primary UI; fall back to the legacy /viewer only
@@ -171,4 +171,4 @@ server.registerTool(REPLY_COMMENT_NAME, replyCommentConfig, async ({ id, text, r
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
-console.error('[latex-live-preview-mcp] ready on stdio');
+console.error('[magictex-mcp] ready on stdio');
