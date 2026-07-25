@@ -1,0 +1,86 @@
+# MagicTeX — Éditeur LaTeX pour agents IA
+
+<!-- badges -->
+[![CI](https://github.com/ZoeLinUTS/MagicTeX-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/ZoeLinUTS/MagicTeX-mcp/actions/workflows/ci.yml)
+[![stars](https://img.shields.io/github/stars/ZoeLinUTS/MagicTeX-mcp?style=flat)](https://github.com/ZoeLinUTS/MagicTeX-mcp/stargazers)
+[![last commit](https://img.shields.io/github/last-commit/ZoeLinUTS/MagicTeX-mcp)](https://github.com/ZoeLinUTS/MagicTeX-mcp/commits/main)
+[![license](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
+[![Sponsor](https://img.shields.io/badge/%E2%9D%A4-Sponsor-db61a2)](https://github.com/sponsors/ZoeLinUTS)
+
+[English](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · **Français** · [Deutsch](README.de.md) · [Português](README.pt.md)
+
+**MagicTeX** est un **éditeur LaTeX conçu pour les agents IA** : un espace de travail à
+**fenêtre unique** façon Overleaf pour Claude Code, fourni par un serveur MCP, **sans
+installation locale de TeX ni compte Overleaf** : aperçu PDF en direct, un éditeur de code
+avec **mode Visuel (WYSIWYG)**, historique des modifications, et **des commentaires que vous
+ancrez sur le PDF rendu et qui deviennent des instructions d'édition pour l'agent**. (paquet
+npm : `magictex-mcp`.)
+
+Il compile avec un moteur WASM TeX Live 2026
+([texlyre-busytex](https://github.com/TeXlyre/texlyre-busytex)) tournant dans un navigateur
+headless : rien de plusieurs Go à installer — juste un téléchargement unique des ressources
+WASM.
+
+## L'espace de travail
+
+Une seule fenêtre de navigateur (inspirée de l'édition à surface unique de Typst et des
+annotations ancrées de LiquidText) :
+
+- **Boucle commentaire → agent (l'essentiel).** Relisez le document *rendu* comme on annote une
+  épreuve papier : sélectionnez du texte, ajoutez un commentaire. Dites ensuite à Claude
+  « address my comments » — il les récupère via `check_comments` sous forme de **tâches
+  localisées** (page + citation + le `fichier:ligne` source + votre demande), modifie la source
+  et résout chaque carte avec une note.
+- **Panneau de code éditable + arborescence de fichiers.** Éditeur LaTeX CodeMirror,
+  arborescence façon Overleaf (dossiers, nouveau/renommer/supprimer, changer de fichier). Ctrl+S
+  recompile.
+- **Mode Visuel (WYSIWYG).** Titres, gras, italique et formules `$…$` et `\begin{equation}` sont
+  rendus sur place ; au survol, le LaTeX d'origine réapparaît pour l'édition.
+- **Flux de revue (relecteur → validation humaine → auteur).** Un agent relecteur/défenseur
+  publie des commentaires via `add_comment` ; vous **acceptez/refusez** (ou activez le mode
+  copilote *auto-accepter*) ; une boucle auteur résout les acceptés.
+- **Historique des modifications.** Chaque compilation réussie est capturée dans une **ref git
+  cachée**, sans toucher à vos branches ni à votre `git log`.
+
+## Installation
+
+1. Ajoutez-le au `.mcp.json` de votre projet (voir [`.mcp.json.example`](.mcp.json.example)) :
+
+   ```json
+   {
+     "mcpServers": {
+       "magictex": { "command": "npx", "args": ["-y", "magictex-mcp"] }
+     }
+   }
+   ```
+
+2. **Redémarrez Claude Code** (ou reconnectez avec `/mcp`) pour charger le serveur.
+3. Demandez à Claude « render a preview of this paper » — la première fois télécharge les
+   ressources WASM TeX Live (~480 Mo, une seule fois), compile et ouvre l'aperçu en direct.
+
+## Installer comme plugin Claude Code (commandes slash)
+
+Pour taper moins, installez MagicTeX comme plugin — une seule installation vous donne le serveur
+MCP **et** les commandes slash :
+
+```
+/plugin marketplace add ZoeLinUTS/MagicTeX-mcp
+/plugin install magictex
+```
+
+- **`/magic-latex`** — compile et ouvre l'espace de travail.
+- **`/ai-review [skill]`** — relit l'article avec une skill (par défaut
+  `academic-paper-revision` ; n'importe quel nom fonctionne) et publie des commentaires à
+  accepter/refuser.
+- **`/address-comments`** — résout vos commentaires acceptés (`/loop 60s /address-comments`).
+
+## Soutenir ce projet
+
+MagicTeX est libre et open source (AGPL-3.0). S'il vous fait gagner du temps sur vos articles,
+pensez à **[soutenir le projet](https://github.com/sponsors/ZoeLinUTS)**. Une ⭐ sur le dépôt
+aide aussi.
+
+## Licence
+
+[AGPL-3.0-or-later](LICENSE) — comme le moteur `texlyre-busytex` sur lequel il repose.
+Voir [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
