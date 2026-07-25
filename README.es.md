@@ -74,6 +74,21 @@ Para escribir menos, instala MagicTeX como plugin — una sola instalación te d
   `academic-paper-revision`; admite cualquier nombre) y publica comentarios para aceptar/rechazar.
 - **`/address-comments`** — resuelve tus comentarios aceptados (`/loop 60s /address-comments`).
 
+### Un comando por herramienta
+
+Cada herramienta MCP tiene también un comando con el **mismo nombre**, así que puedes ejecutar cualquier paso escribiendo el nombre de la herramienta. La regla para enseñar: *la herramienta es `X` → escribe `/X`*.
+
+| Escribe esto | Ejecuta la herramienta | Qué hace |
+| --- | --- | --- |
+| `/render_preview` | `render_preview` | Compila el artículo y abre/actualiza la vista previa en vivo. |
+| `/check_comments` | `check_comments` | Lista los comentarios que aceptaste como instrucciones (sin editar aún). |
+| `/resolve_comment [id] [nota]` | `resolve_comment` | Marca un comentario como hecho tras la edición; se pone **verde** para tu revisión. |
+| `/add_comment ["cita"] [nota]` | `add_comment` | Ancla un comentario en un pasaje para que lo aceptes/rechaces. |
+| `/reply_to_comment [id] [texto]` | `reply_to_comment` | Añade una respuesta en el hilo de un comentario. |
+| `/show_diff [sha]` | `show_diff` | Diff visual en paralelo como imagen (cambios actuales o un checkpoint). |
+
+Nunca es obligatorio escribirlos: el lenguaje natural también funciona (*«renderiza una vista previa»*, *«atiende mis comentarios»*). Los comandos son solo un atajo rápido y fácil de enseñar.
+
 ## Patrocina este proyecto
 
 MagicTeX es libre y de código abierto (AGPL-3.0). Si te ahorra tiempo con tus artículos,

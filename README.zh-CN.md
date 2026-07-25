@@ -72,6 +72,21 @@ Overleaf 账号**：实时 PDF 预览、带**可视化（所见即所得）模�
   也可传入任意 skill 名）并留下评论供你确认；skill 未安装时会给出安装提示。
 - **`/address-comments`** — 解决你已接受的评论（可 `/loop 60s /address-comments`）。
 
+### 每个工具一个命令
+
+每个 MCP 工具都有一个**同名**的 slash 命令，任何单步都能用工具名触发。要教别人的规则一句话：**工具叫 `X`，就打 `/X`**。
+
+| 打这个 | 调用工具 | 作用 |
+| --- | --- | --- |
+| `/render_preview` | `render_preview` | 编译论文，打开/刷新实时预览。 |
+| `/check_comments` | `check_comments` | 列出你已接受的评论（作为修改指令，先不改）。 |
+| `/resolve_comment [id] [说明]` | `resolve_comment` | 改完后标记完成；评论变**绿**等你复核。 |
+| `/add_comment ["引文"] [说明]` | `add_comment` | 把评论锚定到某段文字，供你接受/拒绝。 |
+| `/reply_to_comment [id] [内容]` | `reply_to_comment` | 给某条评论追加线程回复。 |
+| `/show_diff [sha]` | `show_diff` | 并排可视化 diff（图片；当前改动或某个 checkpoint）。 |
+
+其实不打命令也行——直接说人话同样有效（“渲染预览”、“处理我的评论”）。命令只是更快、更好教的简写。
+
 ## 赞助本项目
 
 MagicTeX 是免费开源的（AGPL-3.0）。如果它为你的论文节省了时间，欢迎

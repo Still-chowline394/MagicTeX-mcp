@@ -76,6 +76,21 @@ MCP **et** les commandes slash :
   accepter/refuser.
 - **`/address-comments`** — résout vos commentaires acceptés (`/loop 60s /address-comments`).
 
+### Une commande par outil
+
+Chaque outil MCP a aussi une commande du **même nom**, vous pouvez donc exécuter n'importe quelle étape en tapant le nom de l'outil. La règle à enseigner : *l'outil est `X` → tapez `/X`*.
+
+| Tapez ceci | Exécute l'outil | Ce que ça fait |
+| --- | --- | --- |
+| `/render_preview` | `render_preview` | Compile l'article et ouvre/rafraîchit l'aperçu en direct. |
+| `/check_comments` | `check_comments` | Liste les commentaires acceptés comme instructions (sans encore éditer). |
+| `/resolve_comment [id] [note]` | `resolve_comment` | Marque un commentaire comme fait après l'édition ; il passe au **vert** pour votre relecture. |
+| `/add_comment ["citation"] [note]` | `add_comment` | Ancre un commentaire sur un passage à accepter/refuser. |
+| `/reply_to_comment [id] [texte]` | `reply_to_comment` | Ajoute une réponse au fil d'un commentaire. |
+| `/show_diff [sha]` | `show_diff` | Diff visuel côte à côte en image (modifications actuelles ou un checkpoint). |
+
+Rien ne vous oblige à les taper : le langage naturel marche aussi (*« affiche un aperçu »*, *« traite mes commentaires »*). Les commandes sont juste un raccourci rapide et facile à enseigner.
+
 ## Soutenir ce projet
 
 MagicTeX est libre et open source (AGPL-3.0). S'il vous fait gagner du temps sur vos articles,

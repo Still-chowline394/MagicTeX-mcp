@@ -73,6 +73,21 @@ Für weniger Tippen installiere MagicTeX als Plugin — eine Installation gibt d
   `academic-paper-revision`; jeder Name geht) und Kommentare zum Akzeptieren/Ablehnen posten.
 - **`/address-comments`** — deine akzeptierten Kommentare lösen (`/loop 60s /address-comments`).
 
+### Ein Befehl pro Tool
+
+Jedes MCP-Tool hat auch einen Slash-Befehl mit **demselben Namen**, du kannst also jeden einzelnen Schritt per Tool-Namen auslösen. Die Regel zum Weitergeben: *das Tool heißt `X` → tippe `/X`*.
+
+| Das tippen | Führt Tool aus | Was es tut |
+| --- | --- | --- |
+| `/render_preview` | `render_preview` | Kompiliert das Paper und öffnet/aktualisiert die Live-Vorschau. |
+| `/check_comments` | `check_comments` | Listet deine akzeptierten Kommentare als Anweisungen (noch keine Änderung). |
+| `/resolve_comment [id] [Notiz]` | `resolve_comment` | Markiert einen Kommentar nach der Änderung als erledigt; wird **grün** zur Prüfung. |
+| `/add_comment ["Zitat"] [Notiz]` | `add_comment` | Verankert einen Kommentar an einer Stelle zum Annehmen/Ablehnen. |
+| `/reply_to_comment [id] [Text]` | `reply_to_comment` | Fügt eine Thread-Antwort zu einem Kommentar hinzu. |
+| `/show_diff [sha]` | `show_diff` | Nebeneinander-Diff als Bild (aktuelle Änderungen oder ein Checkpoint). |
+
+Du musst sie nie tippen – normale Sprache funktioniert auch (*„zeig eine Vorschau“*, *„bearbeite meine Kommentare“*). Die Befehle sind nur eine schnelle, gut vermittelbare Kurzform.
+
 ## Dieses Projekt unterstützen
 
 MagicTeX ist frei und quelloffen (AGPL-3.0). Wenn es dir Zeit bei deinen Papern spart, erwäge

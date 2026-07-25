@@ -75,6 +75,21 @@ os comandos de barra:
   qualquer nome funciona) e publica comentários para aceitar/rejeitar.
 - **`/address-comments`** — resolve seus comentários aceitos (`/loop 60s /address-comments`).
 
+### Um comando por ferramenta
+
+Cada ferramenta MCP também tem um comando com o **mesmo nome**, então você executa qualquer passo digitando o nome da ferramenta. A regra para ensinar: *a ferramenta é `X` → digite `/X`*.
+
+| Digite isto | Executa a ferramenta | O que faz |
+| --- | --- | --- |
+| `/render_preview` | `render_preview` | Compila o artigo e abre/atualiza a pré-visualização ao vivo. |
+| `/check_comments` | `check_comments` | Lista os comentários que você aceitou como instruções (sem editar ainda). |
+| `/resolve_comment [id] [nota]` | `resolve_comment` | Marca um comentário como feito após a edição; fica **verde** para sua revisão. |
+| `/add_comment ["citação"] [nota]` | `add_comment` | Ancora um comentário num trecho para você aceitar/rejeitar. |
+| `/reply_to_comment [id] [texto]` | `reply_to_comment` | Adiciona uma resposta no tópico de um comentário. |
+| `/show_diff [sha]` | `show_diff` | Diff visual lado a lado como imagem (mudanças atuais ou um checkpoint). |
+
+Você nunca precisa digitá-los: linguagem natural também funciona (*“renderize uma pré-visualização”*, *“resolva meus comentários”*). Os comandos são só um atalho rápido e fácil de ensinar.
+
 ## Patrocine este projeto
 
 O MagicTeX é livre e de código aberto (AGPL-3.0). Se ele economiza seu tempo com os artigos,
