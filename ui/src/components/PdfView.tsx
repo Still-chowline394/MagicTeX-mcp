@@ -203,7 +203,46 @@ export function PdfView({
       }
       return -1;
     };
-    interface Span { start: number; len: number; l: number; t: number; w: number; h: number }
+    interface Span { start: number; len: number; l: number; t: number; w: number; h: number; el: HTMLElement }
+
+    // Map each character of normalize()'d text back to its index in the raw
+    // text, mirroring what normalize does: alphanumerics stand for themselves,
+    // each run of everything else collapses to ONE space (indexed at the run's
+    // first character), and leading/trailing runs vanish to the trim().
+    const normToRaw = (raw: string): number[] => {
+      const map: number[] = [];
+      let inSep = true; // a leading separator run is trimmed away
+      for (let i = 0; i < raw.length; i++) {
+        if (/[a-z0-9]/.test(raw[i].toLowerCase())) { map.push(i); inSep = false; }
+        else if (!inSep) { map.push(i); inSep = true; }
+      }
+      if (inSep) map.pop(); // the trailing space trim() removes
+      return map;
+    };
+
+    // Where inside a span does normalized offset `localNorm` actually fall?
+    // hits() works at span granularity, but pdf.js emits spans covering many
+    // words at once, so taking a span's own edge put the highlight's start up to
+    // a whole span early. A Range over the text node gives the true glyph
+    // position; it is measured as a FRACTION of the span's client width and
+    // reapplied to the offset width, because the text layer scales spans with a
+    // transform that client rects include and offsetWidth does not.
+    const edgeInSpan = (s: Span, localNorm: number, side: 'left' | 'right'): number | null => {
+      const node = s.el.firstChild;
+      if (!node || node.nodeType !== Node.TEXT_NODE) return null;
+      const raw = node.textContent ?? '';
+      const map = normToRaw(raw);
+      const rawIdx = localNorm <= 0 ? 0 : localNorm >= map.length ? raw.length : map[localNorm];
+      if (side === 'left' ? rawIdx >= raw.length : rawIdx <= 0) return null;
+      const range = document.createRange();
+      if (side === 'left') { range.setStart(node, rawIdx); range.setEnd(node, raw.length); }
+      else { range.setStart(node, 0); range.setEnd(node, rawIdx); }
+      const rect = range.getBoundingClientRect();
+      const box = s.el.getBoundingClientRect();
+      if (!box.width || !rect.width) return null;
+      const frac = ((side === 'left' ? rect.left : rect.right) - box.left) / box.width;
+      return s.l + frac * s.w;
+    };
     // Group ALL of a page's text spans into visual lines — "same line" means the
     // new span's vertical range overlaps the line's accumulated range (tolerates
     // italic/math/sub-superscript runs having a different box than roman text on
@@ -237,7 +276,7 @@ export function PdfView({
         const el = s as HTMLElement;
         const n = normalize(el.textContent ?? '');
         if (!n) continue;
-        all.push({ start: concat.length, len: n.length, l: el.offsetLeft, t: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight });
+        all.push({ start: concat.length, len: n.length, l: el.offsetLeft, t: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight, el });
         concat += n + ' ';
       }
       const at = anchor(concat, words, true);
@@ -256,8 +295,17 @@ export function PdfView({
       if (!touched.length) return null;
       return touched.map((L, i) => {
         let l = L.l, r = L.r;
-        if (i === 0) l = Math.min(...hits(L).map((s) => s.l));
-        if (i === touched.length - 1) r = Math.max(...hits(L).map((s) => s.l + s.w));
+        if (i === 0) {
+          // Prefer the exact glyph position of the matched word; fall back to
+          // the span edge when the offset lands in the gap between two spans or
+          // the node isn't measurable.
+          const host = hits(L).find((s) => s.start <= at && at < s.start + s.len);
+          l = (host && edgeInSpan(host, at - host.start, 'left')) ?? Math.min(...hits(L).map((s) => s.l));
+        }
+        if (i === touched.length - 1) {
+          const host = hits(L).find((s) => s.start < end && end <= s.start + s.len);
+          r = (host && edgeInSpan(host, end - host.start, 'right')) ?? Math.max(...hits(L).map((s) => s.l + s.w));
+        }
         return { l, t: L.t, w: r - l, h: L.b - L.t };
       });
     };
