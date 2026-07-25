@@ -226,10 +226,18 @@ export function PdfView({
       }
       if (!spans.length) return null;
       spans.sort((a, b) => a.t - b.t || a.l - b.l);
+      // "Same line" = the new span's vertical range overlaps the accumulated
+      // line's range — NOT how close their tops are. Italic runs, inline math,
+      // and sub/superscripts get taller or shifted bounding boxes from pdf.js
+      // than the surrounding roman text even on the same baseline, so a
+      // top-distance check splits them into their own tiny box; an overlap
+      // check tolerates that and still keeps genuinely different lines apart
+      // (real line gaps are ~a full font-size, far bigger than any overlap).
       const lines: { l: number; t: number; r: number; b: number }[] = [];
       for (const s of spans) {
         const cur = lines[lines.length - 1];
-        if (cur && Math.abs(s.t - cur.t) <= Math.min(s.h, cur.b - cur.t) * 0.6) {
+        const overlap = cur ? Math.min(s.t + s.h, cur.b) - Math.max(s.t, cur.t) : -1;
+        if (cur && overlap > Math.min(s.h, cur.b - cur.t) * 0.3) {
           cur.l = Math.min(cur.l, s.l); cur.r = Math.max(cur.r, s.l + s.w);
           cur.t = Math.min(cur.t, s.t); cur.b = Math.max(cur.b, s.t + s.h);
         } else {
