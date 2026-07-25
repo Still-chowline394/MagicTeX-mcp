@@ -14,7 +14,15 @@ export function FileTree({
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [err, setErr] = useState<string | null>(null);
 
-  const reload = useCallback(() => { fetchTree().then(setTree).catch(() => {}); }, []);
+  const reload = useCallback(async () => {
+    const t = await fetchTree().catch(() => []);
+    if (t.length) { setTree(t); return; }
+    // Fallback for an older server without /api/tree: show the flat file list.
+    try {
+      const files: string[] = await (await fetch('/api/files')).json();
+      setTree(files.map((f) => ({ name: f.split('/').pop() ?? f, path: f, type: 'file' as const })));
+    } catch { setTree([]); }
+  }, []);
   useEffect(() => { reload(); }, [reload, refreshKey]);
 
   const doOp = async (op: string, path: string, to?: string) => {

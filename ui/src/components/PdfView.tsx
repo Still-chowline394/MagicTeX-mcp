@@ -186,7 +186,10 @@ export function PdfView({
     };
 
     for (const c of comments) {
-      const statusCls = c.status === 'resolved' ? 'hl-resolved' : c.status === 'suggested' ? 'hl-suggested' : '';
+      // Resolved comments keep no highlight on the page — they live in the
+      // Resolved history list, so multiple review rounds don't pile up colors.
+      if (c.status === 'resolved') continue;
+      const statusCls = c.status === 'suggested' ? 'hl-suggested' : '';
       if (c.rects.length) {
         const layer = container.querySelector(`.page[data-page="${c.page}"] .hl-layer`);
         if (layer) for (const r of c.rects) box(layer, c, statusCls, r.x * scale, r.y * scale, r.w * scale, r.h * scale);

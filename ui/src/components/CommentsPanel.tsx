@@ -62,8 +62,10 @@ export function CommentsPanel({
           <button className="ghost" onClick={() => void patchComment(c.id, { status: 'resolved' })}>resolve</button>
           <button className="ghost" onClick={() => void removeComment(c.id)}>delete</button>
         </>}
-        {c.status === 'resolved' &&
-          <button className="ghost" onClick={() => void patchComment(c.id, { status: 'pending' })}>reopen</button>}
+        {c.status === 'resolved' && <>
+          <button className="ghost" onClick={() => void patchComment(c.id, { status: 'pending' })}>reopen</button>
+          <button className="ghost" onClick={() => void removeComment(c.id)}>close</button>
+        </>}
       </div>
     </div>
   );
@@ -94,7 +96,12 @@ export function CommentsPanel({
       {pending.length > 0 && <div className="comments-head">Pending · {pending.length}</div>}
       {pending.map(card)}
 
-      {resolved.length > 0 && <div className="comments-head">Resolved · {resolved.length}</div>}
+      {resolved.length > 0 && (
+        <div className="comments-head suggested-head">
+          Resolved · {resolved.length}
+          <button className="ghost tiny" onClick={() => resolved.forEach((c) => void removeComment(c.id))}>clear all</button>
+        </div>
+      )}
       {resolved.map(card)}
     </div>
   );
