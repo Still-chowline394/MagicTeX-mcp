@@ -29,7 +29,7 @@ test('review workflow over MCP: post → gate → located → thread → resolve
     // A reviewer suggestion is NOT actionable until accepted.
     await call('add_comment', { quote: 'large speedup on the benchmark', comment: 'Which baseline?', role: 'reviewer' });
     let ck = await call('check_comments');
-    assert.match(ck, /No pending comments/);
+    assert.match(ck, /No accepted comments/);
     assert.match(ck, /1 reviewer suggestion/);
 
     // An accepted (autonomous) comment is actionable, role-tagged, and located.
@@ -37,7 +37,7 @@ test('review workflow over MCP: post → gate → located → thread → resolve
     const id = posted.match(/comment ([0-9a-f]{6,})/)?.[1];
     assert.ok(id, 'expected a new comment id');
     ck = await call('check_comments');
-    assert.match(ck, /1 pending comment/);
+    assert.match(ck, /1 accepted comment/);
     assert.match(ck, /main\.tex:3/);
     assert.match(ck, /\(defender\)/);
 
@@ -49,7 +49,7 @@ test('review workflow over MCP: post → gate → located → thread → resolve
     // Resolve clears it.
     await call('resolve_comment', { id, note: 'added the baseline + runs' });
     ck = await call('check_comments');
-    assert.match(ck, /No pending comments/);
+    assert.match(ck, /No accepted comments/);
   } finally {
     await client.close();
     rmSync(proj, { recursive: true, force: true });

@@ -7,11 +7,11 @@ import { addComment, listComments, updateComment, addReply, deleteComment } from
 
 const tmp = () => mkdtempSync(join(tmpdir(), 'cs-'));
 
-test('addComment defaults to human + pending', async () => {
+test('addComment defaults to human + accepted', async () => {
   const d = tmp();
   try {
     const c = await addComment(d, { page: 1, quote: 'x', rects: [], text: 'do it' });
-    assert.equal(c.status, 'pending');
+    assert.equal(c.status, 'accepted');
     assert.equal(c.role, 'human');
     assert.equal((await listComments(d)).length, 1);
   } finally { rmSync(d, { recursive: true, force: true }); }
@@ -22,8 +22,8 @@ test('reviewer suggestion → accept → resolve', async () => {
   try {
     const c = await addComment(d, { page: 1, quote: 'q', rects: [], text: 'fix', role: 'reviewer', status: 'suggested' });
     assert.equal(c.status, 'suggested');
-    await updateComment(d, c.id, { status: 'pending' });
-    assert.equal((await listComments(d))[0].status, 'pending');
+    await updateComment(d, c.id, { status: 'accepted' });
+    assert.equal((await listComments(d))[0].status, 'accepted');
     await updateComment(d, c.id, { status: 'resolved', resolvedNote: 'done' });
     const done = (await listComments(d))[0];
     assert.equal(done.status, 'resolved');

@@ -19,6 +19,7 @@ body { font-family: system-ui, sans-serif; background: #1e1f22; color: #ddd; fon
 .toolbar { flex: 0 0 auto; display: flex; align-items: center; gap: 12px; padding: 7px 12px;
            background: #2b2d31; border-bottom: 1px solid #17181a; }
 .brand { max-width: 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brand-mark { flex: 0 0 auto; border-radius: 50%; }
 /* Prominent comments toggle: highlights when open, glows when there are open items. */
 .comments-toggle { border-color: #55585e; }
 .comments-toggle.on { background: #2d6cdf; border-color: #2d6cdf; color: #fff; }

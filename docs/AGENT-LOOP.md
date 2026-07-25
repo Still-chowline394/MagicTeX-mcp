@@ -84,6 +84,10 @@ The comment inbox has three states, which chain a whole review cycle:
 4. **Everything is recorded.** Each accept, edit, and resolve leaves a checkpoint + a note,
    so the whole reviewer→author round is traceable in **History**.
 
-This is one reviewer + one author with a human in the middle. True concurrent multi-agent
-(reviewer / author / defender on their own git branches, coordinated turn-taking) is the
-next milestone — see the system blueprint.
+This is one reviewer + one author with a human in the middle. Multiple Claude Code
+sessions can already work the same project concurrently without corrupting comments or
+checkpoints (each mutation runs under a cross-process lock — see
+[`docs/ROADMAP.md`](ROADMAP.md)), but they still take turns rather than truly editing in
+parallel. True concurrent multi-agent (reviewer / author / defender on their own git
+branches, coordinated turn-taking) is the next milestone — see
+[`docs/ROADMAP.md`](ROADMAP.md).

@@ -3,9 +3,10 @@
 // its bounding rects at scale 1, so highlights re-project at any zoom. The dir
 // is already ignored by the file watcher and the project collector, so comment
 // writes never trigger recompiles or end up in export zips.
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
+import { withLock } from '../lock.js';
 
 export interface CommentRect { x: number; y: number; w: number; h: number }
 
@@ -62,9 +63,18 @@ export async function listComments(root: string): Promise<Comment[]> {
   }
 }
 
+// Atomic write (temp file + rename): a concurrent listComments() from another
+// process/agent then always sees either the fully-old or fully-new file, never
+// a truncated one mid-write — true regardless of the lock below, which exists
+// for a different problem (see withLock callers): two WRITERS racing to read
+// the pre-edit array, each appending their own change, and the second save()
+// silently discarding the first agent's change ("lost update").
 async function save(root: string, comments: Comment[]): Promise<void> {
   await mkdir(join(root, '.latex-preview'), { recursive: true });
-  await writeFile(storePath(root), JSON.stringify(comments, null, 2), 'utf8');
+  const dest = storePath(root);
+  const tmp = `${dest}.tmp-${randomBytes(4).toString('hex')}`;
+  await writeFile(tmp, JSON.stringify(comments, null, 2), 'utf8');
+  await rename(tmp, dest);
 }
 
 export async function addComment(
@@ -81,9 +91,14 @@ export async function addComment(
     role: input.role ?? 'human',
     created: new Date().toISOString(),
   };
-  const all = await listComments(root);
-  all.push(comment);
-  await save(root, all);
+  // The whole read -> mutate -> write runs as one cross-process critical
+  // section, so two agents adding/resolving/replying to comments at the same
+  // moment queue instead of one silently overwriting the other's change.
+  await withLock(root, async () => {
+    const all = await listComments(root);
+    all.push(comment);
+    await save(root, all);
+  });
   return comment;
 }
 
@@ -92,18 +107,20 @@ export async function updateComment(
   id: string,
   patch: { status?: CommentStatus; resolvedNote?: string; text?: string },
 ): Promise<Comment | null> {
-  const all = await listComments(root);
-  const c = all.find((x) => x.id === id);
-  if (!c) return null;
-  if (patch.text !== undefined) c.text = String(patch.text).slice(0, 4000);
-  if (patch.status) {
-    c.status = patch.status;
-    if (patch.status === 'resolved') c.resolvedAt = new Date().toISOString();
-    else { delete c.resolvedAt; delete c.resolvedNote; }
-  }
-  if (patch.resolvedNote !== undefined) c.resolvedNote = String(patch.resolvedNote).slice(0, 2000);
-  await save(root, all);
-  return c;
+  return withLock(root, async () => {
+    const all = await listComments(root);
+    const c = all.find((x) => x.id === id);
+    if (!c) return null;
+    if (patch.text !== undefined) c.text = String(patch.text).slice(0, 4000);
+    if (patch.status) {
+      c.status = patch.status;
+      if (patch.status === 'resolved') c.resolvedAt = new Date().toISOString();
+      else { delete c.resolvedAt; delete c.resolvedNote; }
+    }
+    if (patch.resolvedNote !== undefined) c.resolvedNote = String(patch.resolvedNote).slice(0, 2000);
+    await save(root, all);
+    return c;
+  });
 }
 
 export async function addReply(
@@ -111,18 +128,22 @@ export async function addReply(
   id: string,
   reply: { by: CommentRole; text: string },
 ): Promise<Comment | null> {
-  const all = await listComments(root);
-  const c = all.find((x) => x.id === id);
-  if (!c) return null;
-  (c.replies ??= []).push({ by: reply.by, text: String(reply.text).slice(0, 2000), at: new Date().toISOString() });
-  await save(root, all);
-  return c;
+  return withLock(root, async () => {
+    const all = await listComments(root);
+    const c = all.find((x) => x.id === id);
+    if (!c) return null;
+    (c.replies ??= []).push({ by: reply.by, text: String(reply.text).slice(0, 2000), at: new Date().toISOString() });
+    await save(root, all);
+    return c;
+  });
 }
 
 export async function deleteComment(root: string, id: string): Promise<boolean> {
-  const all = await listComments(root);
-  const next = all.filter((x) => x.id !== id);
-  if (next.length === all.length) return false;
-  await save(root, next);
-  return true;
+  return withLock(root, async () => {
+    const all = await listComments(root);
+    const next = all.filter((x) => x.id !== id);
+    if (next.length === all.length) return false;
+    await save(root, next);
+    return true;
+  });
 }

@@ -207,6 +207,13 @@ CI (`.github/workflows/ci.yml`) runs typecheck + UI build + tests on Node 20 and
 for every push and pull request. The tests are engine-free (no headless browser), so
 they're fast and deterministic; please keep them green and add coverage with changes.
 
+## Roadmap
+
+Multiple Claude Code sessions can already work the same project concurrently without
+corrupting comments or the checkpoint history (see [`docs/ROADMAP.md`](docs/ROADMAP.md))
+— true parallel multi-agent editing (reviewer/author/defender on their own git branches,
+merged back together) is the next milestone.
+
 ## Sponsor this project
 
 MagicTeX is free and open source (AGPL-3.0). If it saves you time on your papers,

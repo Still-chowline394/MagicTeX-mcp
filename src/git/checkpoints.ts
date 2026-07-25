@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { rm } from 'node:fs/promises';
 import { git, gitOrNull } from './exec.js';
+import { withLock } from '../lock.js';
 
 const REF = 'refs/latex-preview/checkpoints';
 // The well-known empty tree — used to diff the very first checkpoint (no parent).
@@ -26,12 +27,14 @@ export interface Checkpoint {
   deletions: number;
 }
 
-/**
- * Snapshot the current working tree into the hidden checkpoint chain.
- * No-op (returns {created:false}) when not a git repo or the tree is unchanged
- * since the last checkpoint. Never throws for expected conditions.
- */
-export async function createCheckpoint(root: string): Promise<{ created: boolean; sha?: string }> {
+/** Unlocked implementation — read-current-ref, write-tree, commit-tree, and
+ *  advance-ref must run as one cross-process critical section (two agents
+ *  compiling near-simultaneously would otherwise both read the same parent
+ *  and race update-ref, silently orphaning whichever one loses). Exported
+ *  callers get that via createCheckpoint below; restoreCheckpoint/restoreFile
+ *  call this directly because they already hold the lock for their own
+ *  operation and calling the locked wrapper again would deadlock. */
+async function doCreateCheckpoint(root: string): Promise<{ created: boolean; sha?: string }> {
   if (!(await isGitRepo(root))) return { created: false };
 
   // Temp index OUTSIDE the repo, fresh each time — so the user's real index is
@@ -60,6 +63,15 @@ export async function createCheckpoint(root: string): Promise<{ created: boolean
   } finally {
     await rm(idx, { force: true }).catch(() => {});
   }
+}
+
+/**
+ * Snapshot the current working tree into the hidden checkpoint chain.
+ * No-op (returns {created:false}) when not a git repo or the tree is unchanged
+ * since the last checkpoint. Never throws for expected conditions.
+ */
+export async function createCheckpoint(root: string): Promise<{ created: boolean; sha?: string }> {
+  return withLock(root, () => doCreateCheckpoint(root));
 }
 
 const SHORTSTAT_RE = /(\d+) files? changed(?:, (\d+) insertions?\(\+\))?(?:, (\d+) deletions?\(-\))?/;
@@ -114,15 +126,17 @@ export async function restoreCheckpoint(root: string, sha: string): Promise<void
   if (!SHA_RE.test(sha)) throw new Error('invalid checkpoint id');
   const reachable = await gitOrNull(root, ['merge-base', '--is-ancestor', sha, REF]);
   if (reachable === null) throw new Error('unknown checkpoint');
-  await createCheckpoint(root); // make the current state recoverable before we overwrite it
-  const idx = join(tmpdir(), `latex-restore-${randomBytes(6).toString('hex')}.index`);
-  const env = { ...process.env, GIT_INDEX_FILE: idx };
-  try {
-    await git(root, ['read-tree', sha], env);       // load the checkpoint tree into a temp index
-    await git(root, ['checkout-index', '-a', '-f'], env); // write those files to the working tree
-  } finally {
-    await rm(idx, { force: true }).catch(() => {});
-  }
+  await withLock(root, async () => {
+    await doCreateCheckpoint(root); // make the current state recoverable before we overwrite it
+    const idx = join(tmpdir(), `latex-restore-${randomBytes(6).toString('hex')}.index`);
+    const env = { ...process.env, GIT_INDEX_FILE: idx };
+    try {
+      await git(root, ['read-tree', sha], env);       // load the checkpoint tree into a temp index
+      await git(root, ['checkout-index', '-a', '-f'], env); // write those files to the working tree
+    } finally {
+      await rm(idx, { force: true }).catch(() => {});
+    }
+  });
 }
 
 /** Restore ONE file to its content at a checkpoint (per-file revert). Same temp-
@@ -133,15 +147,17 @@ export async function restoreFile(root: string, sha: string, relPath: string): P
   if (!rel || rel.includes('..')) throw new Error('invalid path');
   const reachable = await gitOrNull(root, ['merge-base', '--is-ancestor', sha, REF]);
   if (reachable === null) throw new Error('unknown checkpoint');
-  await createCheckpoint(root); // recoverable
-  const idx = join(tmpdir(), `latex-restorefile-${randomBytes(6).toString('hex')}.index`);
-  const env = { ...process.env, GIT_INDEX_FILE: idx };
-  try {
-    await git(root, ['read-tree', sha], env);
-    await git(root, ['checkout-index', '-f', '--', rel], env);
-  } finally {
-    await rm(idx, { force: true }).catch(() => {});
-  }
+  await withLock(root, async () => {
+    await doCreateCheckpoint(root); // recoverable
+    const idx = join(tmpdir(), `latex-restorefile-${randomBytes(6).toString('hex')}.index`);
+    const env = { ...process.env, GIT_INDEX_FILE: idx };
+    try {
+      await git(root, ['read-tree', sha], env);
+      await git(root, ['checkout-index', '-f', '--', rel], env);
+    } finally {
+      await rm(idx, { force: true }).catch(() => {});
+    }
+  });
 }
 
 /** Unified diff for one checkpoint (vs its parent, or the empty tree for the first). */
