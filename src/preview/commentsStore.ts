@@ -52,9 +52,18 @@ export async function listComments(root: string): Promise<Comment[]> {
     // One-time upgrade for files written before the 'pending'->'accepted' rename
     // (see the CommentStatus comment above) — normalize on read and persist so
     // this only runs once per file.
+    //
+    // Shape is normalized here as well. This file is plain JSON sitting in the
+    // user's project: it can be hand-edited, written by an older version, or
+    // produced directly by an agent. Returning it as Comment[] unchecked is a
+    // claim the type system cannot verify, and one missing `rects` was enough
+    // to take down the whole PDF pane. Guarantee the array fields exist once,
+    // here, instead of defending at every read site.
     let migrated = false;
     for (const c of parsed) {
       if (c?.status === 'pending') { c.status = 'accepted'; migrated = true; }
+      if (c && !Array.isArray(c.rects)) { c.rects = []; migrated = true; }
+      if (c && !Array.isArray(c.replies)) { c.replies = []; migrated = true; }
     }
     if (migrated) await save(root, parsed);
     return parsed;

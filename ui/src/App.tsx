@@ -12,21 +12,31 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 
 type LeftTab = 'source' | 'history';
 
-const MIN_PANEL = 220;
-const maxPanel = () => Math.max(MIN_PANEL, Math.floor(window.innerWidth * 0.6));
+// Minimum widths are measured, not guessed. The left panel carries fixed-size
+// control rows, and the widest rigid one is the format bar: 15 buttons that
+// cannot shrink or collapse, needing 375px. Below that the rows wrap and the
+// controls scroll out of sight. 400 leaves margin for the file tree's header
+// and the editor bar. The right panel is prose that reflows, so it goes lower.
+// Keep MIN_LEFT in sync with --min-left in styles.css.
+const MIN_LEFT = 400;
+const MIN_RIGHT = 260;
+const maxPanel = (min: number) => Math.max(min, Math.floor(window.innerWidth * 0.6));
 
 /** Panel width with drag-resize support, persisted to localStorage. */
-function usePanelWidth(key: string, initial: number) {
+function usePanelWidth(key: string, initial: number, min: number) {
   const [width, setWidth] = useState(() => {
     const saved = Number(localStorage.getItem(key));
-    return Number.isFinite(saved) && saved >= MIN_PANEL ? Math.min(saved, maxPanel()) : initial;
+    // A width persisted by an older build can be narrower than today's minimum,
+    // so clamp up rather than only rejecting non-numbers.
+    if (!Number.isFinite(saved) || saved <= 0) return initial;
+    return Math.min(Math.max(saved, min), maxPanel(min));
   });
   useEffect(() => { localStorage.setItem(key, String(width)); }, [key, width]);
   return [width, setWidth] as const;
 }
 
 /** Overleaf-style drag handle. `dir` is which side the panel sits on. */
-function Splitter({ dir, width, setWidth }: { dir: 'left' | 'right'; width: number; setWidth: (w: number) => void }) {
+function Splitter({ dir, width, setWidth, min }: { dir: 'left' | 'right'; width: number; setWidth: (w: number) => void; min: number }) {
   const drag = useRef<{ startX: number; startW: number } | null>(null);
   return (
     <div
@@ -40,7 +50,7 @@ function Splitter({ dir, width, setWidth }: { dir: 'left' | 'right'; width: numb
         if (!drag.current) return;
         const dx = e.clientX - drag.current.startX;
         const next = dir === 'left' ? drag.current.startW + dx : drag.current.startW - dx;
-        setWidth(Math.min(Math.max(next, MIN_PANEL), maxPanel()));
+        setWidth(Math.min(Math.max(next, min), maxPanel(min)));
       }}
       onPointerUp={(e) => {
         drag.current = null;
@@ -59,8 +69,8 @@ export default function App() {
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(false);
   const [pages, setPages] = useState(0);
-  const [leftWidth, setLeftWidth] = usePanelWidth('ws-left-width', 360);
-  const [rightWidth, setRightWidth] = usePanelWidth('ws-right-width', 320);
+  const [leftWidth, setLeftWidth] = usePanelWidth('ws-left-width', 420, MIN_LEFT);
+  const [rightWidth, setRightWidth] = usePanelWidth('ws-right-width', 320, MIN_RIGHT);
   // Text-match sync between the PDF and the source editor (nonce forces re-fire
   // even when the same text is clicked twice).
   const [syncToSource, setSyncToSource] = useState<{ text: string; nonce: number } | null>(null);
@@ -112,7 +122,7 @@ export default function App() {
           {leftTab === 'history' && <ErrorBoundary name="History panel"><HistoryPanel reloadTick={reloadTick} /></ErrorBoundary>}
           {leftTab === 'source' && <ErrorBoundary name="Source editor"><SourcePanel reloadTick={reloadTick} syncTarget={syncToSource} onSyncToPdf={onSyncToPdf} /></ErrorBoundary>}
         </div>
-        {leftOpen && <Splitter dir="left" width={leftWidth} setWidth={setLeftWidth} />}
+        {leftOpen && <Splitter dir="left" width={leftWidth} setWidth={setLeftWidth} min={MIN_LEFT} />}
         {!leftOpen && <button className="edge-open left-edge" onClick={() => setLeftOpen(true)} title="Open panel">»</button>}
 
         <div className="center">
@@ -122,7 +132,7 @@ export default function App() {
           </ErrorBoundary>
         </div>
 
-        {rightOpen && <Splitter dir="right" width={rightWidth} setWidth={setRightWidth} />}
+        {rightOpen && <Splitter dir="right" width={rightWidth} setWidth={setRightWidth} min={MIN_RIGHT} />}
         <div className={`right ${rightOpen ? '' : 'closed'}`} style={rightOpen ? { flexBasis: rightWidth } : undefined}>
           <div className="tabs">
             <strong className="tab-title">Comments</strong>
