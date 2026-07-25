@@ -16,7 +16,9 @@ permissions:
   contents: read
 
 jobs:
-  check:
+  # Named explicitly rather than "check": this is a required status check in the
+  # branch ruleset, and required checks are matched by this exact string.
+  pr-links-issue:
     runs-on: ubuntu-latest
     steps:
       - name: Look for a closing keyword or an exemption
