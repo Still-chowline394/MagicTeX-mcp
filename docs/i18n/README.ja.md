@@ -24,6 +24,14 @@ Claude Code に接続する、Overleaf ライクな**ワンウィンドウ・ワ
 （[texlyre-busytex](https://github.com/TeXlyre/texlyre-busytex)）でコンパイルするため、
 数 GB のインストールは不要——一度きりの WASM アセットのダウンロードだけです。
 
+## インストール前に見てみる
+
+**[zoelin.dev/tools/magictex](https://zoelin.dev/tools/magictex)** に、コメント → エージェントの
+ループを段階的にたどるウォークスルーがあります。内容はすべて実際のツール出力から作られています。
+これはリプレイであり、ホストされたインスタンスではありません——TeX エンジンは約 480 MB の
+一回きりのダウンロードで、エージェントの半分は Claude そのものなので、MagicTeX はウェブページの
+中ではなく、あなたのプロジェクトの隣で動きます。
+
 ## ワークスペース
 
 1 つのブラウザウィンドウ（Typst の単一画面編集と LiquidText のアンカー注釈にヒント）：

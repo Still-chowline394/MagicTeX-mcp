@@ -25,6 +25,14 @@ Il compile avec un moteur WASM TeX Live 2026
 headless : rien de plusieurs Go à installer — juste un téléchargement unique des ressources
 WASM.
 
+## À voir avant d'installer
+
+Un parcours guidé de la boucle commentaire → agent se trouve sur
+**[zoelin.dev/tools/magictex](https://zoelin.dev/tools/magictex)**, construit à partir de
+sorties réelles de l'outil. C'est une rediffusion, pas une instance hébergée : le moteur TeX
+est un téléchargement unique d'environ 480 Mo et la moitié « agent » est Claude lui-même —
+MagicTeX tourne donc à côté de votre projet, pas dans une page web.
+
 ## L'espace de travail
 
 Une seule fenêtre de navigateur (inspirée de l'édition à surface unique de Typst et des

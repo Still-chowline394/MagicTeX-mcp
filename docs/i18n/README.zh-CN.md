@@ -23,6 +23,12 @@ Overleaf 账号**：实时 PDF 预览、带**可视化（所见即所得）模�
 （[texlyre-busytex](https://github.com/TeXlyre/texlyre-busytex)）编译，因此没有几个 GB
 的东西要装——只有一次性的 WASM 资源下载。
 
+## 安装前先看一眼
+
+**[zoelin.dev/tools/magictex](https://zoelin.dev/tools/magictex)** 上有一个「评论 → agent」
+闭环的分步演示，全部内容取自真实工具输出。它是回放，不是在线实例——TeX 引擎需要一次性下载
+约 480 MB，而 agent 那一半就是 Claude 本身，所以 MagicTeX 运行在你的项目旁边，而不是网页里。
+
 ## 工作区
 
 一个浏览器窗口（灵感来自 Typst 的单界面编辑与 LiquidText 的锚定批注）：

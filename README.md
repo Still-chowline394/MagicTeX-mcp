@@ -23,6 +23,14 @@ just a one-time WASM asset download.
 
 ![The MagicTeX workspace: file tree, source editor, live PDF, and a reviewer comment](docs/images/workspace.png)
 
+## See it before you install
+
+A guided walkthrough of the comment → agent loop lives at
+**[zoelin.dev/tools/magictex](https://zoelin.dev/tools/magictex)**, built from real
+tool output. It's a replay, not a hosted instance — the TeX engine is a one-time
+~480 MB download and the agent half is Claude itself, so MagicTeX runs next to your
+project rather than in a web page.
+
 ## The workspace
 
 One browser window (inspired by Typst's one-surface editor and LiquidText's
