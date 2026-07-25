@@ -26,6 +26,7 @@ export interface CompileOutput {
 }
 
 let started: Promise<{ browser: Browser; page: Page; preview: PreviewServerHandle }> | null = null;
+let currentPreview: PreviewServerHandle | null = null; // set once the engine is up
 
 async function start() {
   await ensureAssets(PKG_ROOT); // fetch WASM assets on first run if missing
@@ -37,6 +38,7 @@ async function start() {
   await page.waitForFunction('window.__ready === true || window.__initError', { timeout: 120_000 });
   const initError = await page.evaluate('window.__initError');
   if (initError) throw new Error(`Engine failed to initialize: ${initError}`);
+  currentPreview = preview;
   return { browser, page, preview };
 }
 
@@ -49,6 +51,13 @@ export function ensureEngine() {
 export async function getPreview(): Promise<PreviewServerHandle> {
   const { preview } = await ensureEngine();
   return preview;
+}
+
+/** The preview handle *if the engine is already running*, else null — never
+ *  starts it. For cheap best-effort broadcasts (e.g. resolve_comment) that must
+ *  not block a loop by cold-starting the whole browser + WASM engine. */
+export function peekPreview(): PreviewServerHandle | null {
+  return currentPreview;
 }
 
 export async function compile(

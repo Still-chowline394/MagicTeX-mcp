@@ -12,7 +12,8 @@ import { RENDER_PREVIEW_NAME, renderPreviewConfig } from './tools/renderPreviewT
 import { SHOW_DIFF_NAME, showDiffConfig } from './tools/showDiffToolDef.js';
 import { CHECK_COMMENTS_NAME, checkCommentsConfig, RESOLVE_COMMENT_NAME, resolveCommentConfig } from './tools/commentsToolDefs.js';
 import { listComments, updateComment } from './preview/commentsStore.js';
-import { getPreview, captureDiff } from './engine/browserHost.js';
+import { findAnchor } from './preview/anchorMatch.js';
+import { getPreview, peekPreview, captureDiff } from './engine/browserHost.js';
 import { setConfig, requestCompile } from './coordinator.js';
 import { setProjectRoot } from './session.js';
 import { startWatching } from './watch/fileWatcher.js';
@@ -94,16 +95,26 @@ server.registerTool(CHECK_COMMENTS_NAME, checkCommentsConfig, async ({ includeRe
   const all = await listComments(projectRoot);
   const pending = all.filter((c) => c.status === 'pending');
   const resolved = all.filter((c) => c.status === 'resolved');
-  const fmt = (c: (typeof all)[number]) =>
+  // Each pending comment becomes a located work item: the quoted passage, the
+  // instruction, and the source file:line it anchors to (best-effort text match).
+  const fmtLocated = async (c: (typeof all)[number]) => {
+    const anchor = await findAnchor(projectRoot, c.quote);
+    const loc = anchor
+      ? `\n  ↳ source: ${anchor.file}:${anchor.line}`
+      : '\n  ↳ source: not located — search the files for the quoted text';
+    return `[id: ${c.id}] p.${c.page} — "${c.quote.slice(0, 160)}${c.quote.length > 160 ? '…' : ''}"${loc}\n  → ${c.text}`;
+  };
+  const fmtPlain = (c: (typeof all)[number]) =>
     `[id: ${c.id}] p.${c.page} — "${c.quote.slice(0, 160)}${c.quote.length > 160 ? '…' : ''}"\n  → ${c.text}`;
   let text: string;
   if (!pending.length) {
     text = 'No pending comments.' + (resolved.length ? ` (${resolved.length} already resolved.)` : '');
   } else {
-    text = `${pending.length} pending comment${pending.length === 1 ? '' : 's'} — make each requested edit, then call ${RESOLVE_COMMENT_NAME} with its id and a one-line note:\n\n${pending.map(fmt).join('\n\n')}`;
+    const items = (await Promise.all(pending.map(fmtLocated))).join('\n\n');
+    text = `${pending.length} pending comment${pending.length === 1 ? '' : 's'} — edit each at its source location per the instruction, then call ${RESOLVE_COMMENT_NAME} with its id and a one-line note:\n\n${items}`;
   }
   if (includeResolved && resolved.length) {
-    text += `\n\nResolved:\n${resolved.map(fmt).join('\n\n')}`;
+    text += `\n\nResolved:\n${resolved.map(fmtPlain).join('\n\n')}`;
   }
   return { content: [{ type: 'text', text }] };
 });
@@ -115,7 +126,9 @@ server.registerTool(RESOLVE_COMMENT_NAME, resolveCommentConfig, async ({ id, not
   if (!updated) {
     return { isError: true, content: [{ type: 'text', text: `✖ Unknown comment id: ${id}` }] };
   }
-  try { (await getPreview()).broadcast({ type: 'comments-changed' }); } catch { /* viewer not open */ }
+  // Best-effort live nudge — only if a viewer is already up; never cold-start
+  // the engine just to broadcast (keeps the loop's resolve calls instant).
+  try { peekPreview()?.broadcast({ type: 'comments-changed' }); } catch { /* no viewer */ }
   return { content: [{ type: 'text', text: `✓ Resolved comment ${id} ("${updated.quote.slice(0, 60)}…") — the card now shows: ${note}` }] };
 });
 

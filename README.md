@@ -34,9 +34,11 @@ anchored annotations):
 - **Comment → Claude loop (the point of it all).** Review the *rendered* document
   like a supervisor marking up a printout: select text, attach a comment
   ("tighten this paragraph"). Then tell Claude to *"address my comments"* — it
-  pulls them via `check_comments` (page + quoted passage + your ask), edits the
-  source, and resolves each card with a note. You interact with the document;
-  Claude interacts with the source.
+  pulls them via `check_comments` as **located work items** (page + quoted passage
+  + the source `file:line` it anchors to + your ask), edits the source, and
+  resolves each card with a note. You interact with the document; Claude interacts
+  with the source. Run it hands-off with `/loop` — see
+  [`docs/AGENT-LOOP.md`](docs/AGENT-LOOP.md).
 - **Editable source panel.** A CodeMirror LaTeX editor with the project's files —
   save (Ctrl+S) recompiles and refreshes the PDF, Typst-style. Or keep using your
   own editor: any save triggers the same live loop.
