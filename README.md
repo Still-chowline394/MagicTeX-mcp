@@ -1,6 +1,8 @@
 # MagicTeX — LaTeX Editor for AI Agents
 
 <!-- badges -->
+[![npm](https://img.shields.io/npm/v/magictex-mcp?logo=npm)](https://www.npmjs.com/package/magictex-mcp)
+[![MCP registry](https://img.shields.io/badge/MCP%20registry-io.github.ZoeLinUTS%2Fmagictex-6f42c1)](https://registry.modelcontextprotocol.io)
 [![CI](https://github.com/ZoeLinUTS/MagicTeX-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/ZoeLinUTS/MagicTeX-mcp/actions/workflows/ci.yml)
 [![stars](https://img.shields.io/github/stars/ZoeLinUTS/MagicTeX-mcp?style=flat)](https://github.com/ZoeLinUTS/MagicTeX-mcp/stargazers)
 [![last commit](https://img.shields.io/github/last-commit/ZoeLinUTS/MagicTeX-mcp)](https://github.com/ZoeLinUTS/MagicTeX-mcp/commits/main)
@@ -79,6 +81,11 @@ anchored annotations):
   errors so Claude can self-correct, and show in the workspace.
 
 ## Setup
+
+MagicTeX is on npm as [`magictex-mcp`](https://www.npmjs.com/package/magictex-mcp) and
+listed in the [official MCP registry](https://registry.modelcontextprotocol.io) as
+**`io.github.ZoeLinUTS/magictex`** — so any client that reads the registry can find it.
+There's nothing to clone and no TeX install; `npx` fetches it on first use.
 
 1. **Add it to your paper project's `.mcp.json`** (see [`.mcp.json.example`](.mcp.json.example)):
 
