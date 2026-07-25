@@ -53,9 +53,37 @@ If there are no pending comments, do nothing this pass.
   are never touched. Revert any change the normal way.
 - **Scoped** — Claude edits only where a comment points; an empty inbox means no edits.
 
-## Toward multi-agent (next)
+## The reviewer → human gate → resolver workflow
 
-The same inbox is the coordination point for multiple roles — a **reviewer** that posts
-critique as comments, an **author** that revises, a **defender** that checks claims. That
-needs a role tag on comments and turn-taking over git branches; see the system blueprint.
-For now the loop runs one agent, which is already the whole comment→revision cycle.
+The comment inbox has three states, which chain a whole review cycle:
+
+`suggested` → (human accepts) → `pending` → (author loop) → `resolved`
+
+1. **Reviewer posts comments.** Point Claude at your review skill and let it mark up the
+   paper — for each issue it calls `add_comment(quote, comment)`, which lands as a
+   **suggestion** (a purple dashed highlight on the PDF, a card in the *Suggested* section):
+
+   ```
+   Review my paper using my academic-paper-revision skill
+   (github.com/ZoeLinUTS/Academic-paper-revision). For each issue, call add_comment
+   with the exact quoted passage and your comment. Don't edit the source yet.
+   ```
+
+2. **Human gates the review.** In the *Suggested* section you **Accept** the comments you
+   agree with (they turn into actionable `pending`), **Reject** the rest, or edit/add your
+   own. `check_comments` deliberately ignores `suggested` items — the author never acts on a
+   suggestion you haven't accepted.
+
+   - Prefer hands-off? Flip **Auto-accept reviewer suggestions (copilot)** at the top of the
+     Comments panel, and every suggestion is accepted the moment it arrives. (Fully headless
+     agents can also post directly-actionable comments with `add_comment(..., accepted: true)`.)
+
+3. **Author loop resolves.** Run the loop from above — it picks up the accepted `pending`
+   comments, edits at each located `file:line`, recompiles, and resolves each with a note.
+
+4. **Everything is recorded.** Each accept, edit, and resolve leaves a checkpoint + a note,
+   so the whole reviewer→author round is traceable in **History**.
+
+This is one reviewer + one author with a human in the middle. True concurrent multi-agent
+(reviewer / author / defender on their own git branches, coordinated turn-taking) is the
+next milestone — see the system blueprint.

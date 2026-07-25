@@ -17,13 +17,15 @@ export type WsMessage =
   | { type: 'comments-changed' };
 
 export interface CommentRect { x: number; y: number; w: number; h: number }
+export type CommentStatus = 'suggested' | 'pending' | 'resolved';
 export interface Comment {
   id: string;
   page: number;
   quote: string;
   rects: CommentRect[];
   text: string;
-  status: 'pending' | 'resolved';
+  status: CommentStatus;
+  role?: 'reviewer' | 'human';
   created: string;
   resolvedNote?: string;
 }
@@ -37,7 +39,7 @@ export async function createComment(input: { page: number; quote: string; rects:
   await fetch('/api/comments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
 }
 
-export async function patchComment(id: string, patch: { status?: 'pending' | 'resolved' }): Promise<void> {
+export async function patchComment(id: string, patch: { status?: CommentStatus; text?: string }): Promise<void> {
   await fetch(`/api/comments?id=${encodeURIComponent(id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) });
 }
 

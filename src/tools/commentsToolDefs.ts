@@ -14,6 +14,19 @@ export const checkCommentsConfig = {
   },
 };
 
+export const ADD_COMMENT_NAME = 'add_comment';
+export const addCommentConfig = {
+  title: 'Raise a review comment on the paper',
+  description:
+    'Post a review comment anchored to a passage of the paper — for a reviewer agent marking up the document. Give the exact quoted text from the compiled paper (or the source prose) it refers to, and your comment/instruction. By default it is created as a *suggestion* the human accepts in the workspace before the author loop acts on it; pass accepted:true only in fully-autonomous ("copilot") mode to make it immediately actionable. Use this to leave many targeted comments rather than one long critique.',
+  inputSchema: {
+    quote: z.string().min(1).describe('The exact passage the comment is about (a sentence or phrase from the paper).'),
+    comment: z.string().min(1).max(2000).describe('The review comment or revision instruction for this passage.'),
+    page: z.number().int().positive().optional().describe('PDF page the passage is on, if known (default 1; the workspace re-anchors by text anyway).'),
+    accepted: z.boolean().optional().describe('Autonomous mode: create it already accepted (actionable) instead of a suggestion awaiting the human. Default false.'),
+  },
+};
+
 export const RESOLVE_COMMENT_NAME = 'resolve_comment';
 export const resolveCommentConfig = {
   title: 'Resolve a PDF comment',

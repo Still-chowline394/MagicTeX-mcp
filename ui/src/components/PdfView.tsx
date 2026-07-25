@@ -171,20 +171,49 @@ export function PdfView({
     const container = pagesRef.current;
     if (!container) return;
     for (const layer of container.querySelectorAll('.hl-layer')) layer.innerHTML = '';
+
+    const box = (layer: Element, c: Comment, statusCls: string, left: number, top: number, w: number, h: number) => {
+      const el = document.createElement('div');
+      el.className = `hl ${statusCls}`;
+      el.dataset.id = c.id;
+      el.title = c.text;
+      el.style.left = `${left}px`;
+      el.style.top = `${top}px`;
+      el.style.width = `${w}px`;
+      el.style.height = `${h}px`;
+      el.addEventListener('click', () => onSelectComment?.(c.id));
+      layer.appendChild(el);
+    };
+
     for (const c of comments) {
-      const layer = container.querySelector(`.page[data-page="${c.page}"] .hl-layer`);
-      if (!layer) continue;
-      for (const r of c.rects) {
-        const el = document.createElement('div');
-        el.className = `hl ${c.status === 'resolved' ? 'hl-resolved' : ''}`;
-        el.dataset.id = c.id;
-        el.title = c.text;
-        el.style.left = `${r.x * scale}px`;
-        el.style.top = `${r.y * scale}px`;
-        el.style.width = `${r.w * scale}px`;
-        el.style.height = `${r.h * scale}px`;
-        el.addEventListener('click', () => onSelectComment?.(c.id));
-        layer.appendChild(el);
+      const statusCls = c.status === 'resolved' ? 'hl-resolved' : c.status === 'suggested' ? 'hl-suggested' : '';
+      if (c.rects.length) {
+        const layer = container.querySelector(`.page[data-page="${c.page}"] .hl-layer`);
+        if (layer) for (const r of c.rects) box(layer, c, statusCls, r.x * scale, r.y * scale, r.w * scale, r.h * scale);
+        continue;
+      }
+      // Reviewer/agent comment posted without PDF coords → anchor by matching the
+      // quote against the rendered text layer (span offsets are already scaled).
+      const target = phrase(c.quote, 6);
+      if (!target) continue;
+      for (const page of container.querySelectorAll('.page')) {
+        const spans = Array.from(page.querySelectorAll('.textLayer span')) as HTMLElement[];
+        let concat = '';
+        const map: { start: number; len: number; el: HTMLElement }[] = [];
+        for (const s of spans) {
+          const n = normalize(s.textContent ?? '');
+          if (!n) continue;
+          map.push({ start: concat.length, len: n.length, el: s });
+          concat += n + ' ';
+        }
+        const at = concat.indexOf(target);
+        if (at < 0) continue;
+        const layer = page.querySelector('.hl-layer')!;
+        const end = at + target.length;
+        for (const m of map) {
+          if (m.start < end && m.start + m.len > at) box(layer, c, statusCls, m.el.offsetLeft, m.el.offsetTop, m.el.offsetWidth, m.el.offsetHeight);
+        }
+        break;
       }
     }
   }, [comments, renderTick, scale, onSelectComment]);

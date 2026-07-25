@@ -10,8 +10,8 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import open from 'open';
 import { RENDER_PREVIEW_NAME, renderPreviewConfig } from './tools/renderPreviewToolDef.js';
 import { SHOW_DIFF_NAME, showDiffConfig } from './tools/showDiffToolDef.js';
-import { CHECK_COMMENTS_NAME, checkCommentsConfig, RESOLVE_COMMENT_NAME, resolveCommentConfig } from './tools/commentsToolDefs.js';
-import { listComments, updateComment } from './preview/commentsStore.js';
+import { CHECK_COMMENTS_NAME, checkCommentsConfig, RESOLVE_COMMENT_NAME, resolveCommentConfig, ADD_COMMENT_NAME, addCommentConfig } from './tools/commentsToolDefs.js';
+import { listComments, updateComment, addComment } from './preview/commentsStore.js';
 import { findAnchor } from './preview/anchorMatch.js';
 import { getPreview, peekPreview, captureDiff } from './engine/browserHost.js';
 import { setConfig, requestCompile } from './coordinator.js';
@@ -95,6 +95,7 @@ server.registerTool(CHECK_COMMENTS_NAME, checkCommentsConfig, async ({ includeRe
   const all = await listComments(projectRoot);
   const pending = all.filter((c) => c.status === 'pending');
   const resolved = all.filter((c) => c.status === 'resolved');
+  const suggested = all.filter((c) => c.status === 'suggested');
   // Each pending comment becomes a located work item: the quoted passage, the
   // instruction, and the source file:line it anchors to (best-effort text match).
   const fmtLocated = async (c: (typeof all)[number]) => {
@@ -106,12 +107,15 @@ server.registerTool(CHECK_COMMENTS_NAME, checkCommentsConfig, async ({ includeRe
   };
   const fmtPlain = (c: (typeof all)[number]) =>
     `[id: ${c.id}] p.${c.page} — "${c.quote.slice(0, 160)}${c.quote.length > 160 ? '…' : ''}"\n  → ${c.text}`;
+  const awaiting = suggested.length
+    ? `\n\n(${suggested.length} reviewer suggestion${suggested.length === 1 ? '' : 's'} still await the human's accept in the workspace — not actionable yet.)`
+    : '';
   let text: string;
   if (!pending.length) {
-    text = 'No pending comments.' + (resolved.length ? ` (${resolved.length} already resolved.)` : '');
+    text = 'No pending comments.' + (resolved.length ? ` (${resolved.length} already resolved.)` : '') + awaiting;
   } else {
     const items = (await Promise.all(pending.map(fmtLocated))).join('\n\n');
-    text = `${pending.length} pending comment${pending.length === 1 ? '' : 's'} — edit each at its source location per the instruction, then call ${RESOLVE_COMMENT_NAME} with its id and a one-line note:\n\n${items}`;
+    text = `${pending.length} pending comment${pending.length === 1 ? '' : 's'} — edit each at its source location per the instruction, then call ${RESOLVE_COMMENT_NAME} with its id and a one-line note:\n\n${items}${awaiting}`;
   }
   if (includeResolved && resolved.length) {
     text += `\n\nResolved:\n${resolved.map(fmtPlain).join('\n\n')}`;
@@ -130,6 +134,24 @@ server.registerTool(RESOLVE_COMMENT_NAME, resolveCommentConfig, async ({ id, not
   // the engine just to broadcast (keeps the loop's resolve calls instant).
   try { peekPreview()?.broadcast({ type: 'comments-changed' }); } catch { /* no viewer */ }
   return { content: [{ type: 'text', text: `✓ Resolved comment ${id} ("${updated.quote.slice(0, 60)}…") — the card now shows: ${note}` }] };
+});
+
+server.registerTool(ADD_COMMENT_NAME, addCommentConfig, async ({ quote, comment, page, accepted }) => {
+  const projectRoot = process.cwd();
+  setProjectRoot(projectRoot);
+  const created = await addComment(projectRoot, {
+    page: page ?? 1,
+    quote,
+    rects: [], // the workspace re-anchors reviewer comments to the PDF by text
+    text: comment,
+    role: 'reviewer',
+    status: accepted ? 'pending' : 'suggested',
+  });
+  try { peekPreview()?.broadcast({ type: 'comments-changed' }); } catch { /* no viewer */ }
+  const where = accepted
+    ? 'It is actionable now (autonomous mode).'
+    : 'It is a suggestion — the human accepts it in the workspace before the loop acts on it.';
+  return { content: [{ type: 'text', text: `✓ Review comment ${created.id} posted on "${quote.slice(0, 60)}${quote.length > 60 ? '…' : ''}". ${where}` }] };
 });
 
 const transport = new StdioServerTransport();

@@ -9,13 +9,20 @@ import { randomBytes } from 'node:crypto';
 
 export interface CommentRect { x: number; y: number; w: number; h: number }
 
+// Status flow for the review workflow:
+//   suggested — a reviewer agent proposed it; awaits the human's accept
+//   pending   — accepted / actionable (human comments start here); the loop acts on these
+//   resolved  — an author agent addressed it, with a note
+export type CommentStatus = 'suggested' | 'pending' | 'resolved';
+
 export interface Comment {
   id: string;
   page: number;
   quote: string;
   rects: CommentRect[];
   text: string;
-  status: 'pending' | 'resolved';
+  status: CommentStatus;
+  role?: 'reviewer' | 'human'; // who raised it (default human)
   created: string;
   resolvedNote?: string;
   resolvedAt?: string;
@@ -44,15 +51,16 @@ async function save(root: string, comments: Comment[]): Promise<void> {
 
 export async function addComment(
   root: string,
-  input: { page: number; quote: string; rects: CommentRect[]; text: string },
+  input: { page: number; quote: string; rects: CommentRect[]; text: string; role?: 'reviewer' | 'human'; status?: CommentStatus },
 ): Promise<Comment> {
   const comment: Comment = {
     id: randomBytes(6).toString('hex'),
-    page: Math.max(1, Math.floor(input.page)),
+    page: Math.max(1, Math.floor(input.page || 1)),
     quote: String(input.quote).slice(0, 600),
     rects: (input.rects ?? []).slice(0, 40).map((r) => ({ x: +r.x, y: +r.y, w: +r.w, h: +r.h })),
     text: String(input.text).slice(0, 4000),
-    status: 'pending',
+    status: input.status ?? 'pending',
+    role: input.role ?? 'human',
     created: new Date().toISOString(),
   };
   const all = await listComments(root);
@@ -64,7 +72,7 @@ export async function addComment(
 export async function updateComment(
   root: string,
   id: string,
-  patch: { status?: 'pending' | 'resolved'; resolvedNote?: string; text?: string },
+  patch: { status?: CommentStatus; resolvedNote?: string; text?: string },
 ): Promise<Comment | null> {
   const all = await listComments(root);
   const c = all.find((x) => x.id === id);
