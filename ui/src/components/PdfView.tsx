@@ -261,7 +261,7 @@ export function PdfView({
     };
 
     for (const c of comments) {
-      // pending → yellow, suggested → purple dashed, resolved → GREEN (the AI
+      // accepted → yellow, suggested → purple dashed, resolved → GREEN (the AI
       // did it, awaiting your review). Closing a resolved comment removes it and
       // its highlight — that's the "human-confirmed" step, so colors don't pile up.
       const statusCls = c.status === 'resolved' ? 'hl-resolved' : c.status === 'suggested' ? 'hl-suggested' : '';

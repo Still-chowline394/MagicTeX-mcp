@@ -17,7 +17,7 @@ export type WsMessage =
   | { type: 'comments-changed' };
 
 export interface CommentRect { x: number; y: number; w: number; h: number }
-export type CommentStatus = 'suggested' | 'pending' | 'resolved';
+export type CommentStatus = 'suggested' | 'accepted' | 'resolved';
 export type CommentRole = 'human' | 'reviewer' | 'defender' | 'author';
 export interface Reply { by: CommentRole; text: string; at: string }
 export interface Comment {

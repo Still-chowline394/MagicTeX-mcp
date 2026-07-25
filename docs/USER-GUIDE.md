@@ -44,7 +44,7 @@ You never *have* to type these — plain English works too (*"render a preview"*
 
 1. **Select text on the rendered PDF** → a composer pops up → write what you want changed
    ("tighten this paragraph", "this equation looks wrong") → **Add comment**. The passage
-   gets an anchored highlight; the card appears in the right panel as *pending*.
+   gets an anchored highlight; the card appears in the right panel as *accepted*.
 2. In Claude Code, say *"address my comments"*. Claude calls `check_comments` (each comment
    arrives with its page, the exact quoted passage, and your instruction), edits the source,
    and calls `resolve_comment` with a one-line note.
@@ -61,7 +61,7 @@ You can also let an agent *raise* the comments, and keep yourself in the loop:
    The agent reads the paper and calls `add_comment` for each issue — they appear as **Suggested**
    cards (purple dashed highlights on the PDF), tagged **reviewer** or **defender**.
 2. **You gate.** In the Comments panel, **Accept** the ones you agree with (they become actionable
-   *pending*), **Reject** the rest, or add your own. Prefer hands-off? Tick **Auto-accept reviewer
+   *accepted*), **Reject** the rest, or add your own. Prefer hands-off? Tick **Auto-accept reviewer
    suggestions (copilot)** and every suggestion is accepted automatically.
 3. **Author resolves.** Run `/address-comments` (or loop it). The author edits each accepted comment
    at its source location and marks it resolved with a note.

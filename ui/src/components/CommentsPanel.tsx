@@ -1,7 +1,7 @@
 // Right panel: the comments workspace and the review gate.
-//   suggested — a reviewer agent proposed it; the human Accepts (→ pending) or
+//   suggested — a reviewer agent proposed it; the human Accepts (→ accepted) or
 //               Rejects it, unless "auto-accept" (copilot) is on.
-//   pending   — actionable; the author loop picks these up via check_comments.
+//   accepted  — actionable; the author loop picks these up via check_comments.
 //   resolved  — done, with the author's note.
 // Clicking a card jumps to its highlight in the PDF.
 import { useEffect, useState } from 'react';
@@ -29,16 +29,16 @@ export function CommentsPanel({
   useEffect(() => { localStorage.setItem('ws-auto-accept', auto ? '1' : '0'); }, [auto]);
 
   const suggested = comments.filter((c) => c.status === 'suggested');
-  const pending = comments.filter((c) => c.status === 'pending');
+  const accepted = comments.filter((c) => c.status === 'accepted');
   const resolved = comments.filter((c) => c.status === 'resolved');
 
   // Copilot mode: as reviewer suggestions arrive, accept them automatically.
   useEffect(() => {
     if (!auto) return;
-    for (const c of suggested) void patchComment(c.id, { status: 'pending' });
+    for (const c of suggested) void patchComment(c.id, { status: 'accepted' });
   }, [auto, suggested]);
 
-  const accept = (c: Comment) => void patchComment(c.id, { status: 'pending' });
+  const accept = (c: Comment) => void patchComment(c.id, { status: 'accepted' });
   const reject = (c: Comment) => void removeComment(c.id);
 
   const card = (c: Comment) => (
@@ -58,12 +58,12 @@ export function CommentsPanel({
           <button className="on" onClick={() => accept(c)}>Accept</button>
           <button className="ghost" onClick={() => reject(c)}>Reject</button>
         </>}
-        {c.status === 'pending' && <>
+        {c.status === 'accepted' && <>
           <button className="ghost" onClick={() => void patchComment(c.id, { status: 'resolved' })}>resolve</button>
           <button className="ghost" onClick={() => void removeComment(c.id)}>delete</button>
         </>}
         {c.status === 'resolved' && <>
-          <button className="ghost" onClick={() => void patchComment(c.id, { status: 'pending' })}>reopen</button>
+          <button className="ghost" onClick={() => void patchComment(c.id, { status: 'accepted' })}>reopen</button>
           <button className="ghost" onClick={() => void removeComment(c.id)}>close</button>
         </>}
       </div>
@@ -93,8 +93,8 @@ export function CommentsPanel({
       )}
       {suggested.map(card)}
 
-      {pending.length > 0 && <div className="comments-head">Pending · {pending.length}</div>}
-      {pending.map(card)}
+      {accepted.length > 0 && <div className="comments-head">Accepted · {accepted.length}</div>}
+      {accepted.map(card)}
 
       {resolved.length > 0 && (
         <div className="comments-head suggested-head">

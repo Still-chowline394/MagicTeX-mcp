@@ -93,10 +93,10 @@ server.registerTool(CHECK_COMMENTS_NAME, checkCommentsConfig, async ({ includeRe
   const projectRoot = process.cwd();
   setProjectRoot(projectRoot);
   const all = await listComments(projectRoot);
-  const pending = all.filter((c) => c.status === 'pending');
+  const accepted = all.filter((c) => c.status === 'accepted');
   const resolved = all.filter((c) => c.status === 'resolved');
   const suggested = all.filter((c) => c.status === 'suggested');
-  // Each pending comment becomes a located work item: the quoted passage, the
+  // Each accepted comment becomes a located work item: the quoted passage, the
   // instruction, and the source file:line it anchors to (best-effort text match).
   const fmtLocated = async (c: (typeof all)[number]) => {
     const anchor = await findAnchor(projectRoot, c.quote);
@@ -115,11 +115,11 @@ server.registerTool(CHECK_COMMENTS_NAME, checkCommentsConfig, async ({ includeRe
     ? `\n\n(${suggested.length} reviewer suggestion${suggested.length === 1 ? '' : 's'} still await the human's accept in the workspace — not actionable yet.)`
     : '';
   let text: string;
-  if (!pending.length) {
-    text = 'No pending comments.' + (resolved.length ? ` (${resolved.length} already resolved.)` : '') + awaiting;
+  if (!accepted.length) {
+    text = 'No accepted comments.' + (resolved.length ? ` (${resolved.length} already resolved.)` : '') + awaiting;
   } else {
-    const items = (await Promise.all(pending.map(fmtLocated))).join('\n\n');
-    text = `${pending.length} pending comment${pending.length === 1 ? '' : 's'} — edit each at its source location per the instruction, then call ${RESOLVE_COMMENT_NAME} with its id and a one-line note:\n\n${items}${awaiting}`;
+    const items = (await Promise.all(accepted.map(fmtLocated))).join('\n\n');
+    text = `${accepted.length} accepted comment${accepted.length === 1 ? '' : 's'} — edit each at its source location per the instruction, then call ${RESOLVE_COMMENT_NAME} with its id and a one-line note:\n\n${items}${awaiting}`;
   }
   if (includeResolved && resolved.length) {
     text += `\n\nResolved:\n${resolved.map(fmtPlain).join('\n\n')}`;
@@ -149,7 +149,7 @@ server.registerTool(ADD_COMMENT_NAME, addCommentConfig, async ({ quote, comment,
     rects: [], // the workspace re-anchors these comments to the PDF by text
     text: comment,
     role: role ?? 'reviewer',
-    status: accepted ? 'pending' : 'suggested',
+    status: accepted ? 'accepted' : 'suggested',
   });
   try { peekPreview()?.broadcast({ type: 'comments-changed' }); } catch { /* no viewer */ }
   const where = accepted

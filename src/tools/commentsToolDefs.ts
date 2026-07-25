@@ -6,9 +6,9 @@ import { z } from 'zod';
 
 export const CHECK_COMMENTS_NAME = 'check_comments';
 export const checkCommentsConfig = {
-  title: 'Check pending PDF comments',
+  title: 'Check accepted PDF comments',
   description:
-    'List the pending comments the user anchored on the rendered PDF as located work items. Each has an id, page, the quoted passage, the source file:line it anchors to (best-effort), and the user\'s instruction. Call this when the user asks to "address/check my comments" (or after they mention leaving comments) — or on each pass of an agent loop watching for new comments. For each item: open the source at the given location, make the requested edit (saving triggers a recompile + a checkpoint automatically), then call resolve_comment with its id and a one-line note. If it returns no pending comments, there is nothing to do.',
+    'List the comments the user has accepted on the rendered PDF, as located work items. Each has an id, page, the quoted passage, the source file:line it anchors to (best-effort), and the user\'s instruction. Call this when the user asks to "address/check my comments" (or after they mention leaving comments) — or on each pass of an agent loop watching for new comments. For each item: open the source at the given location, make the requested edit (saving triggers a recompile + a checkpoint automatically), then call resolve_comment with its id and a one-line note. If it returns none, there is nothing accepted yet — reviewer suggestions awaiting the human\'s accept don\'t count.',
   inputSchema: {
     includeResolved: z.boolean().optional().describe('Also list resolved comments (default false).'),
   },

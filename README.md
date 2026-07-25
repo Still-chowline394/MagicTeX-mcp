@@ -31,7 +31,7 @@ anchored annotations):
 │  ✓ up to date · 13 pages        Export .zip · Download PDF   │
 ├────────────┬──────────────────────────────┬──────────────────┤
 │ Source /   │          PDF (live)          │    Comments      │
-│ History    │  select text → 💬 comment    │  pending → ask   │
+│ History    │  select text → 💬 comment    │  accepted → ask  │
 │  editor,   │  highlights stay anchored    │  Claude to       │
 │  timeline  │  auto-reloads on every edit  │  address them    │
 │  + diffs   │                              │  → resolved ✓    │

@@ -11,9 +11,12 @@ export interface CommentRect { x: number; y: number; w: number; h: number }
 
 // Status flow for the review workflow:
 //   suggested — a reviewer agent proposed it; awaits the human's accept
-//   pending   — accepted / actionable (human comments start here); the loop acts on these
+//   accepted  — actionable (human comments start here); the author loop acts on these
 //   resolved  — an author agent addressed it, with a note
-export type CommentStatus = 'suggested' | 'pending' | 'resolved';
+// Renamed from 'pending' (confusingly read as "still awaiting your decision"
+// when it actually meant the opposite: you already decided, the author hasn't
+// acted yet) — this collision fooled both users and Claude's own summaries.
+export type CommentStatus = 'suggested' | 'accepted' | 'resolved';
 // Who raised a comment or wrote a reply. reviewer/defender are review agents;
 // author is the revising agent; human is you.
 export type CommentRole = 'human' | 'reviewer' | 'defender' | 'author';
@@ -44,7 +47,16 @@ export async function listComments(root: string): Promise<Comment[]> {
   try {
     const raw = await readFile(storePath(root), 'utf8');
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    // One-time upgrade for files written before the 'pending'->'accepted' rename
+    // (see the CommentStatus comment above) — normalize on read and persist so
+    // this only runs once per file.
+    let migrated = false;
+    for (const c of parsed) {
+      if (c?.status === 'pending') { c.status = 'accepted'; migrated = true; }
+    }
+    if (migrated) await save(root, parsed);
+    return parsed;
   } catch {
     return [];
   }
@@ -65,7 +77,7 @@ export async function addComment(
     quote: String(input.quote).slice(0, 600),
     rects: (input.rects ?? []).slice(0, 40).map((r) => ({ x: +r.x, y: +r.y, w: +r.w, h: +r.h })),
     text: String(input.text).slice(0, 4000),
-    status: input.status ?? 'pending',
+    status: input.status ?? 'accepted',
     role: input.role ?? 'human',
     created: new Date().toISOString(),
   };

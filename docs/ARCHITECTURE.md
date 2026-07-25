@@ -66,10 +66,10 @@ falls back to the legacy inline `/viewer` when `ui/dist` is missing (fresh clone
 - `ui/src/components/SourcePanel.tsx` — CodeMirror 6 LaTeX editor over `/api/files` +
   `/api/file` (GET/PUT, path-guarded); saving triggers the watcher's compile loop.
 - `ui/src/components/HistoryPanel.tsx` — checkpoint timeline + diff2html diffs from `/git/*`.
-- `ui/src/components/CommentsPanel.tsx` — pending/resolved cards; jump-to-highlight.
+- `ui/src/components/CommentsPanel.tsx` — accepted/resolved cards; jump-to-highlight.
 - `src/preview/commentsStore.ts` — comments persisted in `<project>/.latex-preview/comments.json`
   (a dir both the watcher and the project collector ignore); anchor = page + quote + rects.
-- Comment MCP loop: `check_comments` returns pending comments as structured instructions;
+- Comment MCP loop: `check_comments` returns accepted comments as structured instructions;
   `resolve_comment` marks one resolved with a note; both ends stay in sync via the
   `comments-changed` WS event.
 

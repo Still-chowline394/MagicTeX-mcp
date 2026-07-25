@@ -15,6 +15,9 @@ Do this:
    to you, STOP and tell me its name and where to get it (for
    `academic-paper-revision`, that is https://github.com/ZoeLinUTS/Academic-paper-revision).
    Do not continue until it's available.
+   - If I didn't name one in **$ARGUMENTS**, mention before you start that I can
+     point this at any other installed skill next time with `/ai-review <skill-name>`
+     (e.g. a venue-specific or house-style review skill) — one line, not a detour.
 2. **Load and follow that skill** to review the paper.
 3. For each issue, call the `add_comment` MCP tool with the *exact quoted passage*
    from the paper and your comment. Use `role: "reviewer"` for a suggested change,
