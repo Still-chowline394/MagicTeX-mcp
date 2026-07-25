@@ -71,7 +71,7 @@ Overleaf 账号**：实时 PDF 预览、带**可视化（所见即所得）模�
 - **`/ai-review [skill]`** — 用某个 skill 审阅论文（默认 `academic-paper-revision`，
   也可传入任意 skill 名）并留下评论供你确认；skill 未安装时会给出安装提示。
 - **`/address-comments`** — 解决你已接受的评论（可 `/loop 60s /address-comments`）。
-- **`/ultra-agents [skill] [depth]`** — 全自动模式：审阅、自动接受、修改、重复，最多
+- ⚡ **`/ultra-agents [skill] [depth]`** — 全自动模式：审阅、自动接受、修改、重复，最多
   `depth` 轮（默认 2），某一轮没有新意见就提前停止。轮与轮之间不经过你确认——这既是它
   的意义，也是风险所在。`depth` 超过 5 会先让你确认才开始。跑完给一份总结（提了什么、
   改了什么、对应哪些 checkpoint），每一轮依然是普通的、可撤销的 checkpoint。

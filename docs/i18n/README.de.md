@@ -72,7 +72,7 @@ Für weniger Tippen installiere MagicTeX als Plugin — eine Installation gibt d
 - **`/ai-review [skill]`** — das Paper mit einer Skill prüfen (Standard
   `academic-paper-revision`; jeder Name geht) und Kommentare zum Akzeptieren/Ablehnen posten.
 - **`/address-comments`** — deine akzeptierten Kommentare lösen (`/loop 60s /address-comments`).
-- **`/ultra-agents [skill] [depth]`** — vollautonomer Modus: prüfen, automatisch
+- ⚡ **`/ultra-agents [skill] [depth]`** — vollautonomer Modus: prüfen, automatisch
   akzeptieren, korrigieren, wiederholen — bis zu `depth` Runden (Standard 2),
   vorzeitiger Stopp, sobald eine Runde nichts Neues findet. Keine Freigabe zwischen
   den Runden — das ist der Sinn und das Risiko zugleich. Über `depth = 5` wird vor

@@ -74,7 +74,7 @@ os comandos de barra:
 - **`/ai-review [skill]`** — revisa o artigo com uma skill (padrão `academic-paper-revision`;
   qualquer nome funciona) e publica comentários para aceitar/rejeitar.
 - **`/address-comments`** — resolve seus comentários aceitos (`/loop 60s /address-comments`).
-- **`/ultra-agents [skill] [depth]`** — modo totalmente autônomo: revisa, aceita
+- ⚡ **`/ultra-agents [skill] [depth]`** — modo totalmente autônomo: revisa, aceita
   automaticamente, corrige, repete, até `depth` rodadas (padrão 2), parando mais
   cedo se uma rodada não encontrar nada novo. Sem aprovação entre rodadas — esse é
   o ponto, e o risco. Acima de `depth = 5` pede confirmação antes de começar.

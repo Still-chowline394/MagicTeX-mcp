@@ -1,5 +1,7 @@
 # The agent loop — comments as triggers
 
+**English** · [简体中文](i18n/AGENT-LOOP.zh-CN.md) · [日本語](i18n/AGENT-LOOP.ja.md) · [한국어](i18n/AGENT-LOOP.ko.md) · [Español](i18n/AGENT-LOOP.es.md) · [Français](i18n/AGENT-LOOP.fr.md) · [Deutsch](i18n/AGENT-LOOP.de.md) · [Português](i18n/AGENT-LOOP.pt.md)
+
 The workspace turns a **comment on the PDF** into a **task for Claude**. You point at
 the document; Claude works on the source. This page shows how to run that as a loop, so
 Claude keeps addressing comments as you leave them — the first step toward the paper
@@ -84,7 +86,12 @@ The comment inbox has three states, which chain a whole review cycle:
 4. **Everything is recorded.** Each accept, edit, and resolve leaves a checkpoint + a note,
    so the whole reviewer→author round is traceable in **History**.
 
-## Ultra-agents
+## Ultra-agents ⚡
+
+> [!CAUTION]
+> This is MagicTeX's most powerful command, and its least supervised — no per-round
+> approval from you, by design. Read this whole section before running it at a high
+> `depth`.
 
 `/ultra-agents [skill] [depth]` removes the human gate from step 2 entirely — the
 reviewer posts every comment with `add_comment(..., accepted: true)`, so it's

@@ -1,5 +1,7 @@
 # MagicTeX — User guide
 
+**English** · [简体中文](i18n/USER-GUIDE.zh-CN.md) · [日本語](i18n/USER-GUIDE.ja.md) · [한국어](i18n/USER-GUIDE.ko.md) · [Español](i18n/USER-GUIDE.es.md) · [Français](i18n/USER-GUIDE.fr.md) · [Deutsch](i18n/USER-GUIDE.de.md) · [Português](i18n/USER-GUIDE.pt.md)
+
 ![The MagicTeX workspace](images/workspace.png)
 
 ## Everyday use
@@ -22,7 +24,7 @@ and drive it with minimal typing:
 - **`/ai-review [skill]`** — review the paper with a skill (default `academic-paper-revision`;
   any skill name works) and post comments for you to accept.
 - **`/address-comments`** — resolve your accepted comments (loop it: `/loop 60s /address-comments`).
-- **`/ultra-agents [skill] [depth]`** — fully autonomous: review, auto-accept, fix, repeat, up
+- ⚡ **`/ultra-agents [skill] [depth]`** — fully autonomous: review, auto-accept, fix, repeat, up
   to `depth` rounds (default 2), stopping early the moment a round finds nothing new. No
   per-round approval — that's the point, and the risk. See
   [`AGENT-LOOP.md`](AGENT-LOOP.md#ultra-agents).

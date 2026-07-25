@@ -69,7 +69,7 @@ Code 에 연결되는 Overleaf 스타일의 **단일 창 작업 공간**으로, 
 - **`/ai-review [skill]`** — 스킬로 논문을 검토(기본값 `academic-paper-revision`, 임의 스킬
   이름 가능)하고 확인용 코멘트를 게시. 미설치 스킬은 설치 안내를 표시.
 - **`/address-comments`** — 수락된 코멘트 해결(`/loop 60s /address-comments` 가능).
-- **`/ultra-agents [skill] [depth]`** — 완전 자동 모드: 검토·자동 수락·수정을 반복. 최대
+- ⚡ **`/ultra-agents [skill] [depth]`** — 완전 자동 모드: 검토·자동 수락·수정을 반복. 최대
   `depth` 라운드(기본 2), 한 라운드에서 새 의견이 없으면 조기 종료. 라운드 사이에 승인
   확인이 없음—그게 이 모드의 목적이자 위험 요소. `depth`가 5를 넘으면 시작 전에 확인을
   요청. 종료 후 요약(무엇을 지적했고 무엇을 바꿨는지, 해당 checkpoint) 제공. 각 라운드도

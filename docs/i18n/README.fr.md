@@ -75,7 +75,7 @@ MCP **et** les commandes slash :
   `academic-paper-revision` ; n'importe quel nom fonctionne) et publie des commentaires à
   accepter/refuser.
 - **`/address-comments`** — résout vos commentaires acceptés (`/loop 60s /address-comments`).
-- **`/ultra-agents [skill] [depth]`** — mode entièrement autonome : relit, accepte
+- ⚡ **`/ultra-agents [skill] [depth]`** — mode entièrement autonome : relit, accepte
   automatiquement, corrige, recommence, jusqu'à `depth` tours (2 par défaut), en
   s'arrêtant plus tôt si un tour ne trouve rien de nouveau. Aucune approbation entre
   les tours — c'est le principe, et le risque. Au-delà de `depth = 5`, une

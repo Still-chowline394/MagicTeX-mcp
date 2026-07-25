@@ -73,7 +73,7 @@ Para escribir menos, instala MagicTeX como plugin — una sola instalación te d
 - **`/ai-review [skill]`** — revisa el artículo con una skill (por defecto
   `academic-paper-revision`; admite cualquier nombre) y publica comentarios para aceptar/rechazar.
 - **`/address-comments`** — resuelve tus comentarios aceptados (`/loop 60s /address-comments`).
-- **`/ultra-agents [skill] [depth]`** — modo totalmente autónomo: revisa, acepta
+- ⚡ **`/ultra-agents [skill] [depth]`** — modo totalmente autónomo: revisa, acepta
   automáticamente, corrige y repite, hasta `depth` rondas (2 por defecto), parando
   antes si una ronda no encuentra nada nuevo. Sin aprobación entre rondas — ese es
   el punto, y el riesgo. Si `depth` supera 5, te pide confirmar antes de empezar.

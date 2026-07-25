@@ -1,5 +1,7 @@
 # Architecture
 
+**English** · [简体中文](i18n/ARCHITECTURE.zh-CN.md) · [日本語](i18n/ARCHITECTURE.ja.md) · [한국어](i18n/ARCHITECTURE.ko.md) · [Español](i18n/ARCHITECTURE.es.md) · [Français](i18n/ARCHITECTURE.fr.md) · [Deutsch](i18n/ARCHITECTURE.de.md) · [Português](i18n/ARCHITECTURE.pt.md)
+
 ## Why a headless browser
 
 The WASM TeX Live engines (`texlyre-busytex`, and SwiftLaTeX before it) are

@@ -1,5 +1,7 @@
 # Roadmap
 
+**English** · [简体中文](i18n/ROADMAP.zh-CN.md) · [日本語](i18n/ROADMAP.ja.md) · [한국어](i18n/ROADMAP.ko.md) · [Español](i18n/ROADMAP.es.md) · [Français](i18n/ROADMAP.fr.md) · [Deutsch](i18n/ROADMAP.de.md) · [Português](i18n/ROADMAP.pt.md)
+
 ## Shipped: safe concurrent use of MagicTeX's own state
 
 Each Claude Code session that connects to a project's `magictex` MCP server spawns

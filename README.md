@@ -120,7 +120,7 @@ Then, in your paper project, use the **workflow commands** for the common flows:
   Accept/Reject. Missing skills are reported with an install hint.
 - **`/address-comments`** — resolve your accepted comments (loop it with
   `/loop 60s /address-comments`).
-- **`/ultra-agents [skill] [depth]`** — fully autonomous: review, auto-accept, fix,
+- ⚡ **`/ultra-agents [skill] [depth]`** — fully autonomous: review, auto-accept, fix,
   repeat, up to `depth` rounds (default 2), stopping early the moment a round finds
   nothing new. No per-round approval — that's the point, and the risk. `depth > 5`
   asks you to confirm before starting. Ends with a summary (what was raised, what
