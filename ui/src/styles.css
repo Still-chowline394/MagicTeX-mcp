@@ -5,6 +5,16 @@ body { font-family: system-ui, sans-serif; background: #1e1f22; color: #ddd; fon
 
 .app { height: 100%; display: flex; flex-direction: column; }
 
+/* Always-visible slim scrollbars. Windows/Edge hides overlay scrollbars by
+   default, so the editor, diff, PDF and comment panes looked unscrollable —
+   force a classic thumb everywhere (Firefox uses scrollbar-width/-color). */
+* { scrollbar-width: thin; scrollbar-color: #55585f transparent; }
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #4a4d52; border-radius: 7px; border: 3px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: #62666d; background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+
 /* ── Toolbar ─────────────────────────────────────────────── */
 .toolbar { flex: 0 0 auto; display: flex; align-items: center; gap: 12px; padding: 7px 12px;
            background: #2b2d31; border-bottom: 1px solid #17181a; }
@@ -127,6 +137,9 @@ body.resizing .pdf-scroll, body.resizing .editor-scroll { pointer-events: none; 
 .format-bar button { padding: 2px 8px; min-width: 26px; font-size: 12px; background: #3a3d42; }
 .format-bar .fb-sep { width: 1px; align-self: stretch; background: #3a3d42; margin: 2px 3px; }
 .editor-scroll { flex: 1 1 auto; min-height: 0; overflow: hidden; }
+/* react-codemirror inserts a wrapper div here; without an explicit height the
+   editor grows to the whole document instead of scrolling inside its pane. */
+.editor-scroll > div { height: 100%; }
 .editor-scroll .cm-editor { height: 100%; font-size: 12.5px; }
 .editor-scroll .cm-scroller { overflow: auto; }
 
