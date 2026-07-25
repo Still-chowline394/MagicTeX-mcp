@@ -6,20 +6,24 @@ import { useEffect, useRef, useState } from 'react';
 import * as pdfjs from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { createComment, type Comment } from '../api';
+import { normalize, phrase } from '../sync';
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
 const SCALE = 1.5;
 
 interface Draft { page: number; quote: string; rects: { x: number; y: number; w: number; h: number }[]; x: number; y: number }
+interface SyncTarget { text: string; nonce: number }
 
 export function PdfView({
-  reloadTick, comments, onPages, onSelectComment,
+  reloadTick, comments, onPages, onSelectComment, onSyncToSource, syncTarget,
 }: {
   reloadTick: number;
   comments: Comment[];
   onPages?: (n: number) => void;
   onSelectComment?: (id: string) => void;
+  onSyncToSource?: (text: string) => void;
+  syncTarget?: SyncTarget | null;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const pagesRef = useRef<HTMLDivElement>(null);
@@ -41,7 +45,10 @@ export function PdfView({
       const doc = await pdfjs.getDocument({ data }).promise;
       if (cancelled) return;
       const scroll = scroller.scrollTop;
-      container.innerHTML = '';
+      // Render every page off-screen, then swap them in at once — the previous
+      // PDF stays visible until the new one is ready, so there is no blank flash
+      // between recompiles.
+      const next = document.createDocumentFragment();
       for (let i = 1; i <= doc.numPages; i++) {
         const pg = await doc.getPage(i);
         if (cancelled) return;
@@ -62,11 +69,13 @@ export function PdfView({
         const hlDiv = document.createElement('div');
         hlDiv.className = 'hl-layer';
         wrap.appendChild(hlDiv);
-        container.appendChild(wrap);
+        next.appendChild(wrap);
         await pg.render({ canvasContext: canvas.getContext('2d')!, viewport: vp }).promise;
         const textLayer = new pdfjs.TextLayer({ textContentSource: pg.streamTextContent(), container: textDiv, viewport: vp });
         await textLayer.render();
       }
+      if (cancelled) return;
+      container.replaceChildren(next);
       setNote('');
       onPages?.(doc.numPages);
       setRenderTick((t) => t + 1);
@@ -97,6 +106,50 @@ export function PdfView({
       }
     }
   }, [comments, renderTick]);
+
+  // ── Click a word (no selection) → jump to that text in the source ───────
+  const onClick = (e: React.MouseEvent) => {
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed) return; // a drag-select is a comment, not a sync
+    const span = (e.target as HTMLElement).closest('.textLayer span') as HTMLElement | null;
+    if (!span || !onSyncToSource) return;
+    // Build a phrase from the clicked span plus the following few, so a single
+    // short word still yields something distinctive to search for.
+    let text = span.textContent ?? '';
+    let n = span.nextElementSibling;
+    while (n && normalize(text).split(' ').filter(Boolean).length < 6) {
+      text += ' ' + (n.textContent ?? '');
+      n = n.nextElementSibling;
+    }
+    if (normalize(text)) onSyncToSource(text);
+  };
+
+  // ── Source → PDF: scroll the matching page/word into view and flash it ──
+  useEffect(() => {
+    const container = pagesRef.current;
+    if (!container || !syncTarget) return;
+    const target = phrase(syncTarget.text, 6);
+    if (!target) return;
+    for (const page of container.querySelectorAll('.page')) {
+      const spans = Array.from(page.querySelectorAll('.textLayer span')) as HTMLElement[];
+      // Concatenate the page's spans with an offset→span map, then find the phrase.
+      let concat = '';
+      const map: { start: number; el: HTMLElement }[] = [];
+      for (const s of spans) {
+        const norm = normalize(s.textContent ?? '');
+        if (!norm) continue;
+        map.push({ start: concat.length, el: s });
+        concat += norm + ' ';
+      }
+      const at = concat.indexOf(target);
+      if (at < 0) continue;
+      const hit = [...map].reverse().find((m) => m.start <= at)?.el ?? spans[0];
+      hit.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      hit.classList.add('sync-flash');
+      setTimeout(() => hit.classList.remove('sync-flash'), 1400);
+      break;
+    }
+  }, [syncTarget]);
 
   // ── Selection → comment composer ────────────────────────────────────────
   const onMouseUp = () => {
@@ -136,7 +189,7 @@ export function PdfView({
   };
 
   return (
-    <div className="pdf-scroll" ref={scrollRef} onMouseUp={onMouseUp}>
+    <div className="pdf-scroll" ref={scrollRef} onMouseUp={onMouseUp} onClick={onClick}>
       {note && <div className="pdf-note">{note}</div>}
       <div className="pdf-pages" ref={pagesRef} />
       {draft && (

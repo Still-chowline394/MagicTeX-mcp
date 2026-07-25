@@ -61,6 +61,16 @@ export default function App() {
   const [pages, setPages] = useState(0);
   const [leftWidth, setLeftWidth] = usePanelWidth('ws-left-width', 360);
   const [rightWidth, setRightWidth] = usePanelWidth('ws-right-width', 320);
+  // Text-match sync between the PDF and the source editor (nonce forces re-fire
+  // even when the same text is clicked twice).
+  const [syncToSource, setSyncToSource] = useState<{ text: string; nonce: number } | null>(null);
+  const [syncToPdf, setSyncToPdf] = useState<{ text: string; nonce: number } | null>(null);
+  const onSyncToSource = useCallback((text: string) => {
+    setLeftTab('source');
+    setLeftOpen(true);
+    setSyncToSource({ text, nonce: Date.now() });
+  }, []);
+  const onSyncToPdf = useCallback((text: string) => { setSyncToPdf({ text, nonce: Date.now() }); }, []);
 
   const refreshComments = useCallback(() => { fetchComments().then(setComments).catch(() => {}); }, []);
   useEffect(() => { refreshComments(); }, [refreshComments]);
@@ -93,7 +103,7 @@ export default function App() {
             <button className="ghost" onClick={() => setLeftOpen(false)} title="Collapse">«</button>
           </div>
           {leftTab === 'history' && <ErrorBoundary name="History panel"><HistoryPanel reloadTick={reloadTick} /></ErrorBoundary>}
-          {leftTab === 'source' && <ErrorBoundary name="Source editor"><SourcePanel reloadTick={reloadTick} /></ErrorBoundary>}
+          {leftTab === 'source' && <ErrorBoundary name="Source editor"><SourcePanel reloadTick={reloadTick} syncTarget={syncToSource} onSyncToPdf={onSyncToPdf} /></ErrorBoundary>}
         </div>
         {leftOpen && <Splitter dir="left" width={leftWidth} setWidth={setLeftWidth} />}
         {!leftOpen && <button className="edge-open left-edge" onClick={() => setLeftOpen(true)} title="Open panel">»</button>}
@@ -101,7 +111,7 @@ export default function App() {
         <div className="center">
           {errorLog && <pre className="compile-error">{errorLog}</pre>}
           <ErrorBoundary name="PDF view">
-            <PdfView reloadTick={reloadTick} comments={comments} onPages={setPages} onSelectComment={onSelectFromPdf} />
+            <PdfView reloadTick={reloadTick} comments={comments} onPages={setPages} onSelectComment={onSelectFromPdf} onSyncToSource={onSyncToSource} syncTarget={syncToPdf} />
           </ErrorBoundary>
         </div>
 
