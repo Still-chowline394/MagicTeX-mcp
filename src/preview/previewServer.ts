@@ -16,7 +16,7 @@ import { diffViewHtml } from './diffViewPage.js';
 import { isGitRepo, listCheckpoints, getCheckpointDiff, getWorkingDiff } from '../git/checkpoints.js';
 import { listTextFiles, readTextFile, writeTextFile } from './filesApi.js';
 import { suppressNextChange } from '../watch/fileWatcher.js';
-import { listComments, addComment, updateComment, deleteComment } from './commentsStore.js';
+import { listComments, addComment, updateComment, deleteComment, addReply } from './commentsStore.js';
 import { getGitHubRemote } from '../git/remote.js';
 import { buildOverleafZip } from '../export/overleafZip.js';
 import { resolveMainFile } from '../project/resolveMainFile.js';
@@ -137,6 +137,23 @@ export function startPreviewServer(): Promise<PreviewServerHandle> {
           return json(res, { ok });
         }
         return json(res, await listComments(root));
+      } catch (e) {
+        res.writeHead(400, ISOLATION_HEADERS).end(String((e as Error).message)); return;
+      }
+    }
+
+    // Post a reply into a comment's thread (the human's reply from the panel).
+    if (pathname === '/api/comments/reply' && req.method === 'POST') {
+      const root = getProjectRoot();
+      const id = reqUrl.searchParams.get('id') ?? '';
+      try {
+        const chunks: Buffer[] = [];
+        for await (const c of req) chunks.push(c as Buffer);
+        const { text, by } = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+        const updated = await addReply(root, id, { by: by ?? 'human', text });
+        if (!updated) { res.writeHead(404, ISOLATION_HEADERS).end('unknown comment'); return; }
+        send({ type: 'comments-changed' });
+        return json(res, updated);
       } catch (e) {
         res.writeHead(400, ISOLATION_HEADERS).end(String((e as Error).message)); return;
       }

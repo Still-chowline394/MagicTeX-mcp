@@ -10,8 +10,8 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import open from 'open';
 import { RENDER_PREVIEW_NAME, renderPreviewConfig } from './tools/renderPreviewToolDef.js';
 import { SHOW_DIFF_NAME, showDiffConfig } from './tools/showDiffToolDef.js';
-import { CHECK_COMMENTS_NAME, checkCommentsConfig, RESOLVE_COMMENT_NAME, resolveCommentConfig, ADD_COMMENT_NAME, addCommentConfig } from './tools/commentsToolDefs.js';
-import { listComments, updateComment, addComment } from './preview/commentsStore.js';
+import { CHECK_COMMENTS_NAME, checkCommentsConfig, RESOLVE_COMMENT_NAME, resolveCommentConfig, ADD_COMMENT_NAME, addCommentConfig, REPLY_COMMENT_NAME, replyCommentConfig } from './tools/commentsToolDefs.js';
+import { listComments, updateComment, addComment, addReply } from './preview/commentsStore.js';
 import { findAnchor } from './preview/anchorMatch.js';
 import { getPreview, peekPreview, captureDiff } from './engine/browserHost.js';
 import { setConfig, requestCompile } from './coordinator.js';
@@ -103,7 +103,11 @@ server.registerTool(CHECK_COMMENTS_NAME, checkCommentsConfig, async ({ includeRe
     const loc = anchor
       ? `\n  ↳ source: ${anchor.file}:${anchor.line}`
       : '\n  ↳ source: not located — search the files for the quoted text';
-    return `[id: ${c.id}] p.${c.page} — "${c.quote.slice(0, 160)}${c.quote.length > 160 ? '…' : ''}"${loc}\n  → ${c.text}`;
+    const who = c.role && c.role !== 'human' ? ` (${c.role})` : '';
+    const thread = c.replies?.length
+      ? '\n  ' + c.replies.map((r) => `↪ ${r.by}: ${r.text}`).join('\n  ')
+      : '';
+    return `[id: ${c.id}]${who} p.${c.page} — "${c.quote.slice(0, 160)}${c.quote.length > 160 ? '…' : ''}"${loc}\n  → ${c.text}${thread}`;
   };
   const fmtPlain = (c: (typeof all)[number]) =>
     `[id: ${c.id}] p.${c.page} — "${c.quote.slice(0, 160)}${c.quote.length > 160 ? '…' : ''}"\n  → ${c.text}`;
@@ -136,23 +140,34 @@ server.registerTool(RESOLVE_COMMENT_NAME, resolveCommentConfig, async ({ id, not
   return { content: [{ type: 'text', text: `✓ Resolved comment ${id} ("${updated.quote.slice(0, 60)}…") — the card now shows: ${note}` }] };
 });
 
-server.registerTool(ADD_COMMENT_NAME, addCommentConfig, async ({ quote, comment, page, accepted }) => {
+server.registerTool(ADD_COMMENT_NAME, addCommentConfig, async ({ quote, comment, role, page, accepted }) => {
   const projectRoot = process.cwd();
   setProjectRoot(projectRoot);
   const created = await addComment(projectRoot, {
     page: page ?? 1,
     quote,
-    rects: [], // the workspace re-anchors reviewer comments to the PDF by text
+    rects: [], // the workspace re-anchors these comments to the PDF by text
     text: comment,
-    role: 'reviewer',
+    role: role ?? 'reviewer',
     status: accepted ? 'pending' : 'suggested',
   });
   try { peekPreview()?.broadcast({ type: 'comments-changed' }); } catch { /* no viewer */ }
   const where = accepted
     ? 'It is actionable now (autonomous mode).'
     : 'It is a suggestion — the human accepts it in the workspace before the loop acts on it.';
-  return { content: [{ type: 'text', text: `✓ Review comment ${created.id} posted on "${quote.slice(0, 60)}${quote.length > 60 ? '…' : ''}". ${where}` }] };
+  return { content: [{ type: 'text', text: `✓ ${role ?? 'reviewer'} comment ${created.id} posted on "${quote.slice(0, 60)}${quote.length > 60 ? '…' : ''}". ${where}` }] };
 });
+
+server.registerTool(REPLY_COMMENT_NAME, replyCommentConfig, async ({ id, text, role }) => {
+  const projectRoot = process.cwd();
+  setProjectRoot(projectRoot);
+  const updated = await addReply(projectRoot, id, { by: role ?? 'author', text });
+  if (!updated) return { isError: true, content: [{ type: 'text', text: `✖ Unknown comment id: ${id}` }] };
+  try { peekPreview()?.broadcast({ type: 'comments-changed' }); } catch { /* no viewer */ }
+  return { content: [{ type: 'text', text: `✓ Replied on comment ${id} (${updated.replies?.length ?? 1} message${(updated.replies?.length ?? 1) === 1 ? '' : 's'} in thread).` }] };
+});
+
+// (add_comment and reply_to_comment are registered above.)
 
 const transport = new StdioServerTransport();
 await server.connect(transport);

@@ -5,7 +5,18 @@
 //   resolved  — done, with the author's note.
 // Clicking a card jumps to its highlight in the PDF.
 import { useEffect, useState } from 'react';
-import { patchComment, removeComment, type Comment } from '../api';
+import { patchComment, removeComment, replyComment, type Comment } from '../api';
+
+function ReplyBox({ id }: { id: string }) {
+  const [text, setText] = useState('');
+  return (
+    <form className="reply-box" onClick={(e) => e.stopPropagation()}
+          onSubmit={(e) => { e.preventDefault(); if (text.trim()) { void replyComment(id, text.trim()); setText(''); } }}>
+      <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Reply…" />
+      <button className="ghost tiny" disabled={!text.trim()}>send</button>
+    </form>
+  );
+}
 
 export function CommentsPanel({
   comments, selectedId, onJump,
@@ -33,11 +44,15 @@ export function CommentsPanel({
   const card = (c: Comment) => (
     <div key={c.id} className={`comment ${c.id === selectedId ? 'sel' : ''} ${c.status}`} onClick={() => onJump(c)}>
       <div className="comment-quote">
-        {c.role === 'reviewer' && <span className="role-badge">reviewer</span>}
+        {c.role && c.role !== 'human' && <span className={`role-badge role-${c.role}`}>{c.role}</span>}
         p.{c.page} · “{c.quote.slice(0, 90)}{c.quote.length > 90 ? '…' : ''}”
       </div>
       <div className="comment-text">{c.text}</div>
+      {c.replies?.map((r, i) => (
+        <div key={i} className="reply"><span className={`role-badge role-${r.by}`}>{r.by}</span>{r.text}</div>
+      ))}
       {c.status === 'resolved' && c.resolvedNote && <div className="comment-note">✓ {c.resolvedNote}</div>}
+      {c.status !== 'resolved' && <ReplyBox id={c.id} />}
       <div className="comment-actions" onClick={(e) => e.stopPropagation()}>
         {c.status === 'suggested' && <>
           <button className="on" onClick={() => accept(c)}>Accept</button>

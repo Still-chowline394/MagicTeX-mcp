@@ -14,6 +14,11 @@ export interface CommentRect { x: number; y: number; w: number; h: number }
 //   pending   — accepted / actionable (human comments start here); the loop acts on these
 //   resolved  — an author agent addressed it, with a note
 export type CommentStatus = 'suggested' | 'pending' | 'resolved';
+// Who raised a comment or wrote a reply. reviewer/defender are review agents;
+// author is the revising agent; human is you.
+export type CommentRole = 'human' | 'reviewer' | 'defender' | 'author';
+
+export interface Reply { by: CommentRole; text: string; at: string }
 
 export interface Comment {
   id: string;
@@ -22,7 +27,8 @@ export interface Comment {
   rects: CommentRect[];
   text: string;
   status: CommentStatus;
-  role?: 'reviewer' | 'human'; // who raised it (default human)
+  role?: CommentRole; // who raised it (default human)
+  replies?: Reply[];  // a thread of follow-ups (human ↔ agents)
   created: string;
   resolvedNote?: string;
   resolvedAt?: string;
@@ -51,7 +57,7 @@ async function save(root: string, comments: Comment[]): Promise<void> {
 
 export async function addComment(
   root: string,
-  input: { page: number; quote: string; rects: CommentRect[]; text: string; role?: 'reviewer' | 'human'; status?: CommentStatus },
+  input: { page: number; quote: string; rects: CommentRect[]; text: string; role?: CommentRole; status?: CommentStatus },
 ): Promise<Comment> {
   const comment: Comment = {
     id: randomBytes(6).toString('hex'),
@@ -84,6 +90,19 @@ export async function updateComment(
     else { delete c.resolvedAt; delete c.resolvedNote; }
   }
   if (patch.resolvedNote !== undefined) c.resolvedNote = String(patch.resolvedNote).slice(0, 2000);
+  await save(root, all);
+  return c;
+}
+
+export async function addReply(
+  root: string,
+  id: string,
+  reply: { by: CommentRole; text: string },
+): Promise<Comment | null> {
+  const all = await listComments(root);
+  const c = all.find((x) => x.id === id);
+  if (!c) return null;
+  (c.replies ??= []).push({ by: reply.by, text: String(reply.text).slice(0, 2000), at: new Date().toISOString() });
   await save(root, all);
   return c;
 }

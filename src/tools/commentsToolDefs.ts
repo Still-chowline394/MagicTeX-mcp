@@ -22,8 +22,21 @@ export const addCommentConfig = {
   inputSchema: {
     quote: z.string().min(1).describe('The exact passage the comment is about (a sentence or phrase from the paper).'),
     comment: z.string().min(1).max(2000).describe('The review comment or revision instruction for this passage.'),
+    role: z.enum(['reviewer', 'defender']).optional().describe('Your role: "reviewer" (default) critiques and asks for changes; "defender" stress-tests claims / pushes back.'),
     page: z.number().int().positive().optional().describe('PDF page the passage is on, if known (default 1; the workspace re-anchors by text anyway).'),
     accepted: z.boolean().optional().describe('Autonomous mode: create it already accepted (actionable) instead of a suggestion awaiting the human. Default false.'),
+  },
+};
+
+export const REPLY_COMMENT_NAME = 'reply_to_comment';
+export const replyCommentConfig = {
+  title: 'Reply to a comment thread',
+  description:
+    'Add a reply to a comment\'s thread — to ask the human a clarifying question, explain your reasoning, or (as a defender) push back on another agent\'s suggestion before it is resolved. Use the comment id from check_comments. This does not resolve the comment; use resolve_comment for that.',
+  inputSchema: {
+    id: z.string().describe('The comment id, from check_comments.'),
+    text: z.string().min(1).max(2000).describe('Your reply.'),
+    role: z.enum(['author', 'reviewer', 'defender']).optional().describe('Who is replying (default "author").'),
   },
 };
 

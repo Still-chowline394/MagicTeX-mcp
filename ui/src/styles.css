@@ -173,7 +173,15 @@ body.resizing .pdf-scroll, body.resizing .editor-scroll { pointer-events: none; 
 .comment.suggested { border-color: #4a3a6b; background: #241f30; }
 .comment-quote { color: #999; font-size: 12px; margin-bottom: 4px; }
 .role-badge { display: inline-block; margin-right: 6px; padding: 0 6px; border-radius: 999px;
-              background: #3a2f5a; color: #c3aef5; font-size: 10px; letter-spacing: .04em; text-transform: uppercase; }
+              font-size: 10px; letter-spacing: .04em; text-transform: uppercase; }
+.role-reviewer { background: #3a2f5a; color: #c3aef5; }
+.role-defender { background: #4a3420; color: #f0b878; }
+.role-author { background: #16351f; color: #7ee29a; }
+.role-human { background: #24344f; color: #9cc0ff; }
+.reply { margin: 4px 0 0 4px; padding: 3px 0; color: #cbd3dd; font-size: 12px; border-left: 2px solid #333; padding-left: 8px; }
+.reply-box { display: flex; gap: 4px; margin-top: 6px; }
+.reply-box input { flex: 1 1 auto; min-width: 0; background: #1e1f22; color: #ddd; border: 1px solid #45484e;
+                   border-radius: 4px; padding: 3px 6px; font: inherit; font-size: 12px; }
 .auto-accept { display: flex; align-items: center; gap: 7px; padding: 8px 12px; color: #bbb; font-size: 12px;
                border-bottom: 1px solid #17181a; cursor: pointer; }
 .auto-accept input { accent-color: #159957; }

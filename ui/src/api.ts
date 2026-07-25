@@ -18,6 +18,8 @@ export type WsMessage =
 
 export interface CommentRect { x: number; y: number; w: number; h: number }
 export type CommentStatus = 'suggested' | 'pending' | 'resolved';
+export type CommentRole = 'human' | 'reviewer' | 'defender' | 'author';
+export interface Reply { by: CommentRole; text: string; at: string }
 export interface Comment {
   id: string;
   page: number;
@@ -25,7 +27,8 @@ export interface Comment {
   rects: CommentRect[];
   text: string;
   status: CommentStatus;
-  role?: 'reviewer' | 'human';
+  role?: CommentRole;
+  replies?: Reply[];
   created: string;
   resolvedNote?: string;
 }
@@ -45,6 +48,12 @@ export async function patchComment(id: string, patch: { status?: CommentStatus; 
 
 export async function removeComment(id: string): Promise<void> {
   await fetch(`/api/comments?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+export async function replyComment(id: string, text: string): Promise<void> {
+  await fetch(`/api/comments/reply?id=${encodeURIComponent(id)}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, by: 'human' }),
+  });
 }
 
 export type Status = 'connecting' | 'connected' | 'compiling' | 'ok' | 'error' | 'disconnected';
