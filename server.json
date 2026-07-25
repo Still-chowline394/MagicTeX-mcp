@@ -1,0 +1,22 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.ZoeLinUTS/magictex",
+  "title": "MagicTeX",
+  "description": "LaTeX editor for AI agents: live PDF preview, PDF comments that drive edits, git history",
+  "version": "0.1.2",
+  "websiteUrl": "https://github.com/ZoeLinUTS/MagicTeX-mcp",
+  "repository": {
+    "url": "https://github.com/ZoeLinUTS/MagicTeX-mcp",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "magictex-mcp",
+      "version": "0.1.2",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
