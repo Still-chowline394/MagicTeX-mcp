@@ -47,6 +47,7 @@
     "typecheck": "tsc --noEmit && tsc -p ui --noEmit",
     "build:ui": "vite build ui",
     "dev:ui": "vite ui",
+    "test": "node --import tsx --test test/*.test.ts",
     "prepublishOnly": "npm run build:ui"
   },
   "dependencies": {

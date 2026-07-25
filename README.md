@@ -1,6 +1,7 @@
 # latex-live-preview-mcp
 
 <!-- badges -->
+[![CI](https://github.com/ZoeLinUTS/latex-live-preview-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/ZoeLinUTS/latex-live-preview-mcp/actions/workflows/ci.yml)
 [![stars](https://img.shields.io/github/stars/ZoeLinUTS/latex-live-preview-mcp?style=flat)](https://github.com/ZoeLinUTS/latex-live-preview-mcp/stargazers)
 [![license](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 
@@ -117,6 +118,20 @@ with no WASM in it. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
   your installed Chrome.
 - ~650 MB disk for the one-time WASM TeX Live assets (a normal paper only needs the
   ~118 MB basic set; larger package sets load on demand).
+
+## Development
+
+```bash
+npm install
+npm run typecheck    # tsc for the server and the UI
+npm run build:ui     # build the React workspace to ui/dist
+npm test             # comment store, anchor matching, and an MCP workflow E2E
+npm start            # run the server on stdio (for a manual MCP client)
+```
+
+CI (`.github/workflows/ci.yml`) runs typecheck + UI build + tests on Node 20 and 22
+for every push and pull request. The tests are engine-free (no headless browser), so
+they're fast and deterministic; please keep them green and add coverage with changes.
 
 ## License
 
