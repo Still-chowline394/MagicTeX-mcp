@@ -4,10 +4,11 @@
 //   - a fully dark palette (diff2html's light "changed line" yellow was leaking),
 //   - wrapping long lines, so nothing overflows the panel and the line-number
 //     gutter always stays aligned with its (possibly wrapped) code line.
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 type RowType = 'file' | 'hunk' | 'add' | 'del' | 'ctx';
 interface Row { type: RowType; oldNo?: number; newNo?: number; text: string }
+interface FileSection { file: string; rows: Row[]; adds: number; dels: number }
 
 function parseDiff(diff: string): Row[] {
   const rows: Row[] = [];
@@ -35,19 +36,48 @@ function parseDiff(diff: string): Row[] {
   return rows;
 }
 
+/** Group the flat rows into per-file sections (with add/del counts). */
+function toSections(rows: Row[]): FileSection[] {
+  const sections: FileSection[] = [];
+  let cur: FileSection | null = null;
+  for (const r of rows) {
+    if (r.type === 'file') { cur = { file: r.text, rows: [], adds: 0, dels: 0 }; sections.push(cur); continue; }
+    if (!cur) { cur = { file: '(changes)', rows: [], adds: 0, dels: 0 }; sections.push(cur); }
+    cur.rows.push(r);
+    if (r.type === 'add') cur.adds++; else if (r.type === 'del') cur.dels++;
+  }
+  return sections;
+}
+
 export function DiffView({ diff }: { diff: string }) {
-  const rows = useMemo(() => parseDiff(diff), [diff]);
+  const sections = useMemo(() => toSections(parseDiff(diff)), [diff]);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   return (
     <div className="diffview">
-      {rows.map((r, i) => {
-        if (r.type === 'file') return <div key={i} className="dv-file">{r.text}</div>;
-        if (r.type === 'hunk') return <div key={i} className="dv-hunk">{r.text}</div>;
+      {sections.map((s, si) => {
+        const isCollapsed = collapsed[s.file];
         return (
-          <div key={i} className={`dv-row dv-${r.type}`}>
-            <span className="dv-num">{r.oldNo ?? ''}</span>
-            <span className="dv-num">{r.newNo ?? ''}</span>
-            <span className="dv-sign">{r.type === 'add' ? '+' : r.type === 'del' ? '−' : ''}</span>
-            <span className="dv-code">{r.text || ' '}</span>
+          <div key={si} className="dv-section">
+            <div className="dv-file" onClick={() => setCollapsed((c) => ({ ...c, [s.file]: !isCollapsed }))} title="Click to collapse / expand">
+              <span className="dv-file-caret">{isCollapsed ? '▸' : '▾'}</span>
+              <span className="dv-file-name">{s.file}</span>
+              <span className="dv-file-stat">
+                {s.adds > 0 && <span className="add">+{s.adds}</span>}
+                {s.dels > 0 && <span className="del"> −{s.dels}</span>}
+              </span>
+            </div>
+            {!isCollapsed && s.rows.map((r, i) =>
+              r.type === 'hunk'
+                ? <div key={i} className="dv-hunk">{r.text}</div>
+                : (
+                  <div key={i} className={`dv-row dv-${r.type}`}>
+                    <span className="dv-num">{r.oldNo ?? ''}</span>
+                    <span className="dv-num">{r.newNo ?? ''}</span>
+                    <span className="dv-sign">{r.type === 'add' ? '+' : r.type === 'del' ? '−' : ''}</span>
+                    <span className="dv-code">{r.text || ' '}</span>
+                  </div>
+                ),
+            )}
           </div>
         );
       })}

@@ -13,7 +13,7 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import { hostPageHtml } from '../engine/hostPage.js';
 import { viewerPageHtml } from './viewerPage.js';
 import { diffViewHtml } from './diffViewPage.js';
-import { isGitRepo, listCheckpoints, getCheckpointDiff, getWorkingDiff } from '../git/checkpoints.js';
+import { isGitRepo, listCheckpoints, getCheckpointDiff, getWorkingDiff, restoreCheckpoint } from '../git/checkpoints.js';
 import { listTextFiles, readTextFile, writeTextFile, listTree, createTextFile, createDir, renameEntry, deleteEntry, writeUpload } from './filesApi.js';
 import { suppressNextChange } from '../watch/fileWatcher.js';
 import { listComments, addComment, updateComment, deleteComment, addReply } from './commentsStore.js';
@@ -104,6 +104,18 @@ export function startPreviewServer(): Promise<PreviewServerHandle> {
         const diff = await getCheckpointDiff(getProjectRoot(), sha);
         res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', ...ISOLATION_HEADERS });
         res.end(diff); return;
+      } catch (e) {
+        res.writeHead(400, ISOLATION_HEADERS).end(String((e as Error).message)); return;
+      }
+    }
+    // Restore the working tree to a checkpoint (revert), then recompile.
+    if (pathname === '/git/restore' && req.method === 'POST') {
+      const sha = reqUrl.searchParams.get('sha') ?? '';
+      try {
+        await restoreCheckpoint(getProjectRoot(), sha);
+        const { requestCompile } = await import('../coordinator.js');
+        requestCompile().catch(() => {});
+        return json(res, { ok: true });
       } catch (e) {
         res.writeHead(400, ISOLATION_HEADERS).end(String((e as Error).message)); return;
       }

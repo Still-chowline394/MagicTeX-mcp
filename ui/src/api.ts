@@ -68,6 +68,12 @@ export async function fetchDiff(sha: string): Promise<string> {
   return r.ok ? r.text() : '';
 }
 
+/** Restore the working tree to a checkpoint (revert). Returns an error string or null. */
+export async function restoreCheckpoint(sha: string): Promise<string | null> {
+  const r = await fetch(`/git/restore?sha=${encodeURIComponent(sha)}`, { method: 'POST' });
+  return r.ok ? null : (await r.text()) || 'restore failed';
+}
+
 export async function fetchGitStatus(): Promise<boolean> {
   try { return (await (await fetch('/git/status')).json()).isRepo; } catch { return false; }
 }

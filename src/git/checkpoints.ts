@@ -86,10 +86,36 @@ export async function listCheckpoints(root: string): Promise<Checkpoint[]> {
   return checkpoints;
 }
 
+// Hide MagicTeX's own state (the comments store) from every diff view — it's not
+// part of the user's paper. Passed as a git exclude pathspec.
+const EXCLUDE_TOOL = ['--', '.', ':(exclude).latex-preview'];
+
 /** Current uncommitted changes vs HEAD (or everything, if there's no commit yet). */
 export async function getWorkingDiff(root: string): Promise<string> {
   const hasHead = (await gitOrNull(root, ['rev-parse', '--verify', '-q', 'HEAD'])) !== null;
-  return (await gitOrNull(root, hasHead ? ['diff', 'HEAD'] : ['diff'])) ?? '';
+  return (await gitOrNull(root, [...(hasHead ? ['diff', 'HEAD'] : ['diff']), ...EXCLUDE_TOOL])) ?? '';
+}
+
+/**
+ * Restore the working tree to a checkpoint ("revert to this version"). Snapshots
+ * the current state first (so it's reversible — the just-lost work becomes a new
+ * checkpoint), then writes the checkpoint's files back via a TEMP index +
+ * checkout-index, so the user's real index/HEAD/branches are never touched. Files
+ * added after the checkpoint are left in place (safer than deleting).
+ */
+export async function restoreCheckpoint(root: string, sha: string): Promise<void> {
+  if (!SHA_RE.test(sha)) throw new Error('invalid checkpoint id');
+  const reachable = await gitOrNull(root, ['merge-base', '--is-ancestor', sha, REF]);
+  if (reachable === null) throw new Error('unknown checkpoint');
+  await createCheckpoint(root); // make the current state recoverable before we overwrite it
+  const idx = join(tmpdir(), `latex-restore-${randomBytes(6).toString('hex')}.index`);
+  const env = { ...process.env, GIT_INDEX_FILE: idx };
+  try {
+    await git(root, ['read-tree', sha], env);       // load the checkpoint tree into a temp index
+    await git(root, ['checkout-index', '-a', '-f'], env); // write those files to the working tree
+  } finally {
+    await rm(idx, { force: true }).catch(() => {});
+  }
 }
 
 /** Unified diff for one checkpoint (vs its parent, or the empty tree for the first). */
@@ -100,5 +126,5 @@ export async function getCheckpointDiff(root: string, sha: string): Promise<stri
   if (reachable === null) throw new Error('unknown checkpoint');
   const hasParent = (await gitOrNull(root, ['rev-parse', '--verify', '-q', `${sha}^`])) !== null;
   const base = hasParent ? `${sha}^` : EMPTY_TREE;
-  return git(root, ['diff', base, sha]);
+  return git(root, ['diff', base, sha, ...EXCLUDE_TOOL]);
 }

@@ -81,11 +81,13 @@ export default function App() {
 
   const jumpToComment = useCallback((c: Comment) => {
     setSelectedComment(c.id);
-    const hl = document.querySelector(`.hl[data-id="${c.id}"]`) ?? document.querySelector(`.page[data-page="${c.page}"]`);
-    hl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    for (const el of document.querySelectorAll(`.hl[data-id="${c.id}"]`)) {
-      el.classList.add('flash');
-      setTimeout(() => el.classList.remove('flash'), 1600);
+    const hls = document.querySelectorAll(`.hl[data-id="${c.id}"]`);
+    if (hls.length) {
+      hls[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      for (const el of hls) { el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1600); }
+    } else {
+      // Resolved comments carry no highlight — locate the passage by text and flash it.
+      setSyncToPdf({ text: c.quote, nonce: Date.now() });
     }
   }, []);
 

@@ -1,7 +1,7 @@
 // Left-panel History tab: checkpoint timeline (hidden git ref) + colorized diff.
 // Reuses the existing /git/* endpoints; diff rendered by our own DiffView.
 import { useEffect, useState } from 'react';
-import { fetchCheckpoints, fetchDiff, fetchGitStatus, type Checkpoint } from '../api';
+import { fetchCheckpoints, fetchDiff, fetchGitStatus, restoreCheckpoint, type Checkpoint } from '../api';
 import { DiffView } from './DiffView';
 
 export function HistoryPanel({ reloadTick }: { reloadTick: number }) {
@@ -9,6 +9,15 @@ export function HistoryPanel({ reloadTick }: { reloadTick: number }) {
   const [items, setItems] = useState<Checkpoint[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [diff, setDiff] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const restore = async (sha: string) => {
+    if (!confirm('Restore the project to this version? Your current text is snapshotted first (a new checkpoint), so you can undo this.')) return;
+    setBusy(true);
+    await restoreCheckpoint(sha);
+    setBusy(false);
+    // the recompile fires a reload → the effect above refreshes the checkpoint list
+  };
 
   useEffect(() => { fetchGitStatus().then(setIsRepo); }, []);
 
@@ -40,9 +49,17 @@ export function HistoryPanel({ reloadTick }: { reloadTick: number }) {
   return (
     <div className="history">
       <div className="history-list">
-        {items.map((c) => (
+        {items.map((c, i) => (
           <div key={c.sha} className={`ck ${c.sha === selected ? 'sel' : ''}`} onClick={() => setSelected(c.sha)}>
-            <div className="ck-t">{fmt(c.time)}</div>
+            <div className="ck-t">
+              {fmt(c.time)}
+              {i > 0 && (
+                <button className="ck-restore" disabled={busy} title="Restore the project to this version (reversible)"
+                        onClick={(e) => { e.stopPropagation(); void restore(c.sha); }}>
+                  ↩ restore
+                </button>
+              )}
+            </div>
             <div className="ck-s">
               {c.filesChanged} file{c.filesChanged === 1 ? '' : 's'}
               {c.insertions > 0 && <span className="add"> +{c.insertions}</span>}
