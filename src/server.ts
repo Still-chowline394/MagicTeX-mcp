@@ -47,18 +47,41 @@ server.registerTool(RENDER_PREVIEW_NAME, renderPreviewConfig, async ({ mainFile,
 
     if (result.success) {
       const truncNote = result.truncated ? ' (note: project too large — some files were skipped)' : '';
+      const errs = result.verdict?.errors.length ?? 0;
+      // Say "with errors" when there were some. Reporting a clean ✓ over a
+      // paper LaTeX only half-typeset is how a truncated PDF quietly replaced a
+      // good one, and how Claude was told to stop looking for the problem.
+      const head = errs
+        ? `⚠ Compiled ${result.mainFile} WITH ${errs} error${errs > 1 ? 's' : ''} (${result.engine}, ${result.ms}ms). LaTeX stopped part way, so this run's PDF is truncated — the preview still shows your last clean render. Fix the errors below and it will update.`
+        : `✓ Compiled ${result.mainFile} with ${result.engine} in ${result.ms}ms — ${result.fileCount} files${truncNote}.`;
+
+      const notes: string[] = [];
+      if (result.stubbedPackages?.length) {
+        notes.push(
+          `Stubbed out ${result.stubbedPackages.map((p) => `\\usepackage{${p}}`).join(', ')} — not in the bundled TeX Live and unused here, so it no longer blocks the compile.`,
+        );
+      }
+      if (errs) {
+        notes.push(summarizeErrors(result.log || ''));
+        notes.push('For full package fidelity (and an output matching Overleaf), retry with backend: "system" if you have a local TeX install.');
+      }
+
       return {
         content: [{
           type: 'text',
-          text: `✓ Compiled ${result.mainFile} with ${result.engine} in ${result.ms}ms — ${result.fileCount} files${truncNote}. Workspace (live preview, source editor, history, PDF comments — auto-reloads on edits): ${workspaceUrl}`,
+          text: `${head}${notes.length ? '\n\n' + notes.join('\n\n') : ''}\n\nWorkspace (live preview, source editor, history, PDF comments — auto-reloads on edits): ${workspaceUrl}`,
         }],
       };
     }
 
     // Compile failed — return parsed errors so Claude can self-correct.
+    const missingCls = result.verdict?.missingClasses ?? [];
+    const clsHint = missingCls.length
+      ? `\n\nThe document class ${missingCls.map((c) => `\`${c}.cls\``).join(', ')} is not in the bundled TeX Live subset, and a class cannot be stubbed the way an unused package can. Either put the .cls next to the source (Overleaf projects can download it), or compile with backend: "system" using a local TeX install.`
+      : '';
     return {
       isError: true,
-      content: [{ type: 'text', text: `✖ Compile of ${result.mainFile} failed (${result.engine}).\n\n${summarizeErrors(result.log || result.error || '')}` }],
+      content: [{ type: 'text', text: `✖ Compile of ${result.mainFile} failed (${result.engine}).\n\n${summarizeErrors(result.log || result.error || '')}${clsHint}` }],
     };
   } catch (err) {
     const msg = err instanceof MainFileError ? err.message : String((err as Error).message ?? err);

@@ -16,7 +16,10 @@ let cache: EngineFile[] | null = null;
 export async function getFallbackStyles(): Promise<EngineFile[]> {
   if (cache) return cache;
   try {
-    const names = (await readdir(DIR)).filter((n) => n.endsWith('.sty'));
+    // .cls too: a missing document class is fatal in a way a missing package
+    // isn't — it can't be stubbed out — so vendoring one here is the only way
+    // a paper using it compiles on the bundled TeX Live.
+    const names = (await readdir(DIR)).filter((n) => n.endsWith('.sty') || n.endsWith('.cls'));
     cache = await Promise.all(
       names.map(async (n) => ({ path: n, content: await readFile(join(DIR, n), 'utf8'), encoding: 'utf8' as const })),
     );

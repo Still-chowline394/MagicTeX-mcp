@@ -5,6 +5,7 @@ import { collectProjectFiles } from './collectProjectFiles.js';
 import { getFallbackStyles } from '../engine/fallbackStyles.js';
 import { compile, type CompileOutput } from '../engine/browserHost.js';
 import { hasSystemTex, compileWithSystemTex } from '../engine/systemTex.js';
+import { classifyCompile, stubPackage, usesPackage, type CompileVerdict } from '../engine/compileLog.js';
 
 export type Engine = 'xelatex' | 'pdflatex' | 'lualatex';
 // Which compiler runs: 'wasm' (bundled busytex, zero-install; default),
@@ -17,6 +18,10 @@ export interface CompileProjectResult extends CompileOutput {
   backend: 'wasm' | 'system';
   fileCount: number;
   truncated: boolean;
+  /** What the TeX log says actually happened (wasm backend). */
+  verdict?: CompileVerdict;
+  /** Missing packages stubbed out to get past a stale \usepackage. */
+  stubbedPackages?: string[];
 }
 
 export interface CompileProjectOptions {
@@ -60,9 +65,46 @@ export async function compileProject(opts: CompileProjectOptions): Promise<Compi
   const needsRerun = hasBib || /\\(ref|autoref|tableofcontents|label)\b/.test(mainSrc);
   const bibtex = hasBib && usesCite;
 
-  const out = await compile(allFiles, main ? main.path : mainFile, engine, { bibtex, rerun: needsRerun });
+  let out = await compile(allFiles, main ? main.path : mainFile, engine, { bibtex, rerun: needsRerun });
+  let verdict = classifyCompile(out.log ?? '', out.pdfLen);
+  let stubbed: string[] = [];
 
-  return { ...out, mainFile, engine, backend: 'wasm', fileCount: files.length, truncated };
+  // A `\usepackage` the bundled TeX Live lacks halts the whole document — even
+  // when nothing in it uses that package, which is the usual case for an import
+  // left behind after its figures or code were removed. Stub those and retry
+  // once, so a stale line in the preamble can't cost the author their preview.
+  // Packages the source really does use are left alone: failing is better than
+  // silently rendering something different from what they wrote.
+  if (verdict.fatal && verdict.missingPackages.length) {
+    const unused = verdict.missingPackages.filter((p) => !usesPackage(p, mainSrc));
+    if (unused.length) {
+      const stubs = unused.map((p) => ({ path: `${p}.sty`, content: stubPackage(p), encoding: 'utf8' as const }));
+      const retryOut = await compile([...allFiles, ...stubs], main ? main.path : mainFile, engine, { bibtex, rerun: needsRerun });
+      const retryVerdict = classifyCompile(retryOut.log ?? '', retryOut.pdfLen);
+      // Keep the retry only if it actually got further; otherwise report the
+      // original failure, which is the more informative one.
+      if (retryVerdict.usable || !retryVerdict.fatal) {
+        out = retryOut;
+        verdict = retryVerdict;
+        stubbed = unused;
+      }
+    }
+  }
+
+  return {
+    ...out,
+    // busytex says success even when LaTeX stopped on an error; the log is the
+    // only honest signal. Downstream uses this to decide whether to replace the
+    // reader's PDF and whether to write a checkpoint.
+    success: verdict.usable,
+    verdict,
+    stubbedPackages: stubbed,
+    mainFile,
+    engine,
+    backend: 'wasm',
+    fileCount: files.length,
+    truncated,
+  };
 }
 
 // Pick an engine from the preamble: fontspec/unicode-math need xe/lua; otherwise
