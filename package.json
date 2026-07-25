@@ -18,13 +18,13 @@
     "wasm",
     "academic-writing"
   ],
-  "homepage": "https://github.com/ZoeLinUTS/magictex-mcp#readme",
+  "homepage": "https://github.com/ZoeLinUTS/MagicTeX-mcp#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ZoeLinUTS/magictex-mcp.git"
+    "url": "git+https://github.com/ZoeLinUTS/MagicTeX-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/ZoeLinUTS/magictex-mcp/issues"
+    "url": "https://github.com/ZoeLinUTS/MagicTeX-mcp/issues"
   },
   "engines": {
     "node": ">=18"

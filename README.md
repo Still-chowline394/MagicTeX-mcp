@@ -1,9 +1,12 @@
 # MagicTeX — LaTeX Editor for AI Agents
 
 <!-- badges -->
-[![CI](https://github.com/ZoeLinUTS/magictex-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/ZoeLinUTS/magictex-mcp/actions/workflows/ci.yml)
-[![stars](https://img.shields.io/github/stars/ZoeLinUTS/magictex-mcp?style=flat)](https://github.com/ZoeLinUTS/magictex-mcp/stargazers)
+[![CI](https://github.com/ZoeLinUTS/MagicTeX-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/ZoeLinUTS/MagicTeX-mcp/actions/workflows/ci.yml)
+[![stars](https://img.shields.io/github/stars/ZoeLinUTS/MagicTeX-mcp?style=flat)](https://github.com/ZoeLinUTS/MagicTeX-mcp/stargazers)
 [![license](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
+[![Sponsor](https://img.shields.io/badge/%E2%9D%A4-Sponsor-db61a2)](https://github.com/sponsors/ZoeLinUTS)
+
+**English** · [简体中文](README.zh-CN.md)
 
 **MagicTeX** is a **LaTeX editor built for AI agents** — an Overleaf-like
 one-window workspace for Claude Code, served by an MCP server, with **no local TeX
@@ -102,7 +105,7 @@ For a low-typing workflow, install MagicTeX as a plugin — one install gives yo
 MCP server **and** the slash commands:
 
 ```
-/plugin marketplace add ZoeLinUTS/magictex-mcp
+/plugin marketplace add ZoeLinUTS/MagicTeX-mcp
 /plugin install magictex
 ```
 
@@ -155,6 +158,12 @@ npm start            # run the server on stdio (for a manual MCP client)
 CI (`.github/workflows/ci.yml`) runs typecheck + UI build + tests on Node 20 and 22
 for every push and pull request. The tests are engine-free (no headless browser), so
 they're fast and deterministic; please keep them green and add coverage with changes.
+
+## Sponsor this project
+
+MagicTeX is free and open source (AGPL-3.0). If it saves you time on your papers,
+please consider **[sponsoring the project](https://github.com/sponsors/ZoeLinUTS)** —
+it funds continued development. A ⭐ on the repo helps too.
 
 ## License
 
