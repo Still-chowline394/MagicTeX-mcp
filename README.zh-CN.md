@@ -9,6 +9,8 @@
 
 [English](README.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Português](README.pt.md)
 
+![MagicTeX workspace](docs/images/workspace.png)
+
 **MagicTeX** 是一个**为 AI Agent 打造的 LaTeX 编辑器**——一个类 Overleaf 的
 **单窗口工作区**，通过 MCP 服务器接入 Claude Code，**无需本地安装 TeX，也无需
 Overleaf 账号**：实时 PDF 预览、带**可视化（所见即所得）模式**的源码编辑器、修改历史，

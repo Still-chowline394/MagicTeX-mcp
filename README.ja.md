@@ -9,6 +9,8 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md) · **日本語** · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Português](README.pt.md)
 
+![MagicTeX workspace](docs/images/workspace.png)
+
 **MagicTeX** は **AI エージェントのために作られた LaTeX エディタ**です。MCP サーバー経由で
 Claude Code に接続する、Overleaf ライクな**ワンウィンドウ・ワークスペース**で、
 **ローカルの TeX インストールも Overleaf アカウントも不要**：ライブ PDF プレビュー、

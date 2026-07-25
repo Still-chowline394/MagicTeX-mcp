@@ -19,6 +19,8 @@ It compiles with a WASM TeX Live 2026 engine ([texlyre-busytex](https://github.c
 running inside a headless browser, so there's nothing multi-gigabyte to install —
 just a one-time WASM asset download.
 
+![The MagicTeX workspace: file tree, source editor, live PDF, and a reviewer comment](docs/images/workspace.png)
+
 ## The workspace
 
 One browser window (inspired by Typst's one-surface editor and LiquidText's
@@ -137,6 +139,24 @@ Claude edits .tex ─┐
 The WASM engines need DOM/Worker globals, so the server hosts a hidden headless
 Chromium as its compile worker; the tab *you* open is a lightweight pdf.js viewer
 with no WASM in it. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+```mermaid
+flowchart LR
+  H["👤 You<br/>browser workspace"] <--> SRV["Preview server<br/>HTTP + WebSocket"]
+  A["🤖 Claude Code<br/>+ agents"] --> MCP["MCP server<br/>render_preview · check/resolve/add_comment"]
+  MCP --> CO["Coordinator"]
+  SRV --> CO
+  CO --> ENG["Compile engine<br/>WASM busytex (headless Chromium)"]
+  ENG --> FILES[("Paper files · git repo")]
+  FILES --> WATCH["File watcher"] --> CO
+  CO --> CK["git checkpoints<br/>(hidden ref)"]
+  A -. edits .-> FILES
+  SRV -. live reload .-> H
+```
+
+Both front doors — you in the browser, agents through MCP — meet at the same
+coordinator, comment store, and git history. That shared substrate is what makes
+the comment loop, the review workflow, and traceable history possible.
 
 ## Requirements
 

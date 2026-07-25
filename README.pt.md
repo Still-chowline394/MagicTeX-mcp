@@ -9,6 +9,8 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · **Português**
 
+![MagicTeX workspace](docs/images/workspace.png)
+
 **MagicTeX** é um **editor LaTeX feito para agentes de IA** — um espaço de trabalho de **uma
 única janela** ao estilo Overleaf para o Claude Code, servido por um servidor MCP, **sem
 instalação local de TeX e sem conta Overleaf**: pré-visualização de PDF ao vivo, um editor de
