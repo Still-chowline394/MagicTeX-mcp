@@ -4,12 +4,12 @@
 [![CI](https://github.com/ZoeLinUTS/MagicTeX-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/ZoeLinUTS/MagicTeX-mcp/actions/workflows/ci.yml)
 [![stars](https://img.shields.io/github/stars/ZoeLinUTS/MagicTeX-mcp?style=flat)](https://github.com/ZoeLinUTS/MagicTeX-mcp/stargazers)
 [![last commit](https://img.shields.io/github/last-commit/ZoeLinUTS/MagicTeX-mcp)](https://github.com/ZoeLinUTS/MagicTeX-mcp/commits/main)
-[![license](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
+[![license](https://img.shields.io/badge/license-AGPL--3.0-blue)](../../LICENSE)
 [![Sponsor](https://img.shields.io/badge/%E2%9D%A4-Sponsor-db61a2)](https://github.com/sponsors/ZoeLinUTS)
 
-[English](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · **Português**
+[English](../../README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · **Português**
 
-![MagicTeX workspace](docs/images/workspace.png)
+![MagicTeX workspace](../images/workspace.png)
 
 **MagicTeX** é um **editor LaTeX feito para agentes de IA** — um espaço de trabalho de **uma
 única janela** ao estilo Overleaf para o Claude Code, servido por um servidor MCP, **sem
@@ -46,7 +46,7 @@ ancoradas do LiquidText):
 
 ## Configuração
 
-1. Adicione ao `.mcp.json` do seu projeto (veja [`.mcp.json.example`](.mcp.json.example)):
+1. Adicione ao `.mcp.json` do seu projeto (veja [`.mcp.json.example`](../../.mcp.json.example)):
 
    ```json
    {
@@ -98,5 +98,5 @@ repositório também ajuda.
 
 ## Licença
 
-[AGPL-3.0-or-later](LICENSE) — igual ao motor `texlyre-busytex` sobre o qual é construído.
-Veja [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+[AGPL-3.0-or-later](../../LICENSE) — igual ao motor `texlyre-busytex` sobre o qual é construído.
+Veja [`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_NOTICES.md).

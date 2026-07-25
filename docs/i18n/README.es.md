@@ -4,12 +4,12 @@
 [![CI](https://github.com/ZoeLinUTS/MagicTeX-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/ZoeLinUTS/MagicTeX-mcp/actions/workflows/ci.yml)
 [![stars](https://img.shields.io/github/stars/ZoeLinUTS/MagicTeX-mcp?style=flat)](https://github.com/ZoeLinUTS/MagicTeX-mcp/stargazers)
 [![last commit](https://img.shields.io/github/last-commit/ZoeLinUTS/MagicTeX-mcp)](https://github.com/ZoeLinUTS/MagicTeX-mcp/commits/main)
-[![license](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
+[![license](https://img.shields.io/badge/license-AGPL--3.0-blue)](../../LICENSE)
 [![Sponsor](https://img.shields.io/badge/%E2%9D%A4-Sponsor-db61a2)](https://github.com/sponsors/ZoeLinUTS)
 
-[English](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · **Español** · [Français](README.fr.md) · [Deutsch](README.de.md) · [Português](README.pt.md)
+[English](../../README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · **Español** · [Français](README.fr.md) · [Deutsch](README.de.md) · [Português](README.pt.md)
 
-![MagicTeX workspace](docs/images/workspace.png)
+![MagicTeX workspace](../images/workspace.png)
 
 **MagicTeX** es un **editor de LaTeX creado para agentes de IA**: un espacio de trabajo de
 **una sola ventana** al estilo Overleaf para Claude Code, servido por un servidor MCP, **sin
@@ -45,7 +45,7 @@ anotaciones ancladas de LiquidText):
 
 ## Configuración
 
-1. Añádelo al `.mcp.json` de tu proyecto (ver [`.mcp.json.example`](.mcp.json.example)):
+1. Añádelo al `.mcp.json` de tu proyecto (ver [`.mcp.json.example`](../../.mcp.json.example)):
 
    ```json
    {
@@ -97,5 +97,5 @@ repositorio también ayuda.
 
 ## Licencia
 
-[AGPL-3.0-or-later](LICENSE) — igual que el motor `texlyre-busytex` sobre el que se construye.
-Ver [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+[AGPL-3.0-or-later](../../LICENSE) — igual que el motor `texlyre-busytex` sobre el que se construye.
+Ver [`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_NOTICES.md).

@@ -4,12 +4,12 @@
 [![CI](https://github.com/ZoeLinUTS/MagicTeX-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/ZoeLinUTS/MagicTeX-mcp/actions/workflows/ci.yml)
 [![stars](https://img.shields.io/github/stars/ZoeLinUTS/MagicTeX-mcp?style=flat)](https://github.com/ZoeLinUTS/MagicTeX-mcp/stargazers)
 [![last commit](https://img.shields.io/github/last-commit/ZoeLinUTS/MagicTeX-mcp)](https://github.com/ZoeLinUTS/MagicTeX-mcp/commits/main)
-[![license](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
+[![license](https://img.shields.io/badge/license-AGPL--3.0-blue)](../../LICENSE)
 [![Sponsor](https://img.shields.io/badge/%E2%9D%A4-Sponsor-db61a2)](https://github.com/sponsors/ZoeLinUTS)
 
-[English](README.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Português](README.pt.md)
+[English](../../README.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Português](README.pt.md)
 
-![MagicTeX workspace](docs/images/workspace.png)
+![MagicTeX workspace](../images/workspace.png)
 
 **MagicTeX** 是一个**为 AI Agent 打造的 LaTeX 编辑器**——一个类 Overleaf 的
 **单窗口工作区**，通过 MCP 服务器接入 Claude Code，**无需本地安装 TeX，也无需
@@ -44,7 +44,7 @@ Overleaf 账号**：实时 PDF 预览、带**可视化（所见即所得）模�
 
 ## 安装
 
-1. 在你的论文项目的 `.mcp.json` 中加入（见 [`.mcp.json.example`](.mcp.json.example)）：
+1. 在你的论文项目的 `.mcp.json` 中加入（见 [`.mcp.json.example`](../../.mcp.json.example)）：
 
    ```json
    {
@@ -95,5 +95,5 @@ MagicTeX 是免费开源的（AGPL-3.0）。如果它为你的论文节省了时
 
 ## 许可证
 
-[AGPL-3.0-or-later](LICENSE)——与其所依赖的 `texlyre-busytex` 引擎保持一致。
-详见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。
+[AGPL-3.0-or-later](../../LICENSE)——与其所依赖的 `texlyre-busytex` 引擎保持一致。
+详见 [`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_NOTICES.md)。

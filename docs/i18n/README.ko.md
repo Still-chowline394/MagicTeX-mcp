@@ -4,12 +4,12 @@
 [![CI](https://github.com/ZoeLinUTS/MagicTeX-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/ZoeLinUTS/MagicTeX-mcp/actions/workflows/ci.yml)
 [![stars](https://img.shields.io/github/stars/ZoeLinUTS/MagicTeX-mcp?style=flat)](https://github.com/ZoeLinUTS/MagicTeX-mcp/stargazers)
 [![last commit](https://img.shields.io/github/last-commit/ZoeLinUTS/MagicTeX-mcp)](https://github.com/ZoeLinUTS/MagicTeX-mcp/commits/main)
-[![license](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
+[![license](https://img.shields.io/badge/license-AGPL--3.0-blue)](../../LICENSE)
 [![Sponsor](https://img.shields.io/badge/%E2%9D%A4-Sponsor-db61a2)](https://github.com/sponsors/ZoeLinUTS)
 
-[English](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · **한국어** · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Português](README.pt.md)
+[English](../../README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · **한국어** · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Português](README.pt.md)
 
-![MagicTeX workspace](docs/images/workspace.png)
+![MagicTeX workspace](../images/workspace.png)
 
 **MagicTeX** 는 **AI 에이전트를 위해 만들어진 LaTeX 편집기**입니다. MCP 서버를 통해 Claude
 Code 에 연결되는 Overleaf 스타일의 **단일 창 작업 공간**으로, **로컬 TeX 설치도 Overleaf
@@ -41,7 +41,7 @@ Code 에 연결되는 Overleaf 스타일의 **단일 창 작업 공간**으로, 
 
 ## 설치
 
-1. 논문 프로젝트의 `.mcp.json` 에 추가([`.mcp.json.example`](.mcp.json.example) 참고):
+1. 논문 프로젝트의 `.mcp.json` 에 추가([`.mcp.json.example`](../../.mcp.json.example) 참고):
 
    ```json
    {
@@ -93,5 +93,5 @@ MagicTeX 는 무료 오픈 소스(AGPL-3.0)입니다. 논문 작업 시간을 �
 
 ## 라이선스
 
-[AGPL-3.0-or-later](LICENSE) — 기반 엔진 `texlyre-busytex` 와 동일합니다.
-자세한 내용은 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) 참고.
+[AGPL-3.0-or-later](../../LICENSE) — 기반 엔진 `texlyre-busytex` 와 동일합니다.
+자세한 내용은 [`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_NOTICES.md) 참고.

@@ -23,6 +23,23 @@ and drive it with minimal typing:
   any skill name works) and post comments for you to accept.
 - **`/address-comments`** — resolve your accepted comments (loop it: `/loop 60s /address-comments`).
 
+### One command per tool
+
+Every MCP tool also has a slash command with the **same name** — so any single step
+is one command away. The rule to teach anyone: *the tool is `X` → type `/X`.*
+
+| Type this | Runs tool | What it does |
+| --- | --- | --- |
+| `/render_preview` | `render_preview` | Compile the paper and open/refresh the live preview. |
+| `/check_comments` | `check_comments` | List the comments you've accepted, as edit instructions (no edits yet). |
+| `/resolve_comment [id] [note]` | `resolve_comment` | Mark a comment done after the edit; it turns **green** for your review. |
+| `/add_comment ["quote"] [note]` | `add_comment` | Anchor a comment onto a passage for you to Accept/Reject. |
+| `/reply_to_comment [id] [text]` | `reply_to_comment` | Add a threaded reply to a comment. |
+| `/show_diff [sha]` | `show_diff` | Side-by-side visual diff as an image (current changes, or a checkpoint). |
+
+You never *have* to type these — plain English works too (*"render a preview"*,
+*"address my comments"*). The commands are just a fast, teachable shorthand.
+
 ## The comment loop (review on the PDF, Claude edits the source)
 
 1. **Select text on the rendered PDF** → a composer pops up → write what you want changed
@@ -49,9 +66,22 @@ You can also let an agent *raise* the comments, and keep yourself in the loop:
 3. **Author resolves.** Run `/address-comments` (or loop it). The author edits each accepted comment
    at its source location and marks it resolved with a note.
 
-Comments have a **reply thread** (you and the agents can discuss before resolving), and **resolved**
-comments drop their PDF highlight and move to the *Resolved* list — so several review rounds don't
-pile up colors on the page. Use **Close** / **clear all** to archive them.
+Comments have a **reply thread** (you and the agents can discuss before resolving). When Claude
+resolves one, its highlight turns **green** (the edit is done, awaiting *your* review) and the card
+moves to the *Resolved* list. Reviewing is one-by-one: **Close** a resolved comment once you've
+checked the edit and its green highlight disappears — that's the human-confirmed step, so colors
+clear as you go instead of piling up. **clear all** closes them in bulk.
+
+### Why a highlight can sit slightly off the text
+
+Highlights are drawn from pdf.js's invisible *text layer* (the same geometry used for selection),
+which is a per-line approximation of where the glyphs are painted on the canvas — so a box can be a
+hair off, more visible when zoomed in. That small offset is inherent and cosmetic. To avoid the
+larger drift that used to happen after Claude edited a passage and the PDF reflowed, MagicTeX
+**re-anchors each highlight onto the current text** on every recompile (matching the comment's
+quoted head and tail phrases) rather than pinning it to old coordinates — so it follows the text
+even when the words in the middle changed. If a passage is deleted or rewritten past recognition,
+the highlight falls back to its last known position.
 
 ## Visual (WYSIWYG) mode
 

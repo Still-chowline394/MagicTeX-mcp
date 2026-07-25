@@ -185,37 +185,67 @@ export function PdfView({
       layer.appendChild(el);
     };
 
+    // Re-anchor a quote onto a page's *live* text layer, returning boxes at the
+    // current glyph positions — so a highlight follows the text through
+    // recompiles/reflows instead of sitting at frozen coordinates. We anchor by a
+    // head phrase and a tail phrase (not the whole quote), and try progressively
+    // shorter phrases (8→3 words) so it still lands when the AI rewrote words near
+    // an edge; only if even a 3-word head is gone do we give up (→ null) and let
+    // the caller fall back to the stored rects.
+    const anchor = (concat: string, words: string[], fromStart: boolean): number => {
+      for (const n of [8, 6, 4, 3]) {
+        const ph = (fromStart ? words.slice(0, n) : words.slice(-n)).join(' ');
+        if (words.length < n && n > 3) continue; // don't retry the same whole-string phrase
+        const idx = fromStart ? concat.indexOf(ph) : concat.lastIndexOf(ph);
+        if (idx >= 0) return fromStart ? idx : idx + ph.length;
+      }
+      return -1;
+    };
+    const liveBoxes = (page: Element, quote: string): { l: number; t: number; w: number; h: number }[] | null => {
+      const norm = normalize(quote);
+      if (!norm) return null;
+      const words = norm.split(' ').filter(Boolean);
+      let concat = '';
+      const map: { start: number; len: number; el: HTMLElement }[] = [];
+      for (const s of page.querySelectorAll('.textLayer span')) {
+        const n = normalize((s as HTMLElement).textContent ?? '');
+        if (!n) continue;
+        map.push({ start: concat.length, len: n.length, el: s as HTMLElement });
+        concat += n + ' ';
+      }
+      const at = anchor(concat, words, true);
+      if (at < 0) return null;
+      const tailEnd = anchor(concat, words, false);
+      const end = tailEnd > at ? tailEnd : Math.min(concat.length, at + norm.length);
+      const boxes: { l: number; t: number; w: number; h: number }[] = [];
+      for (const m of map) {
+        if (m.start < end && m.start + m.len > at) boxes.push({ l: m.el.offsetLeft, t: m.el.offsetTop, w: m.el.offsetWidth, h: m.el.offsetHeight });
+      }
+      return boxes.length ? boxes : null;
+    };
+
     for (const c of comments) {
       // pending → yellow, suggested → purple dashed, resolved → GREEN (the AI
       // did it, awaiting your review). Closing a resolved comment removes it and
       // its highlight — that's the "human-confirmed" step, so colors don't pile up.
       const statusCls = c.status === 'resolved' ? 'hl-resolved' : c.status === 'suggested' ? 'hl-suggested' : '';
       if (c.rects.length) {
-        const layer = container.querySelector(`.page[data-page="${c.page}"] .hl-layer`);
-        if (layer) for (const r of c.rects) box(layer, c, statusCls, r.x * scale, r.y * scale, r.w * scale, r.h * scale);
+        // Prefer re-anchoring onto the live text so the box tracks reflow; only
+        // fall back to the frozen rects (projected by scale) if the text is gone.
+        const pageEl = container.querySelector(`.page[data-page="${c.page}"]`);
+        const layer = pageEl?.querySelector('.hl-layer');
+        if (!layer) continue;
+        const boxes = liveBoxes(pageEl!, c.quote);
+        if (boxes) for (const b of boxes) box(layer, c, statusCls, b.l, b.t, b.w, b.h);
+        else for (const r of c.rects) box(layer, c, statusCls, r.x * scale, r.y * scale, r.w * scale, r.h * scale);
         continue;
       }
-      // Reviewer/agent comment posted without PDF coords → anchor by matching the
-      // quote against the rendered text layer (span offsets are already scaled).
-      const target = phrase(c.quote, 6);
-      if (!target) continue;
+      // Reviewer/agent comment posted without PDF coords → find the quote anywhere.
       for (const page of container.querySelectorAll('.page')) {
-        const spans = Array.from(page.querySelectorAll('.textLayer span')) as HTMLElement[];
-        let concat = '';
-        const map: { start: number; len: number; el: HTMLElement }[] = [];
-        for (const s of spans) {
-          const n = normalize(s.textContent ?? '');
-          if (!n) continue;
-          map.push({ start: concat.length, len: n.length, el: s });
-          concat += n + ' ';
-        }
-        const at = concat.indexOf(target);
-        if (at < 0) continue;
+        const boxes = liveBoxes(page, c.quote);
+        if (!boxes) continue;
         const layer = page.querySelector('.hl-layer')!;
-        const end = at + target.length;
-        for (const m of map) {
-          if (m.start < end && m.start + m.len > at) box(layer, c, statusCls, m.el.offsetLeft, m.el.offsetTop, m.el.offsetWidth, m.el.offsetHeight);
-        }
+        for (const b of boxes) box(layer, c, statusCls, b.l, b.t, b.w, b.h);
         break;
       }
     }
