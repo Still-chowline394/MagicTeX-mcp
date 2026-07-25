@@ -36,6 +36,12 @@ export function SourcePanel({
   const [live, setLive] = useState(() => localStorage.getItem('ws-live') === '1'); // recompile-as-you-type, default off
   const [visual, setVisual] = useState(() => localStorage.getItem('ws-visual') === '1');
   const [wrap, setWrap] = useState(() => localStorage.getItem('ws-wrap') === '1');
+  const [treeHeight, setTreeHeight] = useState(() => {
+    const v = Number(localStorage.getItem('ws-tree-h'));
+    return Number.isFinite(v) && v >= 80 ? v : 200;
+  });
+  const treeDrag = useRef<{ startY: number; startH: number } | null>(null);
+  useEffect(() => { localStorage.setItem('ws-tree-h', String(treeHeight)); }, [treeHeight]);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'compiling' | 'error'>('idle');
   const [loadError, setLoadError] = useState<string | null>(null);
   const contentRef = useRef(content);
@@ -219,7 +225,26 @@ export function SourcePanel({
 
   return (
     <div className="source">
-      <FileTree active={active} onOpen={openFile} refreshKey={reloadTick} />
+      <FileTree active={active} onOpen={openFile} refreshKey={reloadTick} height={treeHeight} />
+      <div
+        className="vsplitter"
+        title="Drag to resize the file tree"
+        onPointerDown={(e) => {
+          treeDrag.current = { startY: e.clientY, startH: treeHeight };
+          (e.target as HTMLElement).setPointerCapture(e.pointerId);
+          document.body.classList.add('resizing-v');
+        }}
+        onPointerMove={(e) => {
+          if (!treeDrag.current) return;
+          const next = treeDrag.current.startH + (e.clientY - treeDrag.current.startY);
+          setTreeHeight(Math.min(Math.max(next, 80), window.innerHeight - 220));
+        }}
+        onPointerUp={(e) => {
+          treeDrag.current = null;
+          (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+          document.body.classList.remove('resizing-v');
+        }}
+      />
       {loadError && <div className="panel-hint load-error">{loadError}</div>}
       {active && (
         <>

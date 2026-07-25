@@ -4,11 +4,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { fetchTree, fsOp, type TreeNode } from '../api';
 
 export function FileTree({
-  active, onOpen, refreshKey,
+  active, onOpen, refreshKey, height,
 }: {
   active: string | null;
   onOpen: (path: string) => void;
   refreshKey: number; // bump to reload the tree (e.g. after external edits)
+  height: number;     // pane height in px (drag-resizable from the parent)
 }) {
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [open, setOpen] = useState<Record<string, boolean>>({});
@@ -76,7 +77,7 @@ export function FileTree({
   };
 
   return (
-    <div className="file-tree">
+    <div className="file-tree" style={{ height, flex: '0 0 auto' }}>
       <div className="tree-head">
         <span>Files</span>
         <span className="spacer" />

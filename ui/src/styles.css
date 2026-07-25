@@ -128,9 +128,12 @@ body.resizing .pdf-scroll, body.resizing .editor-scroll { pointer-events: none; 
 .file-list { flex: 0 0 auto; max-height: 28%; overflow: auto; border-bottom: 1px solid #17181a;
              display: flex; flex-direction: column; }
 
-/* Overleaf-style file tree */
-.file-tree { flex: 0 0 auto; max-height: 34%; display: flex; flex-direction: column;
-             border-bottom: 1px solid #17181a; }
+/* Overleaf-style file tree (height set inline; drag-resizable via .vsplitter) */
+.file-tree { display: flex; flex-direction: column; min-height: 0; }
+/* Horizontal drag handle between the file tree and the editor. */
+.vsplitter { flex: 0 0 5px; cursor: row-resize; background: #17181a; touch-action: none; }
+.vsplitter:hover, body.resizing-v .vsplitter { background: #2d6cdf; }
+body.resizing-v { cursor: row-resize; user-select: none; }
 .tree-head { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; padding: 5px 8px;
              color: #999; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
 .tree-head button { font-size: 11px; padding: 2px 7px; }
