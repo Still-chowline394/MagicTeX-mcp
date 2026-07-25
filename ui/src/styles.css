@@ -165,6 +165,8 @@ body.resizing .pdf-scroll, body.resizing .editor-scroll { pointer-events: none; 
 .cm-vkw { color: #cfd6df; }
 .cm-math { padding: 0 1px; }
 .cm-math-display { display: block; text-align: center; margin: 4px 0; }
+.cm-matheq { display: block; text-align: center; padding: 8px 4px; margin: 2px 0;
+             background: #1b1d21; border-radius: 4px; cursor: pointer; overflow-x: auto; }
 .cm-math .katex { font-size: 1.05em; }
 .cm-math-bad { color: var(--red, #ef6a52); font-family: ui-monospace, monospace; }
 .cm-vu { text-decoration: underline; }

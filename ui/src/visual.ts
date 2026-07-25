@@ -7,7 +7,7 @@
 //   Stage 3 — structure: a brace-matching scanner (handles nested braces),
 //             \cite chips, \url/\href links, and itemize/enumerate bullets.
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate, WidgetType } from '@codemirror/view';
-import { type Extension, type Range } from '@codemirror/state';
+import { type EditorState, type Extension, type Range, StateField } from '@codemirror/state';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
@@ -19,6 +19,16 @@ const STYLE: Record<string, string> = {
 
 // Standalone commands (no argument) that are structural noise in Visual mode.
 const DROP = new Set(['maketitle', 'noindent', 'bigskip', 'medskip', 'smallskip', 'clearpage', 'newpage']);
+
+// Display-math environments → typeset with KaTeX. 'plain' renders the inner
+// content directly; the others wrap it in the KaTeX-supported layout env.
+const MATH_ENVS: Record<string, 'plain' | 'aligned' | 'gathered'> = {
+  equation: 'plain', 'equation*': 'plain', displaymath: 'plain', math: 'plain',
+  multline: 'plain', 'multline*': 'plain',
+  align: 'aligned', 'align*': 'aligned', flalign: 'aligned', 'flalign*': 'aligned',
+  eqnarray: 'aligned', 'eqnarray*': 'aligned', alignat: 'aligned', 'alignat*': 'aligned',
+  gather: 'gathered', 'gather*': 'gathered',
+};
 
 const conceal = Decoration.replace({});
 
@@ -49,6 +59,53 @@ class TokenWidget extends WidgetType {
   ignoreEvent() { return false; }
 }
 
+// A display-math environment rendered as a block. Multi-line replacements must
+// be block widgets fed through a StateField (a ViewPlugin can't cross lines).
+class MathBlockWidget extends WidgetType {
+  constructor(readonly tex: string) { super(); }
+  eq(o: MathBlockWidget) { return o.tex === this.tex; }
+  toDOM() {
+    const div = document.createElement('div');
+    div.className = 'cm-matheq';
+    try { katex.render(this.tex, div, { displayMode: true, throwOnError: false, output: 'html' }); }
+    catch { div.textContent = this.tex; div.classList.add('cm-math-bad'); }
+    return div;
+  }
+  ignoreEvent() { return false; }
+}
+
+function computeMathEnvs(state: EditorState): DecorationSet {
+  const text = state.doc.toString();
+  const decos: Range<Decoration>[] = [];
+  const re = /\\begin\{([a-zA-Z*]+)\}/g;
+  const sel = state.selection.main;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text))) {
+    const mode = MATH_ENVS[m[1]];
+    if (!mode) continue;
+    const endTok = `\\end{${m[1]}}`;
+    const endAt = text.indexOf(endTok, re.lastIndex);
+    if (endAt < 0) continue;
+    const startLine = state.doc.lineAt(m.index);
+    const endLine = state.doc.lineAt(endAt + endTok.length);
+    re.lastIndex = endAt + endTok.length;
+    // Reveal raw source while the cursor/selection is inside the block.
+    if (sel.from <= endLine.to && sel.to >= startLine.from) continue;
+    const inner = text.slice(m.index + m[0].length, endAt)
+      .replace(/\\label\{[^}]*\}/g, '').replace(/\\(nonumber|notag)\b/g, '').trim();
+    if (!inner) continue;
+    const tex = mode === 'plain' ? inner : `\\begin{${mode}}${inner}\\end{${mode}}`;
+    decos.push(Decoration.replace({ widget: new MathBlockWidget(tex), block: true }).range(startLine.from, endLine.to));
+  }
+  return Decoration.set(decos, true);
+}
+
+const mathEnvField = StateField.define<DecorationSet>({
+  create: computeMathEnvs,
+  update: (value, tr) => (tr.docChanged || tr.selection ? computeMathEnvs(tr.state) : value),
+  provide: (f) => EditorView.decorations.from(f),
+});
+
 /** Index of the `}` matching the `{` at `open`, honoring \{ \} escapes; -1 if none. */
 function matchBrace(t: string, open: number, limit: number): number {
   let depth = 0;
@@ -62,7 +119,7 @@ function matchBrace(t: string, open: number, limit: number): number {
 }
 
 export function visualMode(): Extension {
-  return ViewPlugin.fromClass(
+  const inline = ViewPlugin.fromClass(
     class {
       decorations: DecorationSet;
       constructor(view: EditorView) { this.decorations = build(view); }
@@ -72,6 +129,9 @@ export function visualMode(): Extension {
     },
     { decorations: (v) => v.decorations },
   );
+  // Inline typography/math via the plugin; multi-line display-math environments
+  // via the block-widget state field.
+  return [inline, mathEnvField];
 }
 
 function build(view: EditorView): DecorationSet {
@@ -142,6 +202,9 @@ function build(view: EditorView): DecorationSet {
         if (close < 0) return null;
         const env = t.slice(argAt + 1, close);
         const full = close + 1;
+        // Display-math environments are handled by the block-widget StateField
+        // (mathEnvField) — a line-crossing replace can't come from a plugin.
+        if (name === 'begin' && MATH_ENVS[env]) return null;
         const drop = () => { if (!touches(from + s, from + full)) deco.push(conceal.range(from + s, from + full)); };
         if (env === 'itemize' || env === 'enumerate' || env === 'document' || env === 'figure' || env === 'table' || env === 'center') { drop(); return full; }
         if (env === 'abstract') {
