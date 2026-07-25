@@ -14,6 +14,7 @@ import { EditorView, keymap } from '@codemirror/view';
 import { EditorSelection, Prec } from '@codemirror/state';
 import { latex } from 'codemirror-lang-latex';
 import { normalize, phrase, stripLatex } from '../sync';
+import { visualMode } from '../visual';
 
 const AUTOSAVE_MS = 1000;
 interface SyncTarget { text: string; nonce: number }
@@ -30,6 +31,7 @@ export function SourcePanel({
   const [content, setContent] = useState('');
   const [dirty, setDirty] = useState(false);
   const [live, setLive] = useState(true);
+  const [visual, setVisual] = useState(() => localStorage.getItem('ws-visual') === '1');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [loadError, setLoadError] = useState<string | null>(null);
   const contentRef = useRef(content);
@@ -187,12 +189,15 @@ export function SourcePanel({
     if (prose.split(' ').filter(Boolean).length >= 2) onSyncToPdf(line.text);
   }, [onSyncToPdf]);
 
+  useEffect(() => { localStorage.setItem('ws-visual', visual ? '1' : '0'); }, [visual]);
+
   const extensions = useMemo(
     () => [
       latex(),
       Prec.high(keymap.of([{ key: 'Mod-s', run: () => { void save(); return true; } }])),
+      ...(visual ? [visualMode()] : []),
     ],
-    [save],
+    [save, visual],
   );
 
   return (
@@ -209,6 +214,10 @@ export function SourcePanel({
         <>
           <div className="editor-bar">
             <span className="editor-file">{active}{dirty ? ' •' : ''}</span>
+            <span className="seg" title="Code shows raw LaTeX; Visual renders headings, bold, italic in place">
+              <button className={visual ? '' : 'on'} onClick={() => setVisual(false)}>Code</button>
+              <button className={visual ? 'on' : ''} onClick={() => setVisual(true)}>Visual</button>
+            </span>
             <span className="spacer" />
             <span className={`save-state save-${saveState}`}>
               {saveState === 'saving' ? 'saving…' : saveState === 'saved' ? '✓ saved — recompiling' : saveState === 'error' ? 'save failed' : ''}
