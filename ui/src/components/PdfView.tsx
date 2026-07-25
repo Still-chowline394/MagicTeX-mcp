@@ -186,10 +186,10 @@ export function PdfView({
     };
 
     for (const c of comments) {
-      // Resolved comments keep no highlight on the page — they live in the
-      // Resolved history list, so multiple review rounds don't pile up colors.
-      if (c.status === 'resolved') continue;
-      const statusCls = c.status === 'suggested' ? 'hl-suggested' : '';
+      // pending → yellow, suggested → purple dashed, resolved → GREEN (the AI
+      // did it, awaiting your review). Closing a resolved comment removes it and
+      // its highlight — that's the "human-confirmed" step, so colors don't pile up.
+      const statusCls = c.status === 'resolved' ? 'hl-resolved' : c.status === 'suggested' ? 'hl-suggested' : '';
       if (c.rects.length) {
         const layer = container.querySelector(`.page[data-page="${c.page}"] .hl-layer`);
         if (layer) for (const r of c.rects) box(layer, c, statusCls, r.x * scale, r.y * scale, r.w * scale, r.h * scale);

@@ -262,6 +262,8 @@ button.ghost.tiny { font-size: 11px; padding: 1px 6px; margin-left: auto; }
 .dv-file-name { overflow: hidden; text-overflow: ellipsis; }
 .dv-file-stat { margin-left: auto; font-weight: 400; font-variant-numeric: tabular-nums; }
 .dv-file-stat .add { color: #56d364; } .dv-file-stat .del { color: #f85149; }
+.dv-file-revert { font-size: 12px; padding: 0 6px; opacity: 0; }
+.dv-file:hover .dv-file-revert { opacity: 1; }
 .dv-hunk { padding: 3px 10px; color: #7d8894; background: #0d1117; }
 .dv-row { display: flex; align-items: flex-start; }
 .dv-num { flex: 0 0 auto; width: 34px; padding: 0 6px; text-align: right; color: #6e7681;

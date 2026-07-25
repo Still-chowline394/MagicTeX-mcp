@@ -74,6 +74,12 @@ export async function restoreCheckpoint(sha: string): Promise<string | null> {
   return r.ok ? null : (await r.text()) || 'restore failed';
 }
 
+/** Restore a single file to a checkpoint version. Returns an error string or null. */
+export async function restoreFile(sha: string, path: string): Promise<string | null> {
+  const r = await fetch(`/git/restore-file?sha=${encodeURIComponent(sha)}&path=${encodeURIComponent(path)}`, { method: 'POST' });
+  return r.ok ? null : (await r.text()) || 'restore failed';
+}
+
 export async function fetchGitStatus(): Promise<boolean> {
   try { return (await (await fetch('/git/status')).json()).isRepo; } catch { return false; }
 }

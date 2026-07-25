@@ -49,7 +49,7 @@ function toSections(rows: Row[]): FileSection[] {
   return sections;
 }
 
-export function DiffView({ diff }: { diff: string }) {
+export function DiffView({ diff, onRevertFile }: { diff: string; onRevertFile?: (file: string) => void }) {
   const sections = useMemo(() => toSections(parseDiff(diff)), [diff]);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   return (
@@ -65,6 +65,10 @@ export function DiffView({ diff }: { diff: string }) {
                 {s.adds > 0 && <span className="add">+{s.adds}</span>}
                 {s.dels > 0 && <span className="del"> −{s.dels}</span>}
               </span>
+              {onRevertFile && s.file !== '(changes)' && (
+                <button className="dv-file-revert" title={`Revert ${s.file} to this version`}
+                        onClick={(e) => { e.stopPropagation(); onRevertFile(s.file); }}>↩</button>
+              )}
             </div>
             {!isCollapsed && s.rows.map((r, i) =>
               r.type === 'hunk'

@@ -118,6 +118,25 @@ export async function restoreCheckpoint(root: string, sha: string): Promise<void
   }
 }
 
+/** Restore ONE file to its content at a checkpoint (per-file revert). Same temp-
+ *  index + checkout-index approach, reversible, real index untouched. */
+export async function restoreFile(root: string, sha: string, relPath: string): Promise<void> {
+  if (!SHA_RE.test(sha)) throw new Error('invalid checkpoint id');
+  const rel = String(relPath).replace(/^[/\\]+/, '');
+  if (!rel || rel.includes('..')) throw new Error('invalid path');
+  const reachable = await gitOrNull(root, ['merge-base', '--is-ancestor', sha, REF]);
+  if (reachable === null) throw new Error('unknown checkpoint');
+  await createCheckpoint(root); // recoverable
+  const idx = join(tmpdir(), `latex-restorefile-${randomBytes(6).toString('hex')}.index`);
+  const env = { ...process.env, GIT_INDEX_FILE: idx };
+  try {
+    await git(root, ['read-tree', sha], env);
+    await git(root, ['checkout-index', '-f', '--', rel], env);
+  } finally {
+    await rm(idx, { force: true }).catch(() => {});
+  }
+}
+
 /** Unified diff for one checkpoint (vs its parent, or the empty tree for the first). */
 export async function getCheckpointDiff(root: string, sha: string): Promise<string> {
   if (!SHA_RE.test(sha)) throw new Error('invalid checkpoint id');

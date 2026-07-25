@@ -1,7 +1,7 @@
 // Left-panel History tab: checkpoint timeline (hidden git ref) + colorized diff.
 // Reuses the existing /git/* endpoints; diff rendered by our own DiffView.
 import { useEffect, useState } from 'react';
-import { fetchCheckpoints, fetchDiff, fetchGitStatus, restoreCheckpoint, type Checkpoint } from '../api';
+import { fetchCheckpoints, fetchDiff, fetchGitStatus, restoreCheckpoint, restoreFile, type Checkpoint } from '../api';
 import { DiffView } from './DiffView';
 
 export function HistoryPanel({ reloadTick }: { reloadTick: number }) {
@@ -68,7 +68,15 @@ export function HistoryPanel({ reloadTick }: { reloadTick: number }) {
           </div>
         ))}
       </div>
-      {diff ? <DiffView diff={diff} /> : <div className="panel-hint">Select a checkpoint to see its diff.</div>}
+      {diff ? (
+        <DiffView
+          diff={diff}
+          onRevertFile={selected ? async (file) => {
+            if (!confirm(`Revert "${file}" to this version? Only this file changes; current state is snapshotted first (reversible).`)) return;
+            setBusy(true); await restoreFile(selected, file); setBusy(false);
+          } : undefined}
+        />
+      ) : <div className="panel-hint">Select a checkpoint to see its diff.</div>}
     </div>
   );
 }
