@@ -1,0 +1,46 @@
+name: PR links an issue
+
+# GitHub can enforce "must go through a PR" and "must pass CI", but it has no
+# native setting for "must open an issue first". This is that rule, as far as it
+# can be automated: the PR body must close an issue, or explicitly claim one of
+# the exemptions listed in CONTRIBUTING.md (typo / link / translation fixes).
+#
+# It's a check, not a wall — a repo admin can still merge past it when the
+# exemption is obvious.
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Look for a closing keyword or an exemption
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          # GitHub's own closing keywords, followed by #<number>.
+          if grep -qiE '(clos(e|es|ed)|fix(es|ed)?|resolv(e|es|ed))[[:space:]]+#[0-9]+' <<< "$BODY"; then
+            echo "✓ PR body closes an issue."
+            exit 0
+          fi
+
+          if grep -qiE '^[[:space:]]*exempt:[[:space:]]*\S' <<< "$BODY"; then
+            echo "✓ PR body claims an exemption."
+            exit 0
+          fi
+
+          echo "::error::This PR doesn't reference an issue."
+          echo ""
+          echo "Add a closing reference to the PR description, e.g.:"
+          echo "    Fixes #123"
+          echo ""
+          echo "Or, for a typo / broken link / translation fix, write:"
+          echo "    exempt: typo in the user guide"
+          echo ""
+          echo "See CONTRIBUTING.md for why an issue comes first."
+          exit 1
