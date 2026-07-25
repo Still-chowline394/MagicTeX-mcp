@@ -265,7 +265,9 @@ export function PdfView({
       // did it, awaiting your review). Closing a resolved comment removes it and
       // its highlight — that's the "human-confirmed" step, so colors don't pile up.
       const statusCls = c.status === 'resolved' ? 'hl-resolved' : c.status === 'suggested' ? 'hl-suggested' : '';
-      if (c.rects.length) {
+      // `?.` is deliberate: the store normalizes this, but the PDF pane must not
+      // be the thing that dies if a comment ever reaches it without coords.
+      if (c.rects?.length) {
         // Prefer re-anchoring onto the live text so the box tracks reflow; only
         // fall back to the frozen rects (projected by scale) if the text is gone.
         const pageEl = container.querySelector(`.page[data-page="${c.page}"]`);

@@ -44,10 +44,15 @@ a.linkbtn:hover { background: #18a862; }
 
 /* ── Layout ──────────────────────────────────────────────── */
 .layout { flex: 1 1 auto; display: flex; min-height: 0; position: relative; }
-.left, .right { flex: 0 0 360px; min-width: 0; display: flex; flex-direction: column;
+/* Floors matching MIN_LEFT / MIN_RIGHT in App.tsx — keep the two in sync. The
+   drag handle clamps the width it sets, but `min-width: 0` let flex squeeze the
+   panel below that floor anyway once the window got narrow, which wrapped the
+   control rows and pushed buttons out of sight. The left floor is the format
+   bar's rigid 375px plus margin; the right panel is prose, so it goes lower. */
+.left, .right { flex: 0 0 420px; display: flex; flex-direction: column;
                 background: #26282c; overflow: hidden; }
-.left { border-right: 1px solid #17181a; }
-.right { border-left: 1px solid #17181a; }
+.left { border-right: 1px solid #17181a; min-width: 400px; }
+.right { border-left: 1px solid #17181a; min-width: 260px; }
 .left.closed, .right.closed { display: none; }
 .center { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: #525659; }
 
