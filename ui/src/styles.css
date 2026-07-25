@@ -145,6 +145,10 @@ body.resizing .pdf-scroll, body.resizing .editor-scroll { pointer-events: none; 
 .cm-math-display { display: block; text-align: center; margin: 4px 0; }
 .cm-math .katex { font-size: 1.05em; }
 .cm-math-bad { color: var(--red, #ef6a52); font-family: ui-monospace, monospace; }
+.cm-vu { text-decoration: underline; }
+.cm-vbullet { color: #6ea8ff; }
+.cm-vcite { background: #24344f; color: #9cc0ff; border-radius: 4px; padding: 0 5px; font-size: .92em; }
+.cm-vlink { color: #6ea8ff; text-decoration: underline; cursor: pointer; }
 /* KaTeX renders light by default; keep it legible on the dark editor. */
 .editor-scroll .katex { color: #e6e6e6; }
 
