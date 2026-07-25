@@ -17,6 +17,17 @@ const DEBOUNCE_MS = 400;
 let watcher: FSWatcher | null = null;
 let timer: NodeJS.Timeout | null = null;
 
+// Paths the server just wrote itself (built-in editor saves). We skip the change
+// event they cause so an in-app save can choose whether to recompile — external
+// editors and Claude's own edits are NOT suppressed and still auto-recompile.
+const suppressed = new Map<string, number>();
+const normPath = (p: string) => p.replace(/\\/g, '/').toLowerCase();
+
+/** Ignore the next watcher event for `absPath` (call right before writing it). */
+export function suppressNextChange(absPath: string): void {
+  suppressed.set(normPath(absPath), Date.now());
+}
+
 /** Start watching `projectRoot` (idempotent — only the first call takes effect). */
 export function startWatching(projectRoot: string): void {
   if (watcher) return;
@@ -32,6 +43,12 @@ export function startWatching(projectRoot: string): void {
   });
   const onChange = (path: string) => {
     if (!WATCH_EXT.test(path)) return;
+    // Skip a change we caused ourselves via the built-in editor's save endpoint.
+    const ts = suppressed.get(normPath(path));
+    if (ts !== undefined) {
+      suppressed.delete(normPath(path));
+      if (Date.now() - ts < 3000) return;
+    }
     if (timer) clearTimeout(timer);
     timer = setTimeout(() => {
       // Fire-and-forget: the watcher just refreshes the viewer; errors already

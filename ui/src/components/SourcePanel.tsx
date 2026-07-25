@@ -17,7 +17,8 @@ import { latex } from 'codemirror-lang-latex';
 import { normalize, phrase, stripLatex } from '../sync';
 import { visualMode } from '../visual';
 
-const AUTOSAVE_MS = 1000;
+const LIVE_DEBOUNCE_MS = 1200; // Live mode: recompile this long after you stop typing
+const AUTOSAVE_MS = 30000;      // safety net: persist edits (no recompile) every 30s
 interface SyncTarget { text: string; nonce: number }
 
 export function SourcePanel({
@@ -31,9 +32,9 @@ export function SourcePanel({
   const [active, setActive] = useState<string | null>(null);
   const [content, setContent] = useState('');
   const [dirty, setDirty] = useState(false);
-  const [live, setLive] = useState(true);
+  const [live, setLive] = useState(() => localStorage.getItem('ws-live') === '1'); // recompile-as-you-type, default off
   const [visual, setVisual] = useState(() => localStorage.getItem('ws-visual') === '1');
-  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'compiling' | 'error'>('idle');
   const [loadError, setLoadError] = useState<string | null>(null);
   const contentRef = useRef(content);
   contentRef.current = content;
@@ -87,17 +88,19 @@ export function SourcePanel({
       .catch(() => {});
   }, [reloadTick]);
 
-  const save = useCallback(async () => {
+  // Save the open file. `compile` true → also recompile (Ctrl+S / Save / Live);
+  // false → a bare safety save that leaves the PDF untouched.
+  const save = useCallback(async (compile: boolean) => {
     const path = activeRef.current;
     if (!path) return;
     setSaveState('saving');
     try {
-      const r = await fetch(`/api/file?path=${encodeURIComponent(path)}`, { method: 'PUT', body: contentRef.current });
+      const r = await fetch(`/api/file?path=${encodeURIComponent(path)}&compile=${compile ? 1 : 0}`, { method: 'PUT', body: contentRef.current });
       if (!r.ok) throw new Error(await r.text());
       cache.current.set(path, contentRef.current);
       setDirty(false);
-      setSaveState('saved');
-      setTimeout(() => setSaveState((s) => (s === 'saved' ? 'idle' : s)), 1800);
+      setSaveState(compile ? 'compiling' : 'saved');
+      setTimeout(() => setSaveState((s) => (s === 'saved' || s === 'compiling' ? 'idle' : s)), 2000);
     } catch {
       setSaveState('error');
     }
@@ -106,13 +109,22 @@ export function SourcePanel({
   const onChange = useCallback((v: string) => {
     setContent(v);
     setDirty(true);
+    // Live mode recompiles a short while after you stop typing (Typst-style).
     if (liveRef.current) {
       if (autoTimer.current) clearTimeout(autoTimer.current);
-      autoTimer.current = setTimeout(() => { void save(); }, AUTOSAVE_MS);
+      autoTimer.current = setTimeout(() => { void save(true); }, LIVE_DEBOUNCE_MS);
     }
   }, [save]);
 
+  // Safety-net auto-save every 30s when not in Live mode: persist edits to disk
+  // WITHOUT recompiling, so you don't lose work but the PDF only rebuilds on demand.
+  useEffect(() => {
+    const iv = setInterval(() => { if (dirtyRef.current && !liveRef.current) void save(false); }, AUTOSAVE_MS);
+    return () => clearInterval(iv);
+  }, [save]);
+
   useEffect(() => () => { if (autoTimer.current) clearTimeout(autoTimer.current); }, []);
+  useEffect(() => { localStorage.setItem('ws-live', live ? '1' : '0'); }, [live]);
 
   // Scroll+select a 0-based line in the open editor.
   const jumpToLine = useCallback((line0: number) => {
@@ -195,7 +207,7 @@ export function SourcePanel({
   const extensions = useMemo(
     () => [
       latex(),
-      Prec.high(keymap.of([{ key: 'Mod-s', run: () => { void save(); return true; } }])),
+      Prec.high(keymap.of([{ key: 'Mod-s', run: () => { void save(true); return true; } }])),
       ...(visual ? [visualMode()] : []),
     ],
     [save, visual],
@@ -221,16 +233,16 @@ export function SourcePanel({
             </span>
             <span className="spacer" />
             <span className={`save-state save-${saveState}`}>
-              {saveState === 'saving' ? 'saving…' : saveState === 'saved' ? '✓ saved — recompiling' : saveState === 'error' ? 'save failed' : ''}
+              {saveState === 'saving' ? 'saving…' : saveState === 'compiling' ? '✓ saved — recompiling' : saveState === 'saved' ? '✓ saved' : saveState === 'error' ? 'save failed' : ''}
             </span>
             <button
               className={live ? 'on' : ''}
               onClick={() => setLive((v) => !v)}
-              title="Live: auto-save ~1s after you stop typing, so the PDF re-renders as you write"
+              title="Live: recompile ~1s after you stop typing. Off: edits auto-save every 30s without recompiling — press Ctrl+S or Recompile to rebuild the PDF."
             >
               ⚡ Live
             </button>
-            <button onClick={() => void save()} disabled={!dirty && saveState !== 'error'}>Save</button>
+            <button onClick={() => void save(true)} disabled={!dirty && saveState !== 'error'} title="Save and recompile (Ctrl+S)">Save</button>
           </div>
           <div className="format-bar">
             <button title="Undo (Ctrl+Z)" onClick={() => { const v = cmRef.current?.view; if (v) { undo(v); v.focus(); } }}>↶</button>

@@ -15,6 +15,7 @@ import { viewerPageHtml } from './viewerPage.js';
 import { diffViewHtml } from './diffViewPage.js';
 import { isGitRepo, listCheckpoints, getCheckpointDiff, getWorkingDiff } from '../git/checkpoints.js';
 import { listTextFiles, readTextFile, writeTextFile } from './filesApi.js';
+import { suppressNextChange } from '../watch/fileWatcher.js';
 import { listComments, addComment, updateComment, deleteComment } from './commentsStore.js';
 import { getGitHubRemote } from '../git/remote.js';
 import { buildOverleafZip } from '../export/overleafZip.js';
@@ -152,7 +153,14 @@ export function startPreviewServer(): Promise<PreviewServerHandle> {
         if (req.method === 'PUT') {
           const chunks: Buffer[] = [];
           for await (const c of req) chunks.push(c as Buffer);
+          // Suppress the watcher for our own write, then recompile only when the
+          // caller asked (?compile=1 — Ctrl+S / Save). A bare save doesn't compile.
+          suppressNextChange(join(getProjectRoot(), rel));
           await writeTextFile(getProjectRoot(), rel, Buffer.concat(chunks).toString('utf8'));
+          if (reqUrl.searchParams.get('compile') === '1') {
+            const { requestCompile } = await import('../coordinator.js');
+            requestCompile().catch(() => {});
+          }
           return json(res, { ok: true });
         }
         res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', ...ISOLATION_HEADERS });
