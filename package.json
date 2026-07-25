@@ -1,7 +1,7 @@
 {
   "name": "magictex-mcp",
   "mcpName": "io.github.ZoeLinUTS/magictex",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "MagicTeX — a LaTeX editor for AI agents (Claude Code), via an MCP server: live PDF preview, an editable source panel with a Visual (WYSIWYG) mode, anchored PDF comments that drive edits, and git-backed history. Compiles your .tex with a WASM TeX Live engine in a headless browser — no local TeX install, no Overleaf account.",
   "type": "module",
   "license": "AGPL-3.0-or-later",
@@ -63,16 +63,16 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "adm-zip": "^0.6.0",
-    "chokidar": "^4.0.0",
+    "chokidar": "^5.0.0",
     "diff2html": "^3.4.56",
-    "katex": "^0.16.47",
+    "katex": "^0.18.1",
     "open": "^10.0.0",
     "pdfjs-dist": "^6.1.200",
-    "playwright": "^1.40.0",
+    "playwright": "^1.62.0",
     "texlyre-busytex": "^1.2.3",
     "tsx": "^4.19.0",
     "ws": "^8.18.0",
-    "zod": "^3.23.0"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/adm-zip": "^0.5.8",
