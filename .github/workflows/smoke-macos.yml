@@ -67,6 +67,11 @@ jobs:
       - name: Compile a paper end to end
         run: node scripts/smoke-compile.mjs
 
+      # Guards the regression where a broken edit replaced a good preview with a
+      # truncated PDF and recorded it in the checkpoint history as a success.
+      - name: A broken edit must not cost you the preview
+        run: node scripts/smoke-error-handling.mjs
+
       - name: Save engine assets for next time
         if: steps.assets.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
