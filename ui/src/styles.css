@@ -141,6 +141,12 @@ body.resizing .pdf-scroll, body.resizing .editor-scroll { pointer-events: none; 
 .cm-vi { font-style: italic; }
 .cm-vt { font-family: ui-monospace, monospace; color: #9cd; }
 .cm-vcomment { opacity: .45; font-style: italic; }
+.cm-math { padding: 0 1px; }
+.cm-math-display { display: block; text-align: center; margin: 4px 0; }
+.cm-math .katex { font-size: 1.05em; }
+.cm-math-bad { color: var(--red, #ef6a52); font-family: ui-monospace, monospace; }
+/* KaTeX renders light by default; keep it legible on the dark editor. */
+.editor-scroll .katex { color: #e6e6e6; }
 
 /* ── Comments panel ──────────────────────────────────────── */
 .comments { flex: 1 1 auto; overflow: auto; }

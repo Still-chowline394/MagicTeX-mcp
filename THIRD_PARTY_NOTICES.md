@@ -19,6 +19,7 @@ to their respective code; this project itself is licensed under AGPL-3.0-or-late
 | [`react`](https://react.dev) / [`vite`](https://vite.dev) | MIT | The workspace UI (build-time; bundled static assets). |
 | [`@uiw/react-codemirror`](https://github.com/uiwjs/react-codemirror) + [CodeMirror 6](https://codemirror.net) | MIT | The source editor panel. |
 | [`codemirror-lang-latex`](https://www.npmjs.com/package/codemirror-lang-latex) | MIT | LaTeX syntax highlighting in the editor. |
+| [`katex`](https://github.com/KaTeX/KaTeX) | MIT | Typesets math (`$…$`, `\[…\]`) in the editor's Visual mode. |
 
 The chosen AGPL-3.0-or-later license matches `texlyre-busytex`, the core engine
 dependency.
