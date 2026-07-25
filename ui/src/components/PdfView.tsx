@@ -217,11 +217,26 @@ export function PdfView({
       if (at < 0) return null;
       const tailEnd = anchor(concat, words, false);
       const end = tailEnd > at ? tailEnd : Math.min(concat.length, at + norm.length);
-      const boxes: { l: number; t: number; w: number; h: number }[] = [];
+      // Collect the matched word spans, then MERGE them per visual line into one
+      // continuous box each (a highlighter stroke over whole lines), instead of a
+      // choppy box per word. Same line = tops within ~60% of the line height.
+      const spans: { l: number; t: number; w: number; h: number }[] = [];
       for (const m of map) {
-        if (m.start < end && m.start + m.len > at) boxes.push({ l: m.el.offsetLeft, t: m.el.offsetTop, w: m.el.offsetWidth, h: m.el.offsetHeight });
+        if (m.start < end && m.start + m.len > at) spans.push({ l: m.el.offsetLeft, t: m.el.offsetTop, w: m.el.offsetWidth, h: m.el.offsetHeight });
       }
-      return boxes.length ? boxes : null;
+      if (!spans.length) return null;
+      spans.sort((a, b) => a.t - b.t || a.l - b.l);
+      const lines: { l: number; t: number; r: number; b: number }[] = [];
+      for (const s of spans) {
+        const cur = lines[lines.length - 1];
+        if (cur && Math.abs(s.t - cur.t) <= Math.min(s.h, cur.b - cur.t) * 0.6) {
+          cur.l = Math.min(cur.l, s.l); cur.r = Math.max(cur.r, s.l + s.w);
+          cur.t = Math.min(cur.t, s.t); cur.b = Math.max(cur.b, s.t + s.h);
+        } else {
+          lines.push({ l: s.l, t: s.t, r: s.l + s.w, b: s.t + s.h });
+        }
+      }
+      return lines.map((L) => ({ l: L.l, t: L.t, w: L.r - L.l, h: L.b - L.t }));
     };
 
     for (const c of comments) {
