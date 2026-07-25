@@ -24,7 +24,18 @@ jobs:
       - name: Look for a closing keyword or an exemption
         env:
           BODY: ${{ github.event.pull_request.body }}
+          AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}
         run: |
+          # The "open an issue first" rule is for human contributors. Bots
+          # (Dependabot, CodeQL autofix) don't file issues and their PR bodies
+          # are generated changelogs, so the check would always fail on them.
+          # Skipped as a step, not a job-level `if:`, so the required status
+          # check still reports success rather than "skipped".
+          if [ "$AUTHOR_TYPE" = "Bot" ]; then
+            echo "✓ Bot-authored PR — issue requirement doesn't apply."
+            exit 0
+          fi
+
           # GitHub's own closing keywords, followed by #<number>.
           if grep -qiE '(clos(e|es|ed)|fix(es|ed)?|resolv(e|es|ed))[[:space:]]+#[0-9]+' <<< "$BODY"; then
             echo "✓ PR body closes an issue."
