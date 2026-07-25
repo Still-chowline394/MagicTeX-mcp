@@ -12,6 +12,7 @@ node_modules/
 dist/
 *.pdf
 *.png
+!docs/images/*.png
 .latex-preview/
 
 # OS / editor
