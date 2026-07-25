@@ -150,30 +150,39 @@ Claude edits .tex ─┐
  file watcher ─────┼─▶ compile coordinator ─▶ headless Chromium ─▶ WASM TeX ─▶ PDF
  render_preview ───┘         (serialized)         (engine host)                │
                                                                                ▼
-                        your browser tab  ◀── WebSocket "reload" ◀── local HTTP server
-                        (pdf.js viewer, /latest.pdf)
+                     your workspace (/app)  ◀── WebSocket "reload" ◀── local HTTP server
+                     Source · PDF · History · Comments        (serves /app + /latest.pdf)
 ```
 
 The WASM engines need DOM/Worker globals, so the server hosts a hidden headless
-Chromium as its compile worker; the tab *you* open is a lightweight pdf.js viewer
-with no WASM in it. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+Chromium as its compile worker; the workspace *you* open is a lightweight React +
+pdf.js app with no WASM in it. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ```mermaid
 flowchart LR
-  H["👤 You<br/>browser workspace"] <--> SRV["Preview server<br/>HTTP + WebSocket"]
-  A["🤖 Claude Code<br/>+ agents"] --> MCP["MCP server<br/>render_preview · check/resolve/add_comment"]
-  MCP --> CO["Coordinator"]
-  SRV --> CO
-  CO --> ENG["Compile engine<br/>WASM busytex (headless Chromium)"]
-  ENG --> FILES[("Paper files · git repo")]
+  H["👤 You<br/>Source · PDF · History · Comments"]
+  A["🤖 Claude Code<br/>+ review / author agents"]
+
+  H <-->|"select text →<br/>anchor comment"| SRV["Preview server<br/>HTTP + WebSocket · serves /app"]
+  A -->|"6 MCP tools"| MCP["MCP server<br/>render_preview · show_diff<br/>check / resolve / add / reply_comment"]
+
+  SRV --> CO["Compile coordinator<br/>(serialized)"]
+  MCP --> CO
+  A -. edits source .-> FILES[("Paper files · git repo")]
   FILES --> WATCH["File watcher"] --> CO
-  CO --> CK["git checkpoints<br/>(hidden ref)"]
-  A -. edits .-> FILES
-  SRV -. live reload .-> H
+  CO --> ENG["WASM busytex<br/>(headless Chromium)"] --> PDF["/latest.pdf"]
+  PDF -. live reload .-> H
+  CO --> CK["git checkpoints<br/>(hidden ref) → History"]
+
+  SRV <--> CJSON[(".latex-preview/<br/>comments.json")]
+  MCP <--> CJSON
+  CJSON -->|"check_comments<br/>(your accepted asks)"| A
 ```
 
-Both front doors — you in the browser, agents through MCP — meet at the same
-coordinator, comment store, and git history. That shared substrate is what makes
+Both front doors — you in the workspace, agents through the 6 MCP tools — meet at
+the same coordinator, comment store, and git history. You act on the *rendered
+document* (anchor a comment); Claude acts on the *source* (reads your comments via
+`check_comments`, edits, `resolve_comment`). That shared substrate is what makes
 the comment loop, the review workflow, and traceable history possible.
 
 ## Requirements
