@@ -38,7 +38,7 @@
 | `/resolve_comment [id] [说明]` | `resolve_comment` | 改完后标记完成;评论变**绿**等你复核。 |
 | `/add_comment ["引文"] [说明]` | `add_comment` | 把评论锚定到某段文字,供你接受/拒绝。 |
 | `/reply_to_comment [id] [内容]` | `reply_to_comment` | 给某条评论追加线程回复。 |
-| `/show_diff [sha]` | `show_diff` | 并排可视化 diff(图片;当前改动或某个 checkpoint)。 |
+| `/show_diff [checkpoint]` | `show_diff` | 并排可视化 diff(图片;当前改动或某个 checkpoint)。 |
 | `/list_checkpoints [limit]` | `list_checkpoints` | 列出最近的 checkpoint 及其 sha——找一个传给 `/show_diff`。 |
 
 其实不打命令也行——直接说人话同样有效(*"渲染预览"*、*"处理我的评论"*)。命令只是更快、更好教的简写。

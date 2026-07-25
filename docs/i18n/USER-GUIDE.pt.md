@@ -41,7 +41,7 @@ distância. A regra para ensinar: *a ferramenta é `X` → digite `/X`*.
 | `/resolve_comment [id] [nota]` | `resolve_comment` | Marca um comentário como feito após a edição; fica **verde** para sua revisão. |
 | `/add_comment ["citação"] [nota]` | `add_comment` | Ancora um comentário num trecho para você aceitar/rejeitar. |
 | `/reply_to_comment [id] [texto]` | `reply_to_comment` | Adiciona uma resposta no tópico de um comentário. |
-| `/show_diff [sha]` | `show_diff` | Diff visual lado a lado como imagem (mudanças atuais ou um checkpoint). |
+| `/show_diff [checkpoint]` | `show_diff` | Diff visual lado a lado como imagem (mudanças atuais ou um checkpoint). |
 | `/list_checkpoints [limit]` | `list_checkpoints` | Checkpoints recentes com seu sha — para passar um ao `/show_diff`. |
 
 Você nunca precisa digitá-los: linguagem natural também funciona (*"renderize uma pré-visualização"*,

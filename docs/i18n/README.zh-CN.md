@@ -89,10 +89,26 @@ Overleaf 账号**：实时 PDF 预览、带**可视化（所见即所得）模�
 | `/resolve_comment [id] [说明]` | `resolve_comment` | 改完后标记完成；评论变**绿**等你复核。 |
 | `/add_comment ["引文"] [说明]` | `add_comment` | 把评论锚定到某段文字，供你接受/拒绝。 |
 | `/reply_to_comment [id] [内容]` | `reply_to_comment` | 给某条评论追加线程回复。 |
-| `/show_diff [sha]` | `show_diff` | 并排可视化 diff（图片；当前改动或某个 checkpoint）。 |
+| `/show_diff [checkpoint]` | `show_diff` | 并排可视化 diff（图片；当前改动或某个 checkpoint）。 |
 | `/list_checkpoints [limit]` | `list_checkpoints` | 列出最近的 checkpoint 及其 sha（按时间倒序）——找一个传给 `/show_diff`。 |
 
 其实不打命令也行——直接说人话同样有效（“渲染预览”、“处理我的评论”）。命令只是更快、更好教的简写。
+
+## Tools（工具）
+
+面向任何支持 MCP 的客户端的接口层。（在 Claude Code 里直接说人话、或用上面的斜杠命令就行——这些是底层工具。）
+
+| 工具 | 参数 | 作用 |
+| ---- | ---- | ---- |
+| `render_preview` | `mainFile?` · `engine?`（`pdflatex` \| `xelatex` \| `lualatex`，默认 `xelatex`）· `backend?`（`wasm` \| `system` \| `auto`，默认 `wasm`） | 编译项目并打开/刷新实时工作区。省略主文件时扫描 `\documentclass` 自动识别。 |
+| `check_comments` | `includeResolved?`（默认 `false`） | 把已接受的评论作为**带位置的工作项**返回——页码、引用原文、对应源码 `文件:行号`、你的要求。等待裁决的 reviewer 建议只会被提示，不作为工作项返回。 |
+| `add_comment` | `quote` · `comment` · `role?`（`reviewer` \| `defender`）· `page?` · `accepted?` | 把评论锚定到某段文字上。默认发布为等待你 Accept/Reject 的**建议**；设置 `accepted` 才直接生效——这个标志正是「全自动模式」之所以全自动的开关。 |
+| `resolve_comment` | `id` · `note` | 编辑完成后标记评论已处理，并用一句话说明改了什么。它在工作区里变**绿**，等你复核。 |
+| `reply_to_comment` | `id` · `text` · `role?`（`author` \| `reviewer` \| `defender`） | 在评论下追加回复，让分歧在评论里解决，而不是散落在聊天记录中。 |
+| `show_diff` | `checkpoint?` | 把并排 diff 渲染成**图片**，直接显示在对话里。默认是当前未提交的改动；传 checkpoint sha 可看某个存档版本。 |
+| `list_checkpoints` | `limit?`（默认 10，最大 50） | 列出最近的 checkpoint 及其 sha，最新在前——用它找到要传给 `show_diff` 的那个。 |
+
+**核心卖点建立在这些工具之上，而不在这张表里。** `/magic-latex`、`/ai-review`、`/address-comments` 和 ⚡ `/ultra-agents` 是 Claude Code 的**插件命令**，负责编排上面这些工具——`/ultra-agents` 会把「评审 → 自动接受 → 修复」串成循环，跑满你允许的轮数，`add_comment` 的 `accepted` 参数正是为它而设。它们不属于 MCP 接口层，所以其他 MCP 客户端只会看到这 7 个工具。详见上面的插件小节和 [docs/AGENT-LOOP.zh-CN.md](AGENT-LOOP.zh-CN.md)。
 
 ## 文档
 

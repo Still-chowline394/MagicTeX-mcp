@@ -41,7 +41,7 @@ is one command away. The rule to teach anyone: *the tool is `X` → type `/X`.*
 | `/resolve_comment [id] [note]` | `resolve_comment` | Mark a comment done after the edit; it turns **green** for your review. |
 | `/add_comment ["quote"] [note]` | `add_comment` | Anchor a comment onto a passage for you to Accept/Reject. |
 | `/reply_to_comment [id] [text]` | `reply_to_comment` | Add a threaded reply to a comment. |
-| `/show_diff [sha]` | `show_diff` | Side-by-side visual diff as an image (current changes, or a checkpoint). |
+| `/show_diff [checkpoint]` | `show_diff` | Side-by-side visual diff as an image (current changes, or a checkpoint). |
 | `/list_checkpoints [limit]` | `list_checkpoints` | Recent checkpoints with their sha, newest first — find one to pass into `/show_diff`. |
 
 You never *have* to type these — plain English works too (*"render a preview"*,

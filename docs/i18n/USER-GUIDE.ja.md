@@ -40,7 +40,7 @@
 | `/resolve_comment [id] [メモ]` | `resolve_comment` | 編集後に解決としてマーク;コメントが**緑**になり確認待ち。 |
 | `/add_comment ["引用"] [メモ]` | `add_comment` | 該当箇所にコメントをアンカーし、承認/却下できるように。 |
 | `/reply_to_comment [id] [本文]` | `reply_to_comment` | コメントにスレッド返信を追加。 |
-| `/show_diff [sha]` | `show_diff` | 並列ビジュアル差分を画像で表示(現在の変更か checkpoint)。 |
+| `/show_diff [checkpoint]` | `show_diff` | 並列ビジュアル差分を画像で表示(現在の変更か checkpoint)。 |
 | `/list_checkpoints [limit]` | `list_checkpoints` | 直近のチェックポイントを sha 付きで表示 —— `/show_diff` に渡す sha を探すのに。 |
 
 必ずしも打つ必要はありません —— 普通の言葉でも動きます(*「プレビューを表示」*、*「コメントに対応して」*)。

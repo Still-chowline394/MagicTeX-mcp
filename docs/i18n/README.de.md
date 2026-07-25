@@ -93,10 +93,26 @@ Jedes MCP-Tool hat auch einen Slash-Befehl mit **demselben Namen**, du kannst al
 | `/resolve_comment [id] [Notiz]` | `resolve_comment` | Markiert einen Kommentar nach der Änderung als erledigt; wird **grün** zur Prüfung. |
 | `/add_comment ["Zitat"] [Notiz]` | `add_comment` | Verankert einen Kommentar an einer Stelle zum Annehmen/Ablehnen. |
 | `/reply_to_comment [id] [Text]` | `reply_to_comment` | Fügt eine Thread-Antwort zu einem Kommentar hinzu. |
-| `/show_diff [sha]` | `show_diff` | Nebeneinander-Diff als Bild (aktuelle Änderungen oder ein Checkpoint). |
+| `/show_diff [checkpoint]` | `show_diff` | Nebeneinander-Diff als Bild (aktuelle Änderungen oder ein Checkpoint). |
 | `/list_checkpoints [limit]` | `list_checkpoints` | Letzte Checkpoints mit sha, neueste zuerst — um einen an `/show_diff` zu übergeben. |
 
 Du musst sie nie tippen – normale Sprache funktioniert auch (*„zeig eine Vorschau“*, *„bearbeite meine Kommentare“*). Die Befehle sind nur eine schnelle, gut vermittelbare Kurzform.
+
+## Tools (Werkzeuge)
+
+Die MCP-Schnittstelle, für jeden Client, der MCP spricht. (In Claude Code genügen normale Sprache oder die Slash-Befehle oben — das hier sind die Werkzeuge darunter.)
+
+| Tool | Parameter | Was es tut |
+| ---- | ---- | ---- |
+| `render_preview` | `mainFile?` · `engine?` (`pdflatex` \| `xelatex` \| `lualatex`, Standard `xelatex`) · `backend?` (`wasm` \| `system` \| `auto`, Standard `wasm`) | Kompiliert das Projekt und öffnet/aktualisiert den Live-Arbeitsbereich. Ohne Angabe wird die Hauptdatei per `\documentclass`-Suche erkannt. |
+| `check_comments` | `includeResolved?` (Standard `false`) | Gibt akzeptierte Kommentare als **lokalisierte Aufgaben** zurück: Seite, Zitat, die Quell-`Datei:Zeile` und deine Bitte. Reviewer-Vorschläge, die noch auf deine Entscheidung warten, werden gemeldet, aber nicht als Arbeit zurückgegeben. |
+| `add_comment` | `quote` · `comment` · `role?` (`reviewer` \| `defender`) · `page?` · `accepted?` | Verankert einen Kommentar an einer Textstelle. Wird als **Vorschlag** gepostet, der auf dein Annehmen/Ablehnen wartet — außer `accepted` ist gesetzt; genau dieses Flag macht den autonomen Modus autonom. |
+| `resolve_comment` | `id` · `note` | Markiert einen Kommentar nach der Änderung als erledigt, mit einer Zeile dazu, was sich geändert hat. Er wird im Arbeitsbereich **grün** und wartet auf deine Prüfung. |
+| `reply_to_comment` | `id` · `text` · `role?` (`author` \| `reviewer` \| `defender`) | Fügt eine Thread-Antwort hinzu, damit eine Meinungsverschiedenheit am Kommentar statt im Chat geklärt wird. |
+| `show_diff` | `checkpoint?` | Rendert ein Nebeneinander-Diff **als Bild**, inline im Gespräch. Standardmäßig die nicht committeten Änderungen; mit einem Checkpoint-Sha eine gespeicherte Fassung. |
+| `list_checkpoints` | `limit?` (Standard 10, max. 50) | Letzte Checkpoints mit sha, neueste zuerst — um zu finden, welchen du an `show_diff` übergibst. |
+
+**Die Aushängeschilder sind *auf* diesen Werkzeugen gebaut, nicht Teil davon.** `/magic-latex`, `/ai-review`, `/address-comments` und ⚡ `/ultra-agents` sind **Plugin-Befehle** von Claude Code, die die Werkzeuge oben orchestrieren — `/ultra-agents` verkettet Prüfen → automatisch annehmen → korrigieren über so viele Runden, wie du erlaubst, und ist der Grund, warum `add_comment` ein `accepted`-Flag hat. Sie gehören nicht zur MCP-Schnittstelle: ein anderer MCP-Client sieht nur diese sieben. Siehe den Plugin-Abschnitt oben und [docs/AGENT-LOOP.de.md](AGENT-LOOP.de.md).
 
 ## Dokumentation
 
