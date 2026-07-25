@@ -1,0 +1,71 @@
+version: 2
+
+# Throttled on purpose. MagicTeX has ~24 direct dependencies and one
+# maintainer; ungrouped daily updates would mean a steady stream of PRs, which
+# in practice means they all get ignored. The aim is a small number of PRs that
+# actually get reviewed.
+#
+# Security updates are NOT configured here — those come from Dependabot alerts
+# and are already enabled (and grouped) in the repo's security settings. They
+# ignore this schedule and open as soon as an advisory lands, which is right.
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Australia/Sydney
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    commit-message:
+      prefix: deps
+      prefix-development: deps-dev
+      include: scope
+
+    groups:
+      # Dev tooling (TypeScript, Vite, React types, CodeMirror…) — low blast
+      # radius, so batch minor+patch into one PR. If CI is green it's usually
+      # a straight merge.
+      dev-tooling:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+
+      # Runtime deps, minor+patch only. Still batched, but this is the PR to
+      # actually read: it can move the MCP SDK, the WASM engine, or pdf.js.
+      runtime:
+        dependency-type: production
+        update-types:
+          - minor
+          - patch
+
+    # Majors are deliberately left OUT of the groups above, so each arrives as
+    # its own PR. Every one of these has broken things before — pdfjs-dist and
+    # zod change APIs across majors, playwright can change browser behaviour,
+    # and texlyre-busytex is the compile engine itself. They deserve to be read
+    # one at a time, not swept in with a batch.
+
+  # Easy to forget, and it's the ecosystem where a compromised third-party
+  # action would run with repo credentials. Only two are used
+  # (actions/checkout, actions/setup-node), so one grouped PR is plenty.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Australia/Sydney
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns:
+          - "*"
