@@ -46,6 +46,11 @@ WASM 版的 TeX Live 引擎(`texlyre-busytex`,以及更早的 SwiftLaTeX)本质�
   `compileProject`(共享的编译流程)、`parseLog`(TeX 日志 → `{file, line, message}`)。
 - `src/export/overleafZip.ts` —— 构建一个干净的"编译输入" zip(排除编译出的 PDF、`.git`、
   `.latex-preview`),供 `/export.zip` 和 Overleaf 的 "Upload Project" 使用。
+- `src/git/historyRepo.ts` —— 决定一个项目的历史放在哪里。已经是 git 仓库的项目,历史仍然放在它自己内部的隐藏 ref 上;
+  普通文件夹则会得到一个属于我们的仓库,位于 `.latex-preview/history.git`,以项目本身作为工作树 —— 于是历史跟着论文走,
+  而不是跟着路径走:文件夹被移动、复制、删除时历史也一起,而在那里运行 `git` 依然会说这不是一个仓库。0.1.9 之前的历史
+  存在按用户的缓存里,以路径哈希为键;只有当它记录的字节仍然和磁盘上的某个文件一致时才会被迁移过来,所以一个被复用的
+  路径不可能继承另一个项目的 checkpoint。
 - `src/git/checkpoints.ts` —— Zed 风格的自动 checkpoint。每次成功编译后,用一个临时 index
   (`GIT_INDEX_FILE`)把工作树快照到一条**隐藏 ref**(`refs/latex-preview/checkpoints`)下的并行提交链上,
   所以用户的工作树 / index / HEAD / 分支都不会被碰到。每个会写入的操作(`createCheckpoint`、

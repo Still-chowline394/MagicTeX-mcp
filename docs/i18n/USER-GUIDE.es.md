@@ -177,4 +177,7 @@ la vista previa local es una aproximación.
   una coincidencia bit a bit garantizada. Es preciso para la gran mayoría de artículos; haz siempre
   una compilación final en tu destino (Overleaf o tu sistema de envío).
 - El historial de cambios se guarda en una ref oculta de git (`refs/latex-preview/checkpoints`) y
-  nunca toca tus ramas, tu `git log` ni tu árbol de trabajo.
+  nunca toca tus ramas, tu `git log` ni tu árbol de trabajo. Si la carpeta no es un repositorio
+  git, MagicTeX guarda esa ref en un repositorio propio en `.latex-preview/history.git` dentro del
+  proyecto — así el historial se mueve, se copia y se borra con la carpeta, y `git` ejecutado ahí
+  sigue diciendo que no hay repositorio.

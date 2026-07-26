@@ -155,4 +155,6 @@ WASM 引擎自带的是 TeX Live 的一个**子集**(basic + recommended + extra
 - 编译出的 PDF 是对 Overleaf 产物的近似(通过 WASM 的一个当前版本 TeX Live),不保证逐位一致。
   对绝大多数论文来说是准确的;最终一定要在你的目标平台(Overleaf 或投稿系统)上做一次最终编译。
 - 修改历史存放在一个隐藏的 git ref(`refs/latex-preview/checkpoints`)里,永远不碰你的分支、
-  `git log` 或工作树。
+  `git log` 或工作树。如果这个文件夹不是 git 仓库,MagicTeX 会把那条 ref 放在项目内
+  `.latex-preview/history.git` 这个属于它自己的仓库里——所以历史会跟着文件夹一起移动、复制和删除,
+  而在那里运行 `git` 依然会说这不是一个仓库。
