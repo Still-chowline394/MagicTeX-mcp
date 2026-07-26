@@ -103,6 +103,33 @@ try {
     consoleErrors.some((t) => t.includes('[MagicTeX] PDF render failed during')),
     'console errors: ' + JSON.stringify(consoleErrors.slice(0, 3)));
 
+  // A worker that cannot start must not hang the pane forever.
+  //
+  // Swapping pdf.js's `workerSrc` for a `workerPort` quietly gave up pdf.js's own
+  // safety net: the workerSrc path wraps construction in try/catch, listens for
+  // 'error' and falls back to a main-thread fake worker; the workerPort path
+  // attaches a handler and resolves. So a worker chunk that failed to load left
+  // getDocument().promise never settling — no pages, no error, the pane stuck on
+  // "waiting for first compile…". Worse than the bare message this file exists to
+  // improve, and invisible to every other check here.
+  await page.unroute('**/latest.pdf*');
+  await page.route('**/assets/pdfWorker-*.js', (route) => route.abort());
+  await page.reload({ waitUntil: 'load' });
+
+  const settled = await Promise.race([
+    page.waitForSelector('.page canvas', { timeout: 45_000 }).then(() => 'rendered'),
+    page.waitForFunction(
+      () => /render failed/i.test(document.querySelector('.pdf-note')?.textContent ?? ''),
+      null, { timeout: 45_000 },
+    ).then(() => 'reported'),
+  ]).catch(() => 'hung');
+
+  check('a broken worker still resolves — rendered or reported, never hung',
+    settled !== 'hung',
+    'the pane never settled: getDocument() neither resolved nor rejected');
+  console.log(`      (with the worker blocked, the pane ${settled})`);
+  await page.unroute('**/assets/pdfWorker-*.js');
+
   // Prose notes are for reading, not copying, and must not turn monospace.
   await page.unroute('**/latest.pdf*');
   await page.route('**/latest.pdf*', (route) => route.fulfill({ status: 404, body: '' }));
