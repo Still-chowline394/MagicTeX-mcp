@@ -100,7 +100,17 @@ export function viewerPageHtml(): string {
   const listEl = document.getElementById('list');
   const diffEl = document.getElementById('diff');
 
-  function setStatus(cls, text) { statusEl.className = cls; statusEl.textContent = text; }
+  // Once the window is dead it stays dead. This started as a plain call that set
+  // the banner and the status — and CI on macOS caught a render finishing AFTER
+  // it and putting back "✓ up to date" and an enabled Download button, because
+  // render() ends with exactly that. Same shape as the stale-render bug fixed in
+  // the workspace's PdfView: a superseded async run overwriting current state.
+  // Reordering would only move the race, so the flag is checked here instead.
+  let dead = false;
+  function setStatus(cls, text) {
+    if (dead) return;
+    statusEl.className = cls; statusEl.textContent = text;
+  }
 
   // ---- Download ----
   let pdfBase = 'preview';
@@ -133,6 +143,7 @@ export function viewerPageHtml(): string {
 
   // ---- PDF render ----
   async function render() {
+    if (dead) return; // nothing to fetch it from
     setStatus('busy', 'rendering…');
     const scroll = mainEl.scrollTop;
     try {
@@ -156,7 +167,8 @@ export function viewerPageHtml(): string {
       metaEl.textContent = doc.numPages + ' page' + (doc.numPages === 1 ? '' : 's');
       errEl.style.display = 'none';
       setStatus('ok', '✓ up to date');
-      hasPdf = true; downloadBtn.disabled = false;
+      hasPdf = true;
+      if (!dead) downloadBtn.disabled = false;
       mainEl.scrollTop = scroll;
     } catch (e) {
       setStatus('err', 'render failed');
@@ -252,8 +264,12 @@ export function viewerPageHtml(): string {
   let farewell = false;
   const GIVE_UP_MS = 10000;
   function markDead() {
+    if (dead) return;
     document.getElementById('dead').style.display = 'block';
-    setStatus('dead', '⚠ this window is no longer live');
+    // Written directly, not through setStatus, which is now a no-op once dead.
+    statusEl.className = 'dead';
+    statusEl.textContent = '⚠ this window is no longer live';
+    dead = true;
     // The controls that would now fail silently. A button that looks live is
     // part of what makes a dead window pass for one.
     for (const id of ['history', 'export', 'download']) {

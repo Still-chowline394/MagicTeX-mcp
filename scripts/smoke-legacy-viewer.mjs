@@ -71,10 +71,36 @@ try {
   const deadBefore = await page.isVisible('#dead').catch(() => false);
   check('the legacy viewer is live before the shutdown', !deadBefore);
 
+  // Force the race rather than hoping for it.
+  //
+  // macOS CI failed "the status line agrees" and "Download PDF is disabled" while
+  // Windows passed, because whether they held depended on a render() finishing
+  // before or after the shutdown — render() ends by setting '✓ up to date' and
+  // re-enabling the button, and its catch sets 'render failed'. Either overwrites
+  // the dead state. A settle delay alone did NOT reproduce it here: nothing
+  // happened to be in flight. So put something in flight on purpose.
+  await page.route('**/latest.pdf*', async (route) => {
+    await new Promise((r) => setTimeout(r, 4000));
+    await route.continue().catch(() => {});
+  });
+  await page.reload({ waitUntil: 'commit' });
+  await page.waitForTimeout(1000); // the render is now stuck inside that delay
+
   await client.close();
   client = null;
 
   await page.waitForSelector('#dead', { state: 'visible', timeout: 30_000 }).catch(() => {});
+
+  // Let anything already in flight finish before reading the state.
+  //
+  // Without this the checks below raced a render() that was still running, and
+  // whether they passed depended on which finished first — it passed on Windows
+  // and failed on macOS CI with "the status line agrees" and "Download PDF is
+  // disabled", because render() ends by setting '✓ up to date' and re-enabling
+  // the button. That is the real bug (a late async run overwriting current
+  // state), and a test that only catches it on one platform is barely a test.
+  await page.waitForTimeout(5000); // past the 4s delay above, so the late render has landed
+
   const banner = await page.textContent('#dead').catch(() => null);
   const visible = await page.isVisible('#dead').catch(() => false);
 
