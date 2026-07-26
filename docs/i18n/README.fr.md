@@ -145,6 +145,15 @@ MagicTeX est libre et open source (AGPL-3.0). S'il vous fait gagner du temps sur
 pensez à **[soutenir le projet](https://github.com/sponsors/ZoeLinUTS)**. Une ⭐ sur le dépôt
 aide aussi.
 
+## Remerciements
+
+MagicTeX est écrit et maintenu par [Zoe Lin](https://zoelin.dev), construit avec **[Claude Code](https://claude.com/claude-code)**.
+
+Merci à **David Turnbull**, qui m'a raconté comment Knuth a passé dix ans à bâtir son
+propre logiciel de composition plutôt que d'accepter l'allure de son livre — l'histoire
+avec laquelle ce projet continue de débattre. Et aux mainteneurs de [`texlyre-busytex`](https://github.com/TeXlyre/texlyre-busytex), sans le
+TeX Live WASM desquels rien de tout cela ne tournerait en local.
+
 ## Licence
 
 [AGPL-3.0-or-later](../../LICENSE) — comme le moteur `texlyre-busytex` sur lequel il repose.

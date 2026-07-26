@@ -23,3 +23,14 @@ Thumbs.db
 
 # React workspace build output (rebuilt via npm run build:ui)
 /ui/dist/
+
+# Release tooling, fetched per release and not part of the source.
+# mcp-publisher pushes server.json to the MCP registry; grab the build matching
+# your platform from modelcontextprotocol/registry releases, verify it against
+# that release's checksums.txt, and delete it afterwards. Auth lives in
+# ~/.config/mcp-publisher/token.json, so the binary is the only disposable part.
+/mcp-publisher.exe
+/mcp-publisher
+
+# Release notes are written per release and live on the GitHub release page.
+/RELEASE-*.md

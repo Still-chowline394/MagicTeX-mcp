@@ -137,6 +137,15 @@ MagicTeX は無料のオープンソース（AGPL-3.0）です。論文作業の
 **[このプロジェクトを支援](https://github.com/sponsors/ZoeLinUTS)**してください。リポジトリへの
 ⭐ も励みになります。
 
+## 謝辞
+
+MagicTeX は [Zoe Lin](https://zoelin.dev) が開発・保守しています。**[Claude Code](https://claude.com/claude-code)** を使って作られました。
+
+Knuth が自分の本の見栄えを受け入れる代わりに 10 年かけて自ら組版システムを作った
+——このプロジェクトが今も向き合い続けている物語——を教えてくれた **David Turnbull**
+に感謝します。そして [`texlyre-busytex`](https://github.com/TeXlyre/texlyre-busytex) のメンテナの皆さんへ。あの WASM 版 TeX Live なしには、
+そもそもローカルで何ひとつ動きませんでした。
+
 ## ライセンス
 
 [AGPL-3.0-or-later](../../LICENSE)——依存する `texlyre-busytex` エンジンに合わせています。
