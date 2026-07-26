@@ -184,7 +184,7 @@ export function viewerPageHtml(): string {
 
   async function loadHistory() {
     if (!isRepo) {
-      hintEl.textContent = 'Not a git repository — run "git init" in your project to track change history.';
+      hintEl.textContent = 'History needs git, and none was found on PATH. Install it from https://git-scm.com/ and restart — no account or remote is involved; the history stays on this machine.';
       listEl.innerHTML = ''; diffEl.textContent = ''; return;
     }
     let items = [];

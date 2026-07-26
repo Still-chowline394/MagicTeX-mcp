@@ -18,15 +18,21 @@ const IN_PACKAGE = join(PKG_ROOT, 'assets', 'busytex');
 /** The marker we treat as "the assets are really here", not just an empty dir. */
 const MARKER = 'busytex.wasm';
 
-function userCache(): string {
+/** Per-user cache root for everything MagicTeX keeps outside a project: the WASM
+ *  engine, and the shadow history repos for projects that aren't git repos. */
+export function cacheRoot(): string {
   const home = homedir();
   if (process.platform === 'win32') {
-    return join(process.env.LOCALAPPDATA || join(home, 'AppData', 'Local'), 'magictex', 'busytex');
+    return join(process.env.LOCALAPPDATA || join(home, 'AppData', 'Local'), 'magictex');
   }
   if (process.platform === 'darwin') {
-    return join(home, 'Library', 'Caches', 'magictex', 'busytex');
+    return join(home, 'Library', 'Caches', 'magictex');
   }
-  return join(process.env.XDG_CACHE_HOME || join(home, '.cache'), 'magictex', 'busytex');
+  return join(process.env.XDG_CACHE_HOME || join(home, '.cache'), 'magictex');
+}
+
+function userCache(): string {
+  return join(cacheRoot(), 'busytex');
 }
 
 /**

@@ -10,6 +10,6 @@ export async function git(cwd: string, args: string[], env?: NodeJS.ProcessEnv):
 }
 
 /** Best-effort git call that returns null instead of throwing (e.g. ref/remote missing). */
-export async function gitOrNull(cwd: string, args: string[]): Promise<string | null> {
-  try { return await git(cwd, args); } catch { return null; }
+export async function gitOrNull(cwd: string, args: string[], env?: NodeJS.ProcessEnv): Promise<string | null> {
+  try { return await git(cwd, args, env); } catch { return null; }
 }

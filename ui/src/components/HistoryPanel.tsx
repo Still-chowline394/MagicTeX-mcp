@@ -35,7 +35,16 @@ export function HistoryPanel({ reloadTick }: { reloadTick: number }) {
   }, [selected]);
 
   if (isRepo === false) {
-    return <div className="panel-hint">Not a git repository — run "git init" in your project to track history.</div>;
+    // A project that isn't a git repo now gets a shadow repo in the cache, so
+    // the only way to reach this is a missing binary. Saying "not a git
+    // repository" here sent people off to run `git init`, which wouldn't help.
+    return (
+      <div className="panel-hint">
+        History needs <code>git</code>, and none was found on your PATH. Install it
+        from <a href="https://git-scm.com/" target="_blank" rel="noreferrer">git-scm.com</a> and
+        restart — no account and no remote are involved; the history stays on this machine.
+      </div>
+    );
   }
   if (!items.length) {
     return <div className="panel-hint">No checkpoints yet. One is saved automatically after each successful compile.</div>;
