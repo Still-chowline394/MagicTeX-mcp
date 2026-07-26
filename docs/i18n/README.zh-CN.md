@@ -116,6 +116,26 @@ Overleaf 账号**：实时 PDF 预览、带**可视化（所见即所得）模�
 
 **核心卖点建立在这些工具之上，而不在这张表里。** `/magic-latex`、`/ai-review`、`/address-comments` 和 ⚡ `/ultra-agents` 是 Claude Code 的**插件命令**，负责编排上面这些工具——`/ultra-agents` 会把「评审 → 自动接受 → 修复」串成循环，跑满你允许的轮数，`add_comment` 的 `accepted` 参数正是为它而设。它们不属于 MCP 接口层，所以其他 MCP 客户端只会看到这 7 个工具。详见上面的插件小节和 [docs/AGENT-LOOP.zh-CN.md](AGENT-LOOP.zh-CN.md)。
 
+## 我需要本机装 TeX 吗？
+
+不需要 —— 内置的 WASM 引擎不装任何东西就能编译，这正是它的意义。但它只是 TeX Live
+的一个*子集*：`svg`、大多数会议文档类，以及一些不那么常见的宏包都不在里面。缺了
+的时候会明确告诉你，而不是默默给你一份错的 PDF。
+
+当你需要和 Overleaf 完全一致的输出时再装。MagicTeX 会自动发现并使用它，无需配置：
+
+| | |
+|---|---|
+| macOS | [MacTeX](https://tug.org/mactex/) |
+| Linux | `texlive-full` |
+| Windows | [TeX Live](https://tug.org/texlive/) |
+
+> MagicTeX 在 `PATH` 上找的是 `latexmk`，但它**不是一个可以单独安装的东西** ——
+> 它是上面这些发行版自带的驱动脚本。装完用 `which latexmk` 确认；macOS 上可能要
+> 先跑 `eval "$(/usr/libexec/path_helper)"` 或者重开一个终端。
+
+每次编译都会说明用的是哪个 —— `xelatex · system` 还是 `xelatex · wasm`。
+
 ## 文档
 
 - [**用户手册**](USER-GUIDE.zh-CN.md) —— 日常使用、评论循环、可视化模式、文件树、

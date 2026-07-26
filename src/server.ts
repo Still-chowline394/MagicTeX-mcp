@@ -22,6 +22,7 @@ import { isGitRepo, listCheckpoints } from './git/checkpoints.js';
 import { type Engine, type Backend } from './project/compileProject.js';
 import { MainFileError } from './project/resolveMainFile.js';
 import { summarizeErrors } from './project/parseLog.js';
+import { INSTALL_TEX_HELP, systemFallbackNote } from './engine/systemTex.js';
 
 const PKG_ROOT = fileURLToPath(new URL('..', import.meta.url));
 
@@ -38,6 +39,7 @@ const server = new McpServer({ name: 'magictex-mcp', version });
 const hasWorkspace = existsSync(join(PKG_ROOT, 'ui', 'dist', 'index.html'));
 
 let viewerOpened = false;
+
 
 server.registerTool(RENDER_PREVIEW_NAME, renderPreviewConfig, async ({ mainFile, engine, backend }) => {
   const projectRoot = process.cwd();
@@ -63,6 +65,12 @@ server.registerTool(RENDER_PREVIEW_NAME, renderPreviewConfig, async ({ mainFile,
         : `✓ Compiled ${result.mainFile} with ${result.engine} · ${result.backend} in ${result.ms}ms — ${result.fileCount} files${truncNote}.`;
 
       const notes: string[] = [];
+      // Say it first: this PDF came off a different toolchain than the one the
+      // machine is set up for, and that is the single most important thing about
+      // it. Left unsaid, a broken local TeX reads as a clean success.
+      if (result.systemFallback) {
+        notes.push(systemFallbackNote(result.systemFallback));
+      }
       if (result.stubbedPackages?.length) {
         notes.push(
           `Stubbed out ${result.stubbedPackages.map((p) => `\\usepackage{${p}}`).join(', ')} — not in the bundled TeX Live and unused here, so it no longer blocks the compile.`,
@@ -70,11 +78,12 @@ server.registerTool(RENDER_PREVIEW_NAME, renderPreviewConfig, async ({ mainFile,
       }
       if (errs) {
         notes.push(summarizeErrors(result.log || ''));
-        // Only worth suggesting when it isn't what already ran — under the
-        // 'auto' default a local TeX is picked up on its own, and telling
-        // someone to switch to the backend they're on sends them hunting.
+        // Only worth saying when system isn't what already ran — under the
+        // 'auto' default a local TeX is picked up on its own, so anyone seeing
+        // this has no local TeX at all. "Retry with backend: system if you have
+        // one" was a dead end for exactly the people who read it.
         if (result.backend !== 'system') {
-          notes.push('For full package fidelity (and an output matching Overleaf), retry with backend: "system" if you have a local TeX install.');
+          notes.push(`These packages come from the bundled WASM TeX Live, which is a subset. For output that matches Overleaf, MagicTeX will use a local TeX install automatically once there is one.\n\n${INSTALL_TEX_HELP}`);
         }
       }
 
@@ -89,7 +98,7 @@ server.registerTool(RENDER_PREVIEW_NAME, renderPreviewConfig, async ({ mainFile,
     // Compile failed — return parsed errors so Claude can self-correct.
     const missingCls = result.verdict?.missingClasses ?? [];
     const clsHint = missingCls.length
-      ? `\n\nThe document class ${missingCls.map((c) => `\`${c}.cls\``).join(', ')} is not in the bundled TeX Live subset, and a class cannot be stubbed the way an unused package can. Put the .cls next to the source — for a conference paper it comes with the author kit, and Overleaf projects can download it.${result.backend === 'system' ? '' : ' Or compile with backend: "system" using a local TeX install.'}`
+      ? `\n\nThe document class ${missingCls.map((c) => `\`${c}.cls\``).join(', ')} is not in the bundled TeX Live subset, and a class cannot be stubbed the way an unused package can. Put the .cls next to the source — for a conference paper it comes with the author kit, and Overleaf projects can download it.${result.backend === 'system' ? '' : `\n\nA local TeX install would also have it, and MagicTeX picks one up automatically.\n\n${INSTALL_TEX_HELP}`}`
       : '';
     return {
       isError: true,

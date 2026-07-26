@@ -22,6 +22,7 @@ import { getGitHubRemote } from '../git/remote.js';
 import { buildOverleafZip } from '../export/overleafZip.js';
 import { resolveMainFile } from '../project/resolveMainFile.js';
 import { getProjectRoot } from '../session.js';
+import { busytexDir } from '../engine/assetsDir.js';
 
 const PKG_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 
@@ -39,7 +40,6 @@ function depDir(pkg: string): string {
 }
 
 const ENGINE_DIST = join(depDir('texlyre-busytex'), 'dist');
-const BUSYTEX_ASSETS = join(PKG_ROOT, 'assets', 'busytex');
 const PDFJS_ROOT = depDir('pdfjs-dist');
 const DIFF2HTML_ROOT = join(depDir('diff2html'), 'bundles');
 const UI_DIST = join(PKG_ROOT, 'ui', 'dist');
@@ -331,7 +331,10 @@ export function startPreviewServer(): Promise<PreviewServerHandle> {
       res.end(latestPdf); return;
     }
     if (pathname.startsWith('/engine/')) return serveFrom(ENGINE_DIST, pathname.slice('/engine/'.length), res);
-    if (pathname.startsWith('/busytex/')) return serveFrom(BUSYTEX_ASSETS, pathname.slice('/busytex/'.length), res);
+    // Resolved per request through the same helper the downloader writes with,
+    // so serving and fetching can't disagree about where the engine lives — and
+    // because on a first run the directory appears partway through the process.
+    if (pathname.startsWith('/busytex/')) return serveFrom(busytexDir(), pathname.slice('/busytex/'.length), res);
     if (pathname.startsWith('/pdfjs/')) return serveFrom(PDFJS_ROOT, pathname.slice('/pdfjs/'.length), res);
     if (pathname.startsWith('/diff2html/')) return serveFrom(DIFF2HTML_ROOT, pathname.slice('/diff2html/'.length), res);
     // The React workspace (built by `npm run build:ui` into ui/dist).

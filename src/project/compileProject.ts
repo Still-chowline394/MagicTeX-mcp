@@ -4,7 +4,7 @@ import { resolveMainFile } from './resolveMainFile.js';
 import { collectProjectFiles } from './collectProjectFiles.js';
 import { getFallbackStyles } from '../engine/fallbackStyles.js';
 import { compile, type CompileOutput } from '../engine/browserHost.js';
-import { hasSystemTex, compileWithSystemTex } from '../engine/systemTex.js';
+import { hasSystemTex, compileWithSystemTex, INSTALL_TEX_HELP } from '../engine/systemTex.js';
 import { classifyCompile, stubPackage, usesPackage, type CompileVerdict } from '../engine/compileLog.js';
 
 export type Engine = 'xelatex' | 'pdflatex' | 'lualatex';
@@ -22,6 +22,11 @@ export interface CompileProjectResult extends CompileOutput {
   verdict?: CompileVerdict;
   /** Missing packages stubbed out to get past a stale \usepackage. */
   stubbedPackages?: string[];
+  /** Set when 'auto' tried the local TeX first and it produced nothing usable,
+   *  so this result came from the bundled engine instead. Carried so the caller
+   *  can disclose the substitution — a fallback nobody is told about is how a
+   *  broken toolchain gets reported as a success. */
+  systemFallback?: { errors: string[]; missingPackages: string[]; missingClasses: string[] };
 }
 
 export interface CompileProjectOptions {
@@ -56,13 +61,36 @@ export async function compileProject(opts: CompileProjectOptions): Promise<Compi
   // `svg` — and output that doesn't match Overleaf, without ever being told a
   // better compiler was sitting right there.
   const backend: Backend = opts.backend ?? 'auto';
+  let systemFallback: CompileProjectResult['systemFallback'];
   const wantSystem = backend === 'system' || (backend === 'auto' && (await hasSystemTex()));
   if (wantSystem) {
     if (backend === 'system' && !(await hasSystemTex())) {
-      return { success: false, pdf: undefined, pdfLen: 0, log: '', ms: 0, error: 'backend "system" requested but no local TeX (latexmk) was found on PATH.', mainFile, engine, backend: 'system', fileCount: files.length, truncated };
+      return { success: false, pdf: undefined, pdfLen: 0, log: '', ms: 0, error: `backend "system" was requested, but no local TeX was found — looked for \`latexmk\` on PATH.\n\n${INSTALL_TEX_HELP}`, mainFile, engine, backend: 'system', fileCount: files.length, truncated };
     }
     const out = await compileWithSystemTex(opts.projectRoot, main ? main.path : mainFile, engine);
-    return { ...out, mainFile, engine, backend: 'system', fileCount: files.length, truncated };
+    const sysVerdict = classifyCompile(out.log ?? '', out.pdfLen);
+
+    // Keep the system result whenever it produced something usable — a real TeX
+    // with warnings still beats the bundled subset for fidelity.
+    if (out.success && sysVerdict.usable) {
+      return { ...out, verdict: sysVerdict, mainFile, engine, backend: 'system', fileCount: files.length, truncated };
+    }
+
+    // Forced 'system' does not fall back. Asking for that backend is a statement
+    // that you want that toolchain or an error; quietly substituting another one
+    // would answer a question nobody asked.
+    if (backend === 'system') {
+      return { ...out, success: false, verdict: sysVerdict, mainFile, engine, backend: 'system', fileCount: files.length, truncated };
+    }
+
+    // 'auto': the local TeX couldn't produce a PDF, so continue to the bundled
+    // engine — but carry why, so the substitution gets disclosed rather than
+    // showing up as an unexplained success on a different toolchain.
+    systemFallback = {
+      errors: sysVerdict.errors.slice(0, 3),
+      missingPackages: sysVerdict.missingPackages,
+      missingClasses: sysVerdict.missingClasses,
+    };
   }
 
   // Enable a bib pass + reruns only when the document actually needs them —
@@ -106,6 +134,7 @@ export async function compileProject(opts: CompileProjectOptions): Promise<Compi
     success: verdict.usable,
     verdict,
     stubbedPackages: stubbed,
+    systemFallback,
     mainFile,
     engine,
     backend: 'wasm',

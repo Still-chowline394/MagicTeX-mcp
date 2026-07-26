@@ -122,6 +122,29 @@ La superficie MCP, para cualquier cliente que hable MCP. (En Claude Code basta c
 
 **Lo más vistoso está construido *sobre* estas herramientas, no entre ellas.** `/magic-latex`, `/ai-review`, `/address-comments` y ⚡ `/ultra-agents` son **comandos del plugin** de Claude Code que orquestan las herramientas de arriba — `/ultra-agents` encadena revisar → aceptar automáticamente → corregir durante tantas rondas como permitas, y es la razón de que `add_comment` tenga un parámetro `accepted`. No forman parte de la superficie MCP, así que otro cliente MCP solo ve estas siete. Ver la sección del plugin más arriba y [docs/AGENT-LOOP.es.md](AGENT-LOOP.es.md).
 
+## ¿Necesito una distribución de TeX local?
+
+No — el motor WASM incluido compila sin instalar nada, y ese es justamente el
+objetivo. Pero contiene un *subconjunto* de TeX Live: faltan `svg`, la mayoría de
+clases de congresos y varios paquetes menos comunes. Si falta alguno se te
+avisa, en lugar de entregarte un PDF silenciosamente incorrecto.
+
+Instala una distribución cuando quieras una salida idéntica a la de Overleaf.
+MagicTeX la detecta solo, sin configuración:
+
+| | |
+|---|---|
+| macOS | [MacTeX](https://tug.org/mactex/) |
+| Linux | `texlive-full` |
+| Windows | [TeX Live](https://tug.org/texlive/) |
+
+> `latexmk` es lo que MagicTeX busca en el `PATH`, pero no se instala por
+> separado: es un script incluido en las distribuciones anteriores. Comprueba con
+> `which latexmk`; en macOS quizá necesites antes
+> `eval "$(/usr/libexec/path_helper)"` o una terminal nueva.
+
+Cada compilación indica cuál se usó — `xelatex · system` o `xelatex · wasm`.
+
 ## Documentación
 
 - [**Guía de usuario**](USER-GUIDE.es.md) — uso diario, el bucle de comentarios, modo Visual,

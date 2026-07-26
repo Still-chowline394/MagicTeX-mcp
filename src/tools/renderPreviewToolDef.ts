@@ -22,6 +22,6 @@ export const renderPreviewInputSchema = {
 export const renderPreviewConfig = {
   title: 'Render LaTeX preview',
   description:
-    'Compile the current project\'s LaTeX to a PDF locally and update the live preview. Uses the machine\'s TeX install when it has one, otherwise a bundled WASM TeX Live in a headless browser — so no local TeX is required. Returns compile success/errors, which engine and backend ran, the local preview URL, and page count. Call this after editing .tex files to see and verify the rendered result.',
+    'Compile the current project\'s LaTeX to a PDF locally and update the live preview. Uses the machine\'s TeX install when it has one, otherwise a bundled WASM TeX Live in a headless browser — so no local TeX is required. Returns compile success/errors, which engine and backend ran, the file count, and the local preview URL — open it to see the rendered pages. Call this after editing .tex files to see and verify the rendered result.',
   inputSchema: renderPreviewInputSchema,
 };

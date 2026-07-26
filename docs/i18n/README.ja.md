@@ -118,6 +118,30 @@ MCP を話すあらゆるクライアント向けのインターフェース層�
 
 **看板機能はこれらの上に構築されており、この表の中にはありません。** `/magic-latex`・`/ai-review`・`/address-comments`・⚡ `/ultra-agents` は Claude Code の**プラグインコマンド**で、上の各ツールを組み立てて動かします——`/ultra-agents` は「レビュー → 自動承認 → 修正」を許可したラウンド数だけ連鎖させるもので、`add_comment` の `accepted` はそのために存在します。MCP のインターフェース層には含まれないため、他の MCP クライアントからはこの 7 つだけが見えます。上のプラグイン節と [docs/AGENT-LOOP.ja.md](AGENT-LOOP.ja.md) を参照。
 
+## ローカルの TeX ディストリビューションは必要？
+
+不要です — 同梱の WASM エンジンは何もインストールせずにコンパイルできます。それ
+こそが狙いです。ただしこれは TeX Live の*サブセット*で、`svg`、ほとんどの会議用
+ドキュメントクラス、その他あまり一般的でないパッケージは含まれません。足りない
+ときは黙って誤った PDF を返すのではなく、その旨を通知します。
+
+Overleaf と完全に一致する出力が必要になったらインストールしてください。
+MagicTeX が自動的に検出します。設定は不要です：
+
+| | |
+|---|---|
+| macOS | [MacTeX](https://tug.org/mactex/) |
+| Linux | `texlive-full` |
+| Windows | [TeX Live](https://tug.org/texlive/) |
+
+> MagicTeX が `PATH` 上で探すのは `latexmk` ですが、これは単体でインストール
+> するものではなく、上記ディストリビューションに含まれるドライバスクリプトです。
+> インストール後に `which latexmk` で確認してください。macOS では先に
+> `eval "$(/usr/libexec/path_helper)"` を実行するか、端末を開き直す必要がある
+> ことがあります。
+
+各コンパイルはどちらで実行したかを表示します — `xelatex · system` か `xelatex · wasm`。
+
 ## ドキュメント
 
 - [**ユーザーガイド**](USER-GUIDE.ja.md) —— 日常的な使い方、コメントループ、ビジュアルモード、

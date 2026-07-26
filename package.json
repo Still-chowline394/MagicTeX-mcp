@@ -36,7 +36,7 @@
     "url": "https://github.com/ZoeLinUTS/MagicTeX-mcp/issues"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0"
   },
   "bin": {
     "magictex-mcp": "bin/cli.mjs"
