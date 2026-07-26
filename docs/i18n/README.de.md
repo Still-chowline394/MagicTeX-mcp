@@ -29,13 +29,25 @@ gibt also nichts Mehrere-GB-Großes zu installieren, nur einen einmaligen WASM-A
 Unter **[zoelin.dev/tools/magictex](https://zoelin.dev/tools/magictex)** gibt es einen
 geführten Durchlauf der Kommentar-→-Agent-Schleife, gebaut aus echter Tool-Ausgabe. Es ist
 ein Replay, keine gehostete Instanz — die TeX-Engine ist ein einmaliger Download von
-~480 MB, und die Agent-Hälfte ist Claude selbst. MagicTeX läuft daher neben deinem Projekt,
+~650 MB, und die Agent-Hälfte ist Claude selbst. MagicTeX läuft daher neben deinem Projekt,
 nicht in einer Webseite.
 
 ## Der Arbeitsbereich
 
 Ein einziges Browserfenster (inspiriert von Typsts Ein-Flächen-Editor und LiquidTexts
 verankerten Anmerkungen):
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  ✓ aktuell · 13 Seiten          .zip exportieren · PDF laden │
+├────────────┬──────────────────────────────┬──────────────────┤
+│ Quelle /   │         PDF (live)           │   Kommentare     │
+│ Verlauf    │  Text wählen → 💬 Kommentar  │  akzeptierte →   │
+│  Editor,   │  Markierungen bleiben sitzen │  Claude soll sie │
+│  Zeitleiste│  lädt bei jeder Änderung neu │  erledigen → ✓   │
+│  + Diffs   │                              │                  │
+└────────────┴──────────────────────────────┴──────────────────┘
+```
 
 - **Kommentar-→-Agent-Schleife (der Kern).** Prüfe das *gerenderte* Dokument wie eine
   Papierkorrektur: Text auswählen, Kommentar hinzufügen. Sag dann Claude „address my comments“ —
@@ -51,8 +63,39 @@ verankerten Anmerkungen):
   Copilot-Modus *Auto-Akzeptieren*); eine Autor-Schleife löst die akzeptierten.
 - **Änderungsverlauf.** Jede erfolgreiche Kompilierung wird in eine **versteckte git-Ref**
   gespeichert — deine Branches und dein `git log` bleiben unberührt.
+- **Speichern und Neukompilieren sind zweierlei.** Der eingebaute Editor speichert alle 30 s
+  automatisch, ohne neu zu kompilieren; **Strg+S / Speichern / Recompile** bauen das PDF auf
+  Zuruf neu. (Mit **⚡ Live** wird beim Tippen neu kompiliert.) Dein eigener Editor und Claudes
+  Änderungen kompilieren weiterhin automatisch über den Watcher.
+- **Live-Reload.** Ein Datei-Watcher kompiliert bei jedem Speichern neu — ob Claude, der
+  eingebaute Editor oder dein externer Editor die Änderung gemacht hat.
+- **Nach Overleaf kommen.** **PDF herunterladen**, **.zip exportieren** (nur die Build-Eingaben)
+  und ein **Open in Overleaf**-Link mit einem Klick für öffentliche GitHub-Repos; die
+  Synchronisation über die Premium-Git-Bridge ist ein dokumentiertes `git push`. Siehe
+  [`USER-GUIDE.de.md`](USER-GUIDE.de.md).
+- **Echte Projekte.** Erkennt die Hauptdatei, sammelt mehrdateiliges `\input`/`\include`,
+  `.bib`, `.cls`/`.sty`/`.bst` aus dem Repo und Abbildungen, führt BibTeX aus und wiederholt bei
+  Bedarf; häufig fehlende Pakete werden automatisch ergänzt.
+- **Compile-Backend.** Nutzt dein lokales **latexmk**, wenn vorhanden — volle Pakettreue,
+  Ausgabe wie bei Overleaf — sonst das mitgelieferte **WASM**-TeX-Live ganz ohne Installation.
+  Mit `backend: "system"` / `"wasm"` erzwingbar. Jede Kompilierung nennt, welches lief.
+- **Dokumentklassen.** `IEEEtran` liegt bei, denn im WASM-TeX-Live steckt keine einzige
+  Konferenzklasse, und eine fehlende Klasse lässt sich nicht umgehen wie ein Paket.
+  Konferenzvorlagen (NeurIPS, ICML, CVPR, ACL, AAAI …) haben keine weiterverteilbare Lizenz —
+  lege die `.cls` aus dem Autorenkit neben deine Quelle, sie wird automatisch gefunden.
+- **MCP-Werkzeuge:** `render_preview` (kompilieren und Arbeitsbereich öffnen),
+  `check_comments` / `resolve_comment` / `add_comment` / `reply_to_comment` (die Review-Schleife),
+  `show_diff` (Diff nebeneinander als Bild — nützlich bei bildfähigen Clients).
+- **Verwertbare Fehler.** Fehlgeschlagene Kompilierungen liefern geparste
+  `{file, line, message}`-Fehler, damit Claude sich selbst korrigieren kann, und zeigen sie im
+  Arbeitsbereich an.
 
 ## Einrichtung
+
+MagicTeX liegt auf npm als [`magictex-mcp`](https://www.npmjs.com/package/magictex-mcp) und
+ist in der [offiziellen MCP-Registry](https://registry.modelcontextprotocol.io) als
+**`io.github.ZoeLinUTS/magictex`** eingetragen — jeder Client, der die Registry liest, findet
+es also. Nichts zu klonen, kein TeX zu installieren; `npx` holt es beim ersten Mal.
 
 1. Füge es zur `.mcp.json` deines Projekts hinzu (siehe [`.mcp.json.example`](../../.mcp.json.example)):
 
@@ -66,7 +109,18 @@ verankerten Anmerkungen):
 
 2. **Starte Claude Code neu** (oder `/mcp` neu verbinden), damit der Server geladen wird.
 3. Bitte Claude „render a preview of this paper“ — beim ersten Mal werden die WASM-TeX-Live-
-   Assets (~480 MB, einmalig) heruntergeladen, kompiliert und die Live-Vorschau geöffnet.
+   Assets (~650 MB, einmalig) heruntergeladen, kompiliert und die Live-Vorschau geöffnet.
+   Spätere Änderungen laden sie automatisch neu.
+
+   Für lokale Entwicklung aus einem Klon stattdessen auf die Quelle zeigen:
+   `"command": "npx", "args": ["tsx", "/absoluter/pfad/magictex-mcp/src/server.ts"]`
+
+Die WASM-Assets liegen **nicht** in diesem Repository. Sie werden beim ersten Lauf in einen
+Cache **pro Benutzer** geholt — `~/Library/Caches/magictex` unter macOS,
+`$XDG_CACHE_HOME/magictex` unter Linux, `%LOCALAPPDATA%\magictex` unter Windows — sodass ein
+Update von MagicTeX sie nicht erneut lädt und ein Checkout, eine globale Installation und ein
+`npx`-Lauf sich eine Kopie teilen. Mit `MAGICTEX_ASSETS_DIR` an einen anderen Ort legen. Zum
+Vorabladen: `npx texlyre-busytex download-assets <dieses Verzeichnis>`.
 
 ## Als Claude-Code-Plugin installieren (Slash-Befehle)
 
@@ -106,6 +160,10 @@ Jedes MCP-Tool hat auch einen Slash-Befehl mit **demselben Namen**, du kannst al
 
 Du musst sie nie tippen – normale Sprache funktioniert auch (*„zeig eine Vorschau“*, *„bearbeite meine Kommentare“*). Die Befehle sind nur eine schnelle, gut vermittelbare Kurzform.
 
+> Das Plugin bringt den MCP-Server (`npx magictex-mcp`) mit — das Plugin zu installieren
+> genügt also. Die `.mcp.json` oben ist die Alternative, wenn du lieber kein Plugin
+> installierst. Die Slash-Befehle funktionieren in beiden Fällen.
+
 ## Tools (Werkzeuge)
 
 Die MCP-Schnittstelle, für jeden Client, der MCP spricht. (In Claude Code genügen normale Sprache oder die Slash-Befehle oben — das hier sind die Werkzeuge darunter.)
@@ -122,7 +180,108 @@ Die MCP-Schnittstelle, für jeden Client, der MCP spricht. (In Claude Code genü
 
 **Die Aushängeschilder sind *auf* diesen Werkzeugen gebaut, nicht Teil davon.** `/magic-latex`, `/ai-review`, `/address-comments` und ⚡ `/ultra-agents` sind **Plugin-Befehle** von Claude Code, die die Werkzeuge oben orchestrieren — `/ultra-agents` verkettet Prüfen → automatisch annehmen → korrigieren über so viele Runden, wie du erlaubst, und ist der Grund, warum `add_comment` ein `accepted`-Flag hat. Sie gehören nicht zur MCP-Schnittstelle: ein anderer MCP-Client sieht nur diese sieben. Siehe den Plugin-Abschnitt oben und [docs/AGENT-LOOP.de.md](AGENT-LOOP.de.md).
 
-## Brauche ich eine lokale TeX-Distribution?
+## So sieht es im Terminal aus
+
+Das hier sind echte Werkzeugausgaben, wörtlich aus einem realen Lauf gegen das Beispielpaper
+übernommen — nichts nachgestellt. Genau das siehst du in Claude Code, während der
+Browser-Arbeitsbereich (Screenshot oben) denselben Zustand live spiegelt.
+
+Du tippst:
+```
+/magic-latex
+```
+Claude ruft `render_preview` auf und antwortet:
+```
+✓ Compiled main.tex with xelatex in 1900ms — 2 files. Workspace (live preview,
+source editor, history, PDF comments — auto-reloads on edits):
+http://127.0.0.1:52042/app
+```
+
+Du (oder eine Reviewer-Skill) hinterlässt einen Kommentar und fragst dann, was ansteht.
+Claude ruft `check_comments` auf:
+```
+1 accepted comment — edit each at its source location per the instruction, then
+call resolve_comment with its id and a one-line note:
+
+[id: 2fce9e3c8b5f] p.1 — "Sorting widgets efficiently is a long-standing problem"
+  ↳ source: main.tex:15
+  → Tighten this opening sentence.
+
+(1 reviewer suggestion still awaits the human's accept in the workspace — not
+actionable yet.)
+```
+Claude macht die Änderung und ruft `resolve_comment` auf:
+```
+✓ Resolved comment 2fce9e3c8b5f ("Sorting widgets efficiently is a long-standing
+problem…") — the card now shows: Rewrote the opening sentence.
+```
+Fragst du erneut, ist die Warteschlange der akzeptierten leer — es bleibt nur der noch nicht
+akzeptierte Vorschlag, der auf dich wartet:
+```
+No accepted comments. (2 already resolved.)
+
+(1 reviewer suggestion still awaits the human's accept in the workspace — not
+actionable yet.)
+```
+
+## Wie es funktioniert
+
+```
+Claude bearbeitet .tex ─┐
+ Datei-Watcher ─────────┼─▶ Koordinator ─▶ headless Chromium ─▶ WASM TeX ─▶ PDF
+ render_preview ────────┘   (serialisiert)  (Engine-Host)                 │
+                                                                          ▼
+      dein Arbeitsbereich (/app)  ◀── WebSocket "reload" ◀── lokaler HTTP-Server
+      Quelle · PDF · Verlauf · Kommentare       (liefert /app und /latest.pdf)
+```
+
+Die WASM-Engines brauchen DOM/Worker-Globals, also hält der Server ein verstecktes headless
+Chromium als Compile-Arbeiter; der Arbeitsbereich, den *du* öffnest, ist eine schlanke
+React-+-pdf.js-App ganz ohne WASM. Siehe [`ARCHITECTURE.de.md`](ARCHITECTURE.de.md).
+
+```mermaid
+flowchart LR
+  H["👤 Du<br/>Quelle · PDF · Verlauf · Kommentare"]
+  A["🤖 Claude Code<br/>+ Review-/Autor-Agenten"]
+
+  H <-->|"Text auswählen →<br/>Kommentar verankern"| SRV["Vorschauserver<br/>HTTP + WebSocket · liefert /app"]
+  A -->|"7 MCP-Werkzeuge"| MCP["MCP-Server<br/>render_preview · show_diff · list_checkpoints<br/>check / resolve / add / reply_comment"]
+
+  SRV --> CO["Compile-Koordinator<br/>(serialisiert)"]
+  MCP --> CO
+  A -. bearbeitet Quelle .-> FILES[("Paper-Dateien · git-Repo")]
+  FILES --> WATCH["Datei-Watcher"] --> CO
+  CO --> ENG["WASM busytex<br/>(headless Chromium)"] --> PDF["/latest.pdf"]
+  PDF -. Live-Reload .-> H
+  CO --> CK["git-Checkpoints<br/>(versteckte Ref) → Verlauf"]
+
+  SRV <--> CJSON[(".latex-preview/<br/>comments.json")]
+  MCP <--> CJSON
+  CJSON -->|"check_comments<br/>(deine akzeptierten Wünsche)"| A
+```
+
+Beide Eingänge — du im Arbeitsbereich, Agenten über die 7 MCP-Werkzeuge — treffen sich am selben
+Koordinator, demselben Kommentarspeicher und derselben git-Historie. Du arbeitest am
+*gerenderten Dokument* (Kommentar verankern); Claude arbeitet an der *Quelle* (liest deine
+Kommentare über `check_comments`, bearbeitet, `resolve_comment`). Dieser gemeinsame Unterbau
+ist es, der die Kommentarschleife, den Review-Workflow und eine nachvollziehbare Historie
+überhaupt möglich macht.
+
+## Voraussetzungen
+
+- Node 20.19+ (die Untergrenze, die `chokidar` und `playwright` tatsächlich brauchen; der
+  Server prüft das beim Start und sagt es klar und verweigert den Start, statt einen Fehler zu
+  werfen, in dem Node gar nicht vorkommt)
+- Playwrights Chromium (wird automatisch installiert; ~150–300 MB) — oder so konfigurieren, dass
+  dein installiertes Chrome wiederverwendet wird.
+- ~650 MB Plattenplatz für die einmaligen WASM-TeX-Live-Assets — beim ersten Lauf wird alles
+  geholt, in drei Paketsätzen (basic 87 MB, recommended 190 MB, extra 324 MB, plus 31 MB
+  Engine). Ein normales Paper *lädt* nur den basic-Satz; die beiden größeren liegen auf der
+  Platte, bis etwas sie braucht. Der Cache ist pro Benutzer, nicht pro Installation — ein Update
+  von MagicTeX lädt sie also nicht erneut. Den Ort änderst du mit `MAGICTEX_ASSETS_DIR`.
+- **Eine lokale TeX-Distribution ist optional.** Wann sie zählt, steht unten.
+
+### Brauche ich eine lokale TeX-Distribution?
 
 Nein — die gebündelte WASM-Engine kompiliert ohne jede Installation, das ist der
 Sinn der Sache. Sie enthält aber nur eine *Teilmenge* von TeX Live: `svg`, die
@@ -145,6 +304,31 @@ entsprechen soll. MagicTeX findet sie von allein — ohne Konfiguration:
 
 Jeder Lauf nennt die verwendete Variante — `xelatex · system` oder `xelatex · wasm`.
 
+## Entwicklung
+
+```bash
+npm install
+npm run typecheck    # tsc für Server und UI
+npm run build:ui     # baut den React-Arbeitsbereich nach ui/dist
+npm test             # die Unit-Suite — ohne Engine, ohne Browser, Sekunden
+npm start            # startet den Server auf stdio (für einen manuellen MCP-Client)
+```
+
+Zwei Ebenen, mit Absicht. `npm test` deckt den Kommentarspeicher, das Anker-Matching, die
+Zeilen- und Spaltengeometrie, das Verlaufs-Repository, die Asset-Pfade, die Klassifikation des
+Compile-Logs, das Herunterfahren des Vorschauservers und einen E2E des MCP-Ablaufs ab — alles
+ohne Browser und ohne TeX-Engine, also schnell und deterministisch. Die CI
+(`.github/workflows/ci.yml`) führt Typecheck + UI-Build + diese Suite auf Node 20 und 22 bei
+jedem Push und jedem Pull Request aus.
+
+Was ein Unit-Test **strukturell nicht sehen kann** — die Geometrie der Markierungen bei
+mehreren Zoomstufen, was ein gescheitertes Rendering dem Lesenden tatsächlich sagt, ob beim
+Beenden der Server wirklich schließt und offene Fenster gewarnt werden — liegt in
+`scripts/smoke-*.mjs` und läuft gegen einen echten Browser und eine echte Kompilierung in
+`.github/workflows/smoke-macos.yml`. Jedes davon existiert, weil **etwas kaputt ausgeliefert
+wurde, während die Unit-Suite grün war**. Halte beide grün und ergänze Abdeckung mit deinen
+Änderungen.
+
 ## Dokumentation
 
 - [**Benutzerhandbuch**](USER-GUIDE.de.md) — täglicher Einsatz, die Kommentar-Schleife,
@@ -158,6 +342,13 @@ Jeder Lauf nennt die verwendete Variante — `xelatex · system` oder `xelatex �
 
 Alle vier sind in dieselben 8 Sprachen übersetzt wie dieses README — jede Seite hat oben ihre
 eigene Sprachauswahl.
+
+## Roadmap
+
+Mehrere Claude-Code-Sitzungen können bereits gleichzeitig am selben Projekt arbeiten, ohne
+Kommentare oder die Checkpoint-Historie zu beschädigen (siehe
+[`ROADMAP.de.md`](ROADMAP.de.md)) — echtes paralleles Multi-Agent-Editing (Reviewer / Autor /
+Defender auf eigenen git-Branches, danach zusammengeführt) ist der nächste Meilenstein.
 
 ## Dieses Projekt unterstützen
 

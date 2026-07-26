@@ -24,6 +24,7 @@ import { MainFileError } from './project/resolveMainFile.js';
 import { summarizeErrors } from './project/parseLog.js';
 import { INSTALL_TEX_HELP, systemFallbackNote } from './engine/systemTex.js';
 import { blockedToolHelp } from './engine/compileLog.js';
+import { isOlderThan, tooOldMessage } from './nodeVersion.js';
 
 const PKG_ROOT = fileURLToPath(new URL('..', import.meta.url));
 
@@ -32,7 +33,19 @@ const PKG_ROOT = fileURLToPath(new URL('..', import.meta.url));
 // reported a version that never shipped on npm. The install line is
 // `npx -y magictex-mcp` with no pin, and npx caches, which makes "did my update
 // actually take effect?" a question worth being able to answer.
-const { version } = JSON.parse(readFileSync(join(PKG_ROOT, 'package.json'), 'utf8')) as { version: string };
+const pkg = JSON.parse(readFileSync(join(PKG_ROOT, 'package.json'), 'utf8')) as {
+  version: string;
+  engines?: { node?: string };
+};
+const { version } = pkg;
+
+// See src/nodeVersion.ts. stderr and a non-zero exit are the only channel there
+// is before the MCP protocol is up; a client surfaces the server as failed with
+// this text attached.
+if (pkg.engines?.node && isOlderThan(process.versions.node, pkg.engines.node)) {
+  console.error(tooOldMessage(process.versions.node, pkg.engines.node));
+  process.exit(1);
+}
 
 const server = new McpServer({ name: 'magictex-mcp', version });
 // The React workspace is the primary UI; fall back to the legacy /viewer only
