@@ -80,19 +80,25 @@ export async function restoreFile(sha: string, path: string): Promise<string | n
   return r.ok ? null : (await r.text()) || 'restore failed';
 }
 
-/** Where this project's history lives. 'unavailable' means no usable `git` —
- *  the only remaining reason to have none, now that a plain folder gets a
- *  shadow repo. The shell surfaces this outside the History tab, because a
- *  reader who never opens that tab would otherwise never learn they have no
- *  record of what changed. */
-export type HistoryMode = 'project' | 'shadow' | 'unavailable';
+/**
+ * Where this project's history lives.
+ *
+ * Two ways to have none, and they need different answers: install git, or look
+ * at a path. Reporting both as "no git found" sent people to install software
+ * they already had, and left them nowhere to go once they had.
+ *
+ * The shell surfaces this outside the History tab, because a reader who never
+ * opens that tab would otherwise never learn there is no record of what an
+ * agent changed.
+ */
+export type HistoryMode = 'project' | 'shadow' | 'no-git' | 'unwritable';
 
-export async function fetchGitStatus(): Promise<{ isRepo: boolean; mode: HistoryMode }> {
+export async function fetchGitStatus(): Promise<{ isRepo: boolean; mode: HistoryMode; detail?: string }> {
   try {
     const j = await (await fetch('/git/status')).json();
-    return { isRepo: !!j.isRepo, mode: (j.mode as HistoryMode) ?? (j.isRepo ? 'project' : 'unavailable') };
+    return { isRepo: !!j.isRepo, mode: (j.mode as HistoryMode) ?? (j.isRepo ? 'project' : 'no-git'), detail: j.detail };
   } catch {
-    return { isRepo: false, mode: 'unavailable' };
+    return { isRepo: false, mode: 'no-git' };
   }
 }
 

@@ -14,7 +14,7 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import { hostPageHtml } from '../engine/hostPage.js';
 import { viewerPageHtml } from './viewerPage.js';
 import { diffViewHtml } from './diffViewPage.js';
-import { canTrackHistory, historyMode, listCheckpoints, getCheckpointDiff, getWorkingDiff, restoreCheckpoint, restoreFile } from '../git/checkpoints.js';
+import { canTrackHistory, historyStatus, listCheckpoints, getCheckpointDiff, getWorkingDiff, restoreCheckpoint, restoreFile } from '../git/checkpoints.js';
 import { listTextFiles, readTextFile, writeTextFile, listTree, createTextFile, createDir, renameEntry, deleteEntry, writeUpload } from './filesApi.js';
 import { suppressNextChange } from '../watch/fileWatcher.js';
 import { listComments, addComment, updateComment, deleteComment, addReply } from './commentsStore.js';
@@ -111,7 +111,7 @@ export function startPreviewServer(): Promise<PreviewServerHandle> {
 
     // Git history endpoints — read-only, over the current project root (the same
     // repo the coordinator checkpoints; git resolves the enclosing repo from there).
-    if (pathname === '/git/status') { return json(res, { isRepo: await canTrackHistory(getProjectRoot()), mode: await historyMode(getProjectRoot()) }); }
+    if (pathname === '/git/status') { return json(res, { isRepo: await canTrackHistory(getProjectRoot()), ...(await historyStatus(getProjectRoot())) }); }
     if (pathname === '/git/checkpoints') { return json(res, await listCheckpoints(getProjectRoot())); }
     if (pathname === '/git/diff') {
       const sha = reqUrl.searchParams.get('sha') ?? '';

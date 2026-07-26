@@ -18,7 +18,7 @@ import { getPreview, peekPreview, captureDiff } from './engine/browserHost.js';
 import { setConfig, requestCompile } from './coordinator.js';
 import { setProjectRoot } from './session.js';
 import { startWatching } from './watch/fileWatcher.js';
-import { canTrackHistory, historyMode, listCheckpoints } from './git/checkpoints.js';
+import { canTrackHistory, historyStatus, listCheckpoints } from './git/checkpoints.js';
 import { type Engine, type Backend } from './project/compileProject.js';
 import { MainFileError } from './project/resolveMainFile.js';
 import { summarizeErrors } from './project/parseLog.js';
@@ -71,11 +71,16 @@ server.registerTool(RENDER_PREVIEW_NAME, renderPreviewConfig, async ({ mainFile,
       // an agent edit their paper should know there is no record of it — but
       // repeating it every compile turns it into noise, and noise is what teaches
       // people to skim past the notes that do matter.
-      if (!historyWarned && (await historyMode(projectRoot)) === 'unavailable') {
+      const history = await historyStatus(projectRoot);
+      if (!historyWarned && history.mode !== 'project' && history.mode !== 'shadow') {
         historyWarned = true;
-        notes.push(
-          "Change history is off: no `git` was found on PATH, so edits aren't being recorded and you can't diff or roll back. Everything else works. Install git from https://git-scm.com/ and restart — no account or remote is involved; the history stays on this machine.",
-        );
+        const why = history.mode === 'no-git'
+          ? 'no `git` was found on PATH. Install it from https://git-scm.com/ and restart — no account or remote is involved; the history stays on this machine.'
+          // Naming the path and the OS error is the whole point: a permissions
+          // problem and a full disk need different things from the reader, and
+          // "install git" answers neither.
+          : `MagicTeX couldn't create its history store — ${history.detail ?? 'unknown error'}. git itself is fine.`;
+        notes.push(`Change history is off: ${why} Edits aren't being recorded and you can't diff or roll back. Everything else works.`);
       }
       // Say it first: this PDF came off a different toolchain than the one the
       // machine is set up for, and that is the single most important thing about

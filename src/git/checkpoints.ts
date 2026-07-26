@@ -25,12 +25,16 @@ const SHA_RE = /^[0-9a-f]{7,64}$/; // guards HTTP-supplied shas against git arg 
  * reason to answer no is that there's no usable `git` binary.
  */
 export async function canTrackHistory(root: string): Promise<boolean> {
-  return (await historyRepo(root)).mode !== 'unavailable';
+  const m = (await historyRepo(root)).mode;
+  return m === 'project' || m === 'shadow';
 }
 
-/** Where this project's history lives, for messages that need to say so. */
-export async function historyMode(root: string): Promise<HistoryMode> {
-  return (await historyRepo(root)).mode;
+/** Where this project's history lives — and, when it doesn't, why. Callers need
+ *  the reason: "install git" and "this path isn't writable" are different
+ *  problems, and answering one with the other wastes the reader's time. */
+export async function historyStatus(root: string): Promise<{ mode: HistoryMode; detail?: string }> {
+  const { mode, detail } = await historyRepo(root);
+  return { mode, detail };
 }
 
 export interface Checkpoint {
@@ -50,7 +54,7 @@ export interface Checkpoint {
  *  operation and calling the locked wrapper again would deadlock. */
 async function doCreateCheckpoint(root: string): Promise<{ created: boolean; sha?: string }> {
   const { env: ENV, mode } = await historyRepo(root);
-  if (mode === 'unavailable') return { created: false }; // no usable git binary
+  if (mode !== 'project' && mode !== 'shadow') return { created: false }; // nowhere to record
 
   // Temp index OUTSIDE the repo, fresh each time — so the user's real index is
   // untouched and the index file itself never lands in a snapshot.
