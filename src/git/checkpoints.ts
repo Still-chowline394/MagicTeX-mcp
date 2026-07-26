@@ -52,22 +52,47 @@ export interface Checkpoint {
  *  callers get that via createCheckpoint below; restoreCheckpoint/restoreFile
  *  call this directly because they already hold the lock for their own
  *  operation and calling the locked wrapper again would deadlock. */
-async function doCreateCheckpoint(root: string): Promise<{ created: boolean; sha?: string }> {
+/**
+ * Why a checkpoint was not created.
+ *
+ * The distinction matters in exactly one place, and it is the dangerous one:
+ * restore snapshots the current state first so the operation is reversible, and
+ * this used to return a bare `{created:false}` for BOTH "nothing had changed"
+ * (fine, the previous checkpoint already holds it) and "the snapshot failed"
+ * (not fine — the next step overwrites every file). Restore ignored the return
+ * value either way, so a full tmpdir, an EPERM on a figure open in another app,
+ * or a stale index.lock meant an hour of uncommitted work was destroyed with
+ * nothing to go back to, against an explicit promise on screen that it was safe.
+ */
+export type NotCreated = 'no-history' | 'unchanged' | 'failed';
+
+export interface CheckpointResult {
+  created: boolean;
+  sha?: string;
+  reason?: NotCreated;
+  error?: string;
+}
+
+async function doCreateCheckpoint(root: string): Promise<CheckpointResult> {
   const { env: ENV, mode } = await historyRepo(root);
-  if (mode !== 'project' && mode !== 'shadow') return { created: false }; // nowhere to record
+  if (mode !== 'project' && mode !== 'shadow') return { created: false, reason: 'no-history' };
 
   // Temp index OUTSIDE the repo, fresh each time — so the user's real index is
   // untouched and the index file itself never lands in a snapshot.
   const idx = join(tmpdir(), `latex-ckpt-${randomBytes(6).toString('hex')}.index`);
   const env = { ...ENV, GIT_INDEX_FILE: idx };
   try {
-    await git(root, ['add', '-A'], env); // respects .gitignore -> build artifacts excluded
+    // MagicTeX's own state and Claude Code's config are not the user's paper, and
+    // recording them is what let restore roll back comments and .claude/ behind
+    // the reader's back: EXCLUDE_TOOL only ever filtered what `git log` and
+    // `git diff` SHOWED — the tree always held them.
+    await git(root, ['add', '-A', ...EXCLUDE_TOOL], env); // respects .gitignore -> build artifacts excluded
     const tree = (await git(root, ['write-tree'], env)).trim();
 
     const prev = (await gitOrNull(root, ['rev-parse', '--verify', '-q', REF], ENV))?.trim() || '';
     if (prev) {
       const prevTree = (await git(root, ['rev-parse', `${prev}^{tree}`], ENV)).trim();
-      if (tree === prevTree) return { created: false }; // nothing changed
+      if (tree === prevTree) return { created: false, reason: 'unchanged' }; // already recorded
     }
 
     const msg = `checkpoint ${new Date().toISOString()}`;
@@ -77,8 +102,10 @@ async function doCreateCheckpoint(root: string): Promise<{ created: boolean; sha
     const sha = (await git(root, commitArgs, ENV)).trim();
     await git(root, ['update-ref', REF, sha], ENV);
     return { created: true, sha };
-  } catch {
-    return { created: false }; // never let checkpointing break a compile
+  } catch (e) {
+    // Still never breaks a compile — but the reason travels now, so a caller
+    // that is about to overwrite the working tree can refuse.
+    return { created: false, reason: 'failed', error: String((e as Error).message ?? e) };
   } finally {
     await rm(idx, { force: true }).catch(() => {});
   }
@@ -89,7 +116,7 @@ async function doCreateCheckpoint(root: string): Promise<{ created: boolean; sha
  * No-op (returns {created:false}) when not a git repo or the tree is unchanged
  * since the last checkpoint. Never throws for expected conditions.
  */
-export async function createCheckpoint(root: string): Promise<{ created: boolean; sha?: string }> {
+export async function createCheckpoint(root: string): Promise<CheckpointResult> {
   return withLock(root, () => doCreateCheckpoint(root));
 }
 
@@ -137,6 +164,24 @@ export async function getWorkingDiff(root: string): Promise<string> {
 }
 
 /**
+ * Drop MagicTeX's own state and Claude's config from a restore index.
+ *
+ * New checkpoints no longer record them, but every checkpoint taken before this
+ * still does — and restoring one wrote .latex-preview/comments.json and
+ * .claude/** back over the current ones. That deleted every comment made since,
+ * including another agent's, and rewrote settings and slash-command files, none
+ * of which appeared in the diff the user approved. It also overwrote the very
+ * lock file the restore was holding, with a stale PID, letting a second process
+ * in mid-checkout.
+ */
+async function dropToolPathsFromIndex(root: string, env: NodeJS.ProcessEnv): Promise<void> {
+  const listed = await gitOrNull(root, ['ls-files', '--', '.latex-preview', '.claude'], env);
+  const paths = (listed ?? '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (!paths.length) return;
+  await git(root, ['update-index', '--force-remove', '--', ...paths], env);
+}
+
+/**
  * Restore the working tree to a checkpoint ("revert to this version"). Snapshots
  * the current state first (so it's reversible — the just-lost work becomes a new
  * checkpoint), then writes the checkpoint's files back via a TEMP index +
@@ -149,11 +194,21 @@ export async function restoreCheckpoint(root: string, sha: string): Promise<void
   const reachable = await gitOrNull(root, ['merge-base', '--is-ancestor', sha, REF], ENV);
   if (reachable === null) throw new Error('unknown checkpoint');
   await withLock(root, async () => {
-    await doCreateCheckpoint(root); // make the current state recoverable before we overwrite it
+    // The point of this line is that the restore is reversible. If it failed,
+    // it is not — so refuse rather than overwrite the working tree and discard
+    // whatever was in it. 'unchanged' is fine: the previous checkpoint already
+    // holds exactly this state.
+    const snapshot = await doCreateCheckpoint(root);
+    if (!snapshot.created && snapshot.reason !== 'unchanged') {
+      throw new Error(
+        `Refusing to restore: MagicTeX could not snapshot your current files first, so this could not be undone (${snapshot.error ?? snapshot.reason}). Nothing has been changed.`,
+      );
+    }
     const idx = join(tmpdir(), `latex-restore-${randomBytes(6).toString('hex')}.index`);
     const env = { ...ENV, GIT_INDEX_FILE: idx };
     try {
       await git(root, ['read-tree', sha], env);       // load the checkpoint tree into a temp index
+      await dropToolPathsFromIndex(root, env);
       await git(root, ['checkout-index', '-a', '-f'], env); // write those files to the working tree
     } finally {
       await rm(idx, { force: true }).catch(() => {});
@@ -189,11 +244,21 @@ export async function restoreFile(root: string, sha: string, relPath: string): P
   const reachable = await gitOrNull(root, ['merge-base', '--is-ancestor', sha, REF], ENV);
   if (reachable === null) throw new Error('unknown checkpoint');
   await withLock(root, async () => {
-    await doCreateCheckpoint(root); // recoverable
+    // The point of this line is that the restore is reversible. If it failed,
+    // it is not — so refuse rather than overwrite the working tree and discard
+    // whatever was in it. 'unchanged' is fine: the previous checkpoint already
+    // holds exactly this state.
+    const snapshot = await doCreateCheckpoint(root);
+    if (!snapshot.created && snapshot.reason !== 'unchanged') {
+      throw new Error(
+        `Refusing to restore: MagicTeX could not snapshot your current files first, so this could not be undone (${snapshot.error ?? snapshot.reason}). Nothing has been changed.`,
+      );
+    }
     const idx = join(tmpdir(), `latex-restorefile-${randomBytes(6).toString('hex')}.index`);
     const env = { ...ENV, GIT_INDEX_FILE: idx };
     try {
       await git(root, ['read-tree', sha], env);
+      await dropToolPathsFromIndex(root, env);
       await git(root, ['checkout-index', '-f', '--', rel], env);
     } finally {
       await rm(idx, { force: true }).catch(() => {});
