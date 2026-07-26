@@ -3,6 +3,8 @@
 // returns the PNG inline, so the user sees a real side-by-side diff inside the
 // Claude conversation (Claude Code can't render a diff view itself). Sets
 // window.__rendered / window.__empty so the screenshotter knows when to capture.
+import { scriptSafeJson } from './scriptSafeJson.js';
+
 export function diffViewHtml(diff: string): string {
   const empty = diff.trim() === '';
   return `<!doctype html>
@@ -21,7 +23,7 @@ ${empty ? '<div id="empty">No changes to show — the working tree is clean.</di
 <script>
   window.__empty = ${empty ? 'true' : 'false'};
   ${empty ? '' : `try {
-    var diffStr = ${JSON.stringify(diff)};
+    var diffStr = ${scriptSafeJson(diff)};
     document.getElementById('diff').innerHTML =
       Diff2Html.html(diffStr, { drawFileList: false, matching: 'lines', outputFormat: 'side-by-side' });
   } catch (e) { document.body.innerHTML = '<pre>' + String(e) + '</pre>'; }`}
