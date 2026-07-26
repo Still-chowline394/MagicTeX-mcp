@@ -116,6 +116,29 @@ MCP를 지원하는 모든 클라이언트를 위한 인터페이스입니다. (
 
 **핵심 기능은 이 도구들 위에 만들어진 것이지, 이 표 안에 있지 않습니다.** `/magic-latex`, `/ai-review`, `/address-comments`, ⚡ `/ultra-agents` 는 위의 도구들을 엮어 실행하는 Claude Code **플러그인 명령**입니다—`/ultra-agents` 는 「검토 → 자동 수락 → 수정」을 허용한 라운드 수만큼 이어 돌리며, `add_comment` 의 `accepted` 플래그가 바로 그것을 위해 있습니다. MCP 표면에는 포함되지 않으므로 다른 MCP 클라이언트에는 이 7개만 보입니다. 위 플러그인 절과 [docs/AGENT-LOOP.ko.md](AGENT-LOOP.ko.md) 참고.
 
+## 로컬 TeX 배포판이 필요한가요?
+
+아닙니다 — 번들된 WASM 엔진은 아무것도 설치하지 않고 컴파일하며, 그게 핵심입니다.
+다만 TeX Live의 *부분집합*이라 `svg`, 대부분의 학회 문서 클래스, 그 밖의 덜 흔한
+패키지는 들어 있지 않습니다. 빠진 게 있으면 조용히 잘못된 PDF를 주는 대신 알려
+드립니다.
+
+Overleaf와 완전히 같은 출력이 필요할 때 설치하세요. MagicTeX가 알아서 찾아
+씁니다. 설정은 필요 없습니다:
+
+| | |
+|---|---|
+| macOS | [MacTeX](https://tug.org/mactex/) |
+| Linux | `texlive-full` |
+| Windows | [TeX Live](https://tug.org/texlive/) |
+
+> MagicTeX이 `PATH`에서 찾는 것은 `latexmk`이지만, 이것은 따로 설치하는 물건이
+> 아니라 위 배포판에 포함된 드라이버 스크립트입니다. 설치 후 `which latexmk`로
+> 확인하세요. macOS에서는 먼저 `eval "$(/usr/libexec/path_helper)"`를 실행하거나
+> 터미널을 새로 열어야 할 수 있습니다.
+
+모든 컴파일은 어느 쪽이 돌았는지 표시합니다 — `xelatex · system` 또는 `xelatex · wasm`.
+
 ## 문서
 
 - [**사용자 가이드**](USER-GUIDE.ko.md) — 일상적인 사용법, 코멘트 루프, 비주얼 모드, 파일 트리,

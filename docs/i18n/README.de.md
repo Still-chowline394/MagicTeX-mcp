@@ -122,6 +122,29 @@ Die MCP-Schnittstelle, für jeden Client, der MCP spricht. (In Claude Code genü
 
 **Die Aushängeschilder sind *auf* diesen Werkzeugen gebaut, nicht Teil davon.** `/magic-latex`, `/ai-review`, `/address-comments` und ⚡ `/ultra-agents` sind **Plugin-Befehle** von Claude Code, die die Werkzeuge oben orchestrieren — `/ultra-agents` verkettet Prüfen → automatisch annehmen → korrigieren über so viele Runden, wie du erlaubst, und ist der Grund, warum `add_comment` ein `accepted`-Flag hat. Sie gehören nicht zur MCP-Schnittstelle: ein anderer MCP-Client sieht nur diese sieben. Siehe den Plugin-Abschnitt oben und [docs/AGENT-LOOP.de.md](AGENT-LOOP.de.md).
 
+## Brauche ich eine lokale TeX-Distribution?
+
+Nein — die gebündelte WASM-Engine kompiliert ohne jede Installation, das ist der
+Sinn der Sache. Sie enthält aber nur eine *Teilmenge* von TeX Live: `svg`, die
+meisten Konferenz-Dokumentklassen und diverse seltenere Pakete fehlen. Fehlt
+eines, wirst du darauf hingewiesen, statt ein still falsches PDF zu bekommen.
+
+Installiere eine Distribution, wenn die Ausgabe exakt der von Overleaf
+entsprechen soll. MagicTeX findet sie von allein — ohne Konfiguration:
+
+| | |
+|---|---|
+| macOS | [MacTeX](https://tug.org/mactex/) |
+| Linux | `texlive-full` |
+| Windows | [TeX Live](https://tug.org/texlive/) |
+
+> `latexmk` ist das, wonach MagicTeX im `PATH` sucht, aber man installiert es
+> nicht einzeln — es ist ein Treiberskript aus den obigen Distributionen. Prüfe
+> nach der Installation mit `which latexmk`; unter macOS ggf. vorher
+> `eval "$(/usr/libexec/path_helper)"` oder ein neues Terminal.
+
+Jeder Lauf nennt die verwendete Variante — `xelatex · system` oder `xelatex · wasm`.
+
 ## Dokumentation
 
 - [**Benutzerhandbuch**](USER-GUIDE.de.md) — täglicher Einsatz, die Kommentar-Schleife,

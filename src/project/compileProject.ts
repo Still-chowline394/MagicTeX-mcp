@@ -4,7 +4,7 @@ import { resolveMainFile } from './resolveMainFile.js';
 import { collectProjectFiles } from './collectProjectFiles.js';
 import { getFallbackStyles } from '../engine/fallbackStyles.js';
 import { compile, type CompileOutput } from '../engine/browserHost.js';
-import { hasSystemTex, compileWithSystemTex } from '../engine/systemTex.js';
+import { hasSystemTex, compileWithSystemTex, INSTALL_TEX_HELP } from '../engine/systemTex.js';
 import { classifyCompile, stubPackage, usesPackage, type CompileVerdict } from '../engine/compileLog.js';
 
 export type Engine = 'xelatex' | 'pdflatex' | 'lualatex';
@@ -59,7 +59,7 @@ export async function compileProject(opts: CompileProjectOptions): Promise<Compi
   const wantSystem = backend === 'system' || (backend === 'auto' && (await hasSystemTex()));
   if (wantSystem) {
     if (backend === 'system' && !(await hasSystemTex())) {
-      return { success: false, pdf: undefined, pdfLen: 0, log: '', ms: 0, error: 'backend "system" requested but no local TeX (latexmk) was found on PATH.', mainFile, engine, backend: 'system', fileCount: files.length, truncated };
+      return { success: false, pdf: undefined, pdfLen: 0, log: '', ms: 0, error: `backend "system" was requested, but no local TeX was found — looked for \`latexmk\` on PATH.\n\n${INSTALL_TEX_HELP}`, mainFile, engine, backend: 'system', fileCount: files.length, truncated };
     }
     const out = await compileWithSystemTex(opts.projectRoot, main ? main.path : mainFile, engine);
     return { ...out, mainFile, engine, backend: 'system', fileCount: files.length, truncated };

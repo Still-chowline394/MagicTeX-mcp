@@ -286,7 +286,34 @@ the comment loop, the review workflow, and traceable history possible.
 - Playwright's Chromium (installed automatically; ~150–300 MB) — or set it to reuse
   your installed Chrome.
 - ~650 MB disk for the one-time WASM TeX Live assets (a normal paper only needs the
-  ~118 MB basic set; larger package sets load on demand).
+  ~118 MB basic set; larger package sets load on demand). Cached per user, not per
+  install, so upgrading MagicTeX doesn't re-download them. Override the location
+  with `MAGICTEX_ASSETS_DIR`.
+- **A local TeX install is optional.** See below for when it matters.
+
+### Do I need a local TeX distribution?
+
+No — the bundled WASM engine compiles with nothing installed, which is the whole
+point. But it ships a *subset* of TeX Live, so some things aren't in it: `svg`,
+most venue document classes, and various less common packages. When one is
+missing you'll be told, rather than handed a silently wrong PDF.
+
+Install a distribution when you want output that matches Overleaf exactly.
+MagicTeX picks it up on its own — no configuration:
+
+| | |
+|---|---|
+| macOS | [MacTeX](https://tug.org/mactex/) |
+| Linux | `texlive-full`, via your package manager |
+| Windows | [TeX Live](https://tug.org/texlive/) |
+
+> `latexmk` is what MagicTeX looks for on `PATH`, but it isn't something you
+> install on its own — it's a driver script that comes inside the distributions
+> above. Run `which latexmk` after installing to confirm it's on your `PATH`; on
+> macOS you may need `eval "$(/usr/libexec/path_helper)"` or a fresh terminal
+> first.
+
+Every compile tells you which one ran — `xelatex · system` or `xelatex · wasm`.
 
 ## Development
 

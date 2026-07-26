@@ -2,12 +2,9 @@
 // (the WASM engine initializes once and is reused across compiles), and drives
 // compiles via page.evaluate. This is the Node<->browser bridge that exists
 // solely because the WASM TeX engines require DOM/Worker globals (spike finding).
-import { fileURLToPath } from 'node:url';
 import { chromium, type Browser, type Page } from 'playwright';
 import { startPreviewServer, type PreviewServerHandle } from '../preview/previewServer.js';
 import { ensureAssets } from './assets.js';
-
-const PKG_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 
 export interface EngineFile {
   path: string;
@@ -25,32 +22,60 @@ export interface CompileOutput {
   error?: string;
 }
 
-let started: Promise<{ browser: Browser; page: Page; preview: PreviewServerHandle }> | null = null;
-let currentPreview: PreviewServerHandle | null = null; // set once the engine is up
+// Three tiers, started independently, because they cost wildly different things.
+// Folding them into one call meant `render_preview` downloaded 480 MB of WASM
+// engine before it had even decided whether to use the system backend — so
+// installing a real TeX, the thing that makes the WASM engine unnecessary, was
+// what triggered the download.
+let serverStarted: Promise<PreviewServerHandle> | null = null;
+let browserStarted: Promise<{ browser: Browser; preview: PreviewServerHandle }> | null = null;
+let engineStarted: Promise<{ browser: Browser; page: Page; preview: PreviewServerHandle }> | null = null;
 
-async function start() {
-  await ensureAssets(PKG_ROOT); // fetch WASM assets on first run if missing
-  const preview = await startPreviewServer();
-  const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage();
-  page.on('pageerror', (e) => console.error('[engine page error]', e.message));
-  await page.goto(`${preview.url}/host.html`, { waitUntil: 'load', timeout: 60_000 });
-  await page.waitForFunction('window.__ready === true || window.__initError', { timeout: 120_000 });
-  const initError = await page.evaluate('window.__initError');
-  if (initError) throw new Error(`Engine failed to initialize: ${initError}`);
-  currentPreview = preview;
-  return { browser, page, preview };
+let currentPreview: PreviewServerHandle | null = null; // set once the server is up
+
+/** Tier 1 — the local HTTP server behind the workspace, /latest.pdf and the WS
+ *  push. Needed by every code path; costs a port. It serves /busytex/* lazily
+ *  per request, so it does not need the engine assets to exist. */
+export function ensureServer(): Promise<PreviewServerHandle> {
+  serverStarted ??= startPreviewServer().then((preview) => {
+    currentPreview = preview;
+    return preview;
+  });
+  return serverStarted;
 }
 
-/** Idempotent: starts the browser+engine on first call, reuses it after. */
+/** Tier 2 — headless Chromium. Needed to screenshot the diff page; no TeX
+ *  engine and no assets involved. */
+function ensureBrowser() {
+  browserStarted ??= (async () => {
+    const preview = await ensureServer();
+    const browser = await chromium.launch({ headless: true });
+    return { browser, preview };
+  })();
+  return browserStarted;
+}
+
+/** Tier 3 — the WASM TeX engine: the ~650 MB asset download plus a page that
+ *  initializes busytex. Only a wasm-backend compile needs this. */
 export function ensureEngine() {
-  if (!started) started = start();
-  return started;
+  engineStarted ??= (async () => {
+    const { browser, preview } = await ensureBrowser();
+    await ensureAssets(); // fetch WASM assets on first run if missing
+    const page = await browser.newPage();
+    page.on('pageerror', (e) => console.error('[engine page error]', e.message));
+    await page.goto(`${preview.url}/host.html`, { waitUntil: 'load', timeout: 60_000 });
+    await page.waitForFunction('window.__ready === true || window.__initError', { timeout: 120_000 });
+    const initError = await page.evaluate('window.__initError');
+    if (initError) throw new Error(`Engine failed to initialize: ${initError}`);
+    return { browser, page, preview };
+  })();
+  return engineStarted;
 }
 
+/** The workspace URL callers need. Deliberately tier 1: opening the workspace
+ *  must not pull in a browser or an engine download. */
 export async function getPreview(): Promise<PreviewServerHandle> {
-  const { preview } = await ensureEngine();
-  return preview;
+  return ensureServer();
 }
 
 /** The preview handle *if the engine is already running*, else null — never
@@ -90,7 +115,9 @@ export async function compile(
  * tool to return a diff image inline in the conversation.
  */
 export async function captureDiff(path: string): Promise<{ empty: boolean; png?: Buffer }> {
-  const { browser, preview } = await ensureEngine();
+  // Tier 2: this screenshots an HTML page. It has never needed a TeX engine, and
+  // shouldn't trigger the asset download just to show a diff.
+  const { browser, preview } = await ensureBrowser();
   const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
   try {
     await page.goto(`${preview.url}${path}`, { waitUntil: 'load', timeout: 30_000 });
@@ -104,10 +131,19 @@ export async function captureDiff(path: string): Promise<{ empty: boolean; png?:
   }
 }
 
+/** Tear down whichever tiers actually started — the browser may never have been
+ *  launched (system backend), and the server may be the only thing running. */
 export async function shutdownEngine() {
-  if (!started) return;
-  const { browser, preview } = await started;
-  await browser.close().catch(() => {});
-  preview.server.close();
-  started = null;
+  if (browserStarted) {
+    const { browser } = await browserStarted.catch(() => ({ browser: null }));
+    await browser?.close().catch(() => {});
+  }
+  if (serverStarted) {
+    const preview = await serverStarted.catch(() => null);
+    preview?.server.close();
+  }
+  serverStarted = null;
+  browserStarted = null;
+  engineStarted = null;
+  currentPreview = null;
 }
