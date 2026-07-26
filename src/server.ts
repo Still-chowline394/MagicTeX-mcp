@@ -18,7 +18,7 @@ import { getPreview, peekPreview, captureDiff } from './engine/browserHost.js';
 import { setConfig, requestCompile } from './coordinator.js';
 import { setProjectRoot } from './session.js';
 import { startWatching } from './watch/fileWatcher.js';
-import { canTrackHistory, listCheckpoints } from './git/checkpoints.js';
+import { canTrackHistory, historyMode, listCheckpoints } from './git/checkpoints.js';
 import { type Engine, type Backend } from './project/compileProject.js';
 import { MainFileError } from './project/resolveMainFile.js';
 import { summarizeErrors } from './project/parseLog.js';
@@ -39,6 +39,8 @@ const server = new McpServer({ name: 'magictex-mcp', version });
 const hasWorkspace = existsSync(join(PKG_ROOT, 'ui', 'dist', 'index.html'));
 
 let viewerOpened = false;
+// One-shot: the no-git note is worth saying, once.
+let historyWarned = false;
 
 
 server.registerTool(RENDER_PREVIEW_NAME, renderPreviewConfig, async ({ mainFile, engine, backend }) => {
@@ -65,6 +67,16 @@ server.registerTool(RENDER_PREVIEW_NAME, renderPreviewConfig, async ({ mainFile,
         : `✓ Compiled ${result.mainFile} with ${result.engine} · ${result.backend} in ${result.ms}ms — ${result.fileCount} files${truncNote}.`;
 
       const notes: string[] = [];
+      // Said once, on the first compile that cannot be recorded. Someone letting
+      // an agent edit their paper should know there is no record of it — but
+      // repeating it every compile turns it into noise, and noise is what teaches
+      // people to skim past the notes that do matter.
+      if (!historyWarned && (await historyMode(projectRoot)) === 'unavailable') {
+        historyWarned = true;
+        notes.push(
+          "Change history is off: no `git` was found on PATH, so edits aren't being recorded and you can't diff or roll back. Everything else works. Install git from https://git-scm.com/ and restart — no account or remote is involved; the history stays on this machine.",
+        );
+      }
       // Say it first: this PDF came off a different toolchain than the one the
       // machine is set up for, and that is the single most important thing about
       // it. Left unsaid, a broken local TeX reads as a clean success.

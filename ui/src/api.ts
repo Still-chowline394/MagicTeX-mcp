@@ -80,8 +80,20 @@ export async function restoreFile(sha: string, path: string): Promise<string | n
   return r.ok ? null : (await r.text()) || 'restore failed';
 }
 
-export async function fetchGitStatus(): Promise<boolean> {
-  try { return (await (await fetch('/git/status')).json()).isRepo; } catch { return false; }
+/** Where this project's history lives. 'unavailable' means no usable `git` —
+ *  the only remaining reason to have none, now that a plain folder gets a
+ *  shadow repo. The shell surfaces this outside the History tab, because a
+ *  reader who never opens that tab would otherwise never learn they have no
+ *  record of what changed. */
+export type HistoryMode = 'project' | 'shadow' | 'unavailable';
+
+export async function fetchGitStatus(): Promise<{ isRepo: boolean; mode: HistoryMode }> {
+  try {
+    const j = await (await fetch('/git/status')).json();
+    return { isRepo: !!j.isRepo, mode: (j.mode as HistoryMode) ?? (j.isRepo ? 'project' : 'unavailable') };
+  } catch {
+    return { isRepo: false, mode: 'unavailable' };
+  }
 }
 
 export async function fetchOverleafLink(): Promise<string | null> {

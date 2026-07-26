@@ -8,7 +8,7 @@
 import { mkdtempSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -17,6 +17,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 const pexec = promisify(execFile);
 const REPO = dirname(dirname(fileURLToPath(import.meta.url)));
 const COMPILE_TIMEOUT_MS = 15 * 60 * 1000;
+const NODE_ARGS = ['--import', pathToFileURL(join(REPO, 'node_modules', 'tsx', 'dist', 'loader.mjs')).href, join(REPO, 'src', 'server.ts')];
 
 const doc = (body) => [
   String.raw`\documentclass{article}`,
@@ -30,7 +31,7 @@ const proj = mkdtempSync(join(tmpdir(), 'magictex-nogit-'));
 const tex = join(proj, 'main.tex');
 writeFileSync(tex, doc('First version.'));
 
-const transport = new StdioClientTransport({ command: 'npx', args: ['tsx', join(REPO, 'src', 'server.ts')], cwd: proj });
+const transport = new StdioClientTransport({ command: process.execPath, args: NODE_ARGS, cwd: proj });
 const client = new Client({ name: 'smoke-history', version: '0' }, { capabilities: {} });
 await client.connect(transport);
 
@@ -43,7 +44,7 @@ const render = async (label) => {
   return out;
 };
 
-await render('1 first compile');
+const out1 = await render('1 first compile');
 writeFileSync(tex, doc('Second version, edited.'));
 await render('2 after an edit');
 
@@ -78,7 +79,7 @@ await pexec('git', ['config', 'user.email', 'test@example.com'], { cwd: repo });
 await pexec('git', ['config', 'user.name', 'Test'], { cwd: repo });
 writeFileSync(join(repo, 'main.tex'), doc('Repo version one.'));
 
-const t2 = new StdioClientTransport({ command: 'npx', args: ['tsx', join(REPO, 'src', 'server.ts')], cwd: repo });
+const t2 = new StdioClientTransport({ command: process.execPath, args: NODE_ARGS, cwd: repo });
 const c2 = new Client({ name: 'smoke-history-repo', version: '0' }, { capabilities: {} });
 await c2.connect(t2);
 let base2 = null;
@@ -109,6 +110,61 @@ console.log('');
 for (const [name, ok] of checks.slice(5)) console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}`);
 console.log(`status: ${JSON.stringify(status2)} · checkpoints: ${Array.isArray(cps2) ? cps2.length : cps2} · author log: ${authorLog === '' ? '(empty)' : authorLog}`);
 
-const failed = checks.filter(([, ok]) => !ok);
-console.log(failed.length ? `\nSMOKE FAIL: ${failed.length}` : '\nSMOKE PASS');
-process.exit(failed.length ? 1 : 0);
+
+// ── Phase 3: the no-git note is said once, and only when it's true ──────────
+// Verified by running the server with git stripped from PATH. The "once" part
+// matters as much as the message: repeated every compile it becomes noise, and
+// noise is what teaches people to skim past the notes that do matter.
+const gitless = mkdtempSync(join(tmpdir(), 'magictex-gitless-'));
+writeFileSync(join(gitless, 'main.tex'), doc('No git here.'));
+// Hide git without dismantling the machine. Filtering it out of PATH works on
+// Windows but is fatal on macOS, where git lives in /usr/bin alongside
+// everything the server needs — the first compile survived on the runner and
+// the process died before the second. A shim that fails is surgical: only git
+// is affected, every other tool stays exactly where it was.
+function gitlessEnv() {
+  if (process.platform === 'win32') {
+    const keep = (process.env.PATH ?? '').split(';').filter((p) => p && !/git|mingw/i.test(p));
+    return { ...process.env, PATH: keep.join(';'), Path: keep.join(';') };
+  }
+  const shim = mkdtempSync(join(tmpdir(), 'magictex-nogit-shim-'));
+  writeFileSync(join(shim, 'git'), '#!/bin/sh\nexit 127\n', { mode: 0o755 });
+  return { ...process.env, PATH: `${shim}:${process.env.PATH ?? ''}` };
+}
+const strippedEnv = gitlessEnv();
+
+const t3 = new StdioClientTransport({
+  command: process.execPath,
+  args: NODE_ARGS,
+  cwd: gitless, env: strippedEnv, stderr: 'ignore',
+});
+const c3 = new Client({ name: 'smoke-history-nogit', version: '0' }, { capabilities: {} });
+await c3.connect(t3);
+const outs = [];
+for (const label of ['5 no git, first compile', '6 no git, second compile']) {
+  writeFileSync(join(gitless, 'main.tex'), doc(`No git here. ${label}`));
+  const r = await c3.callTool({ name: 'render_preview', arguments: { backend: 'wasm' } }, undefined, { timeout: COMPILE_TIMEOUT_MS });
+  const out = r.content.map((c) => c.text ?? '').join('\n');
+  outs.push({ out, isError: !!r.isError });
+  console.log(`${label.padEnd(28)} ${out.split('\n')[0].slice(0, 64)}`);
+}
+await c3.close();
+
+const mentions = (s) => /Change history is off/.test(s);
+checks.push(
+  ['a compile without git still succeeds', /^✓ Compiled/.test(outs[0].out) && !outs[0].isError],
+  ['the first compile says history is off', mentions(outs[0].out)],
+  ['it names git and where to get it', /git-scm\.com/.test(outs[0].out)],
+  ['it says no account or remote is involved', /no account or remote/.test(outs[0].out)],
+  ['the second compile does NOT repeat it', !mentions(outs[1].out)],
+  // Phase 1 had git. If the note appeared there it would be a plain lie, and
+  // this is the only check that can catch it — the first draft asserted against
+  // an emptied string, which passes no matter what the code does.
+  ['a project WITH git is never told this', !mentions(out1)],
+);
+
+console.log('');
+for (const [name, ok] of checks.slice(10)) console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}`);
+const failed3 = checks.filter(([, ok]) => !ok);
+console.log(failed3.length ? `\nSMOKE FAIL: ${failed3.length}` : '\nSMOKE PASS');
+process.exit(failed3.length ? 1 : 0);
