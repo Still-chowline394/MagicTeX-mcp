@@ -14,7 +14,7 @@
 //
 // Driven through the real workspace in a real browser, because all three are
 // timing bugs that only exist between a click and a response.
-import { mkdtempSync, writeFileSync, readFileSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -23,6 +23,32 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 
 const REPO = dirname(dirname(fileURLToPath(import.meta.url)));
+
+// The smoke drives ui/dist, which is gitignored and built separately — so a dist
+// left over from another branch makes every result below meaningless. That cost
+// a confusing red here: a build from `main` was still on disk, and the parked-
+// buffer check failed against code that did not contain the fix.
+//
+// CI always builds fresh, so this only bites locally, which is exactly where a
+// misleading result does the most damage.
+{
+  const newest = (dir) => {
+    let t = 0;
+    for (const e of readdirSync(dir, { withFileTypes: true, recursive: true })) {
+      if (!e.isFile()) continue;
+      t = Math.max(t, statSync(join(e.parentPath ?? e.path, e.name)).mtimeMs);
+    }
+    return t;
+  };
+  const src = newest(join(REPO, 'ui', 'src'));
+  let dist = 0;
+  try { dist = newest(join(REPO, 'ui', 'dist')); } catch { /* not built */ }
+  if (dist < src) {
+    console.error('ui/dist is older than ui/src — run `npm run build:ui` first, or this tests the wrong code.');
+    process.exit(1);
+  }
+}
+
 const checks = [];
 let failedOnce = false;
 const check = (name, ok, detail = '') => {
@@ -176,12 +202,28 @@ try {
     await new Promise((r) => setTimeout(r, 2000));
     await route.continue().catch(() => {});
   });
+  // Count the writes that actually leave the browser.
+  //
+  // On macOS this whole section silently tested nothing: CodeMirror binds
+  // `Mod-s`, which is Cmd on macOS, so `Control+s` saved nothing — and "the text
+  // is still marked unsaved" passes trivially when no save was ever attempted.
+  // Two checks were green for the wrong reason until CI caught the third.
+  let puts = 0;
+  page.on('request', (req) => {
+    if (req.method() === 'PUT' && req.url().includes('/api/file')) puts++;
+  });
+  // The button, not the shortcut: the same save(true), with no platform modifier.
+  const clickSave = () => page.click('.editor-bar button:has-text("Save")');
+
   await openInTree('intro.tex');
   await type(' FIRST');
-  await page.keyboard.press('Control+s');
+  await clickSave();
   await page.waitForTimeout(300);
   await type(' DURING-SAVE');        // lands while the PUT is still open
   await page.waitForTimeout(2600);   // the PUT completes
+
+  check('the first save actually left the browser', puts >= 1,
+    'no PUT was issued — the save never fired, so the two checks below prove nothing');
 
   const stillDirty = await page.locator('.tree-row:has-text("intro.tex") .tree-dirty').count();
   check('text typed during a save is still marked unsaved', stillDirty > 0,
@@ -192,12 +234,19 @@ try {
     `editor read: ${JSON.stringify(shown.slice(-80))}`);
   await page.unroute('**/api/file?path=*&compile=*');
 
-  // Saving again must actually land it.
-  await page.keyboard.press('Control+s');
-  await page.waitForTimeout(1500);
-  const onDisk = readFileSync(join(proj, 'sections', 'intro.tex'), 'utf8');
+  // Saving again must actually land it — the point of keeping the buffer dirty.
+  await clickSave();
+  // Poll rather than sleep: the write is a round trip, and a fixed wait is how
+  // the earlier checks in this file went wrong three times.
+  const deadline = Date.now() + 10_000;
+  let onDisk = '';
+  while (Date.now() < deadline) {
+    onDisk = readFileSync(join(proj, 'sections', 'intro.tex'), 'utf8');
+    if (onDisk.includes('DURING-SAVE')) break;
+    await page.waitForTimeout(200);
+  }
   check('a second save writes the complete text to disk', onDisk.includes('DURING-SAVE'),
-    `disk holds: ${JSON.stringify(onDisk.slice(0, 120))}`);
+    `disk holds: ${JSON.stringify(onDisk.slice(0, 120))} after ${puts} PUT(s)`);
 } finally {
   await browser.close();
   await client.close().catch(() => {});
