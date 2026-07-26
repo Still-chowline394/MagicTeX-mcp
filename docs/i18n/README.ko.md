@@ -106,7 +106,7 @@ MCP를 지원하는 모든 클라이언트를 위한 인터페이스입니다. (
 
 | 도구 | 매개변수 | 하는 일 |
 | ---- | ---- | ---- |
-| `render_preview` | `mainFile?` · `engine?`(`pdflatex` \| `xelatex` \| `lualatex`, 기본값 `xelatex`) · `backend?`(`wasm` \| `system` \| `auto`, 기본값 `wasm`) | 프로젝트를 컴파일하고 라이브 작업 공간을 열기/새로고침. 생략하면 `\documentclass`를 훑어 메인 파일을 자동 판별. |
+| `render_preview` | `mainFile?` · `engine?`(`pdflatex` \| `xelatex` \| `lualatex`, 기본값 `xelatex`) · `backend?`(`wasm` \| `system` \| `auto`, 기본값 `auto` — 로컬 latexmk가 있으면 그것을, 없으면 번들 WASM 엔진을 사용) | 프로젝트를 컴파일하고 라이브 작업 공간을 열기/새로고침. 생략하면 `\documentclass`를 훑어 메인 파일을 자동 판별. |
 | `check_comments` | `includeResolved?`(기본값 `false`) | 수락된 코멘트를 **위치 정보가 포함된 작업 항목**으로 반환—페이지, 인용 구절, 대응 소스의 `파일:줄`, 요청 내용. 판단 대기 중인 reviewer 제안은 알림만 되고 작업으로 반환되지 않음. |
 | `add_comment` | `quote` · `comment` · `role?`(`reviewer` \| `defender`) · `page?` · `accepted?` | 코멘트를 본문에 고정. 기본은 Accept/Reject를 기다리는 **제안**으로 게시되며, `accepted`를 켰을 때만 즉시 유효—이 플래그가 자율 모드를 자율답게 만드는 스위치. |
 | `resolve_comment` | `id` · `note` | 편집 후 코멘트를 완료 처리하고 무엇을 바꿨는지 한 줄로 기록. 작업 공간에서 **초록색**으로 바뀌어 검토를 기다림. |

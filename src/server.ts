@@ -2,7 +2,7 @@
 // magictex-mcp — MCP stdio server exposing one tool, render_preview.
 // Everything heavy (headless browser, WASM engine, preview server, file watcher)
 // is lazily started on the first render_preview call, so merely connecting is cheap.
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -23,9 +23,16 @@ import { type Engine, type Backend } from './project/compileProject.js';
 import { MainFileError } from './project/resolveMainFile.js';
 import { summarizeErrors } from './project/parseLog.js';
 
-const server = new McpServer({ name: 'magictex-mcp', version: '0.0.1' });
-
 const PKG_ROOT = fileURLToPath(new URL('..', import.meta.url));
+
+// Read the version rather than restating it. Hardcoded, it sat at 0.0.1 through
+// every release — so the one place a user could check what they were running
+// reported a version that never shipped on npm. The install line is
+// `npx -y magictex-mcp` with no pin, and npx caches, which makes "did my update
+// actually take effect?" a question worth being able to answer.
+const { version } = JSON.parse(readFileSync(join(PKG_ROOT, 'package.json'), 'utf8')) as { version: string };
+
+const server = new McpServer({ name: 'magictex-mcp', version });
 // The React workspace is the primary UI; fall back to the legacy /viewer only
 // when ui/dist hasn't been built (e.g. a fresh clone before `npm run build:ui`).
 const hasWorkspace = existsSync(join(PKG_ROOT, 'ui', 'dist', 'index.html'));
@@ -52,8 +59,8 @@ server.registerTool(RENDER_PREVIEW_NAME, renderPreviewConfig, async ({ mainFile,
       // paper LaTeX only half-typeset is how a truncated PDF quietly replaced a
       // good one, and how Claude was told to stop looking for the problem.
       const head = errs
-        ? `⚠ Compiled ${result.mainFile} WITH ${errs} error${errs > 1 ? 's' : ''} (${result.engine}, ${result.ms}ms). LaTeX stopped part way, so this run's PDF is truncated — the preview still shows your last clean render. Fix the errors below and it will update.`
-        : `✓ Compiled ${result.mainFile} with ${result.engine} in ${result.ms}ms — ${result.fileCount} files${truncNote}.`;
+        ? `⚠ Compiled ${result.mainFile} WITH ${errs} error${errs > 1 ? 's' : ''} (${result.engine} · ${result.backend}, ${result.ms}ms). LaTeX stopped part way, so this run's PDF is truncated — the preview still shows your last clean render. Fix the errors below and it will update.`
+        : `✓ Compiled ${result.mainFile} with ${result.engine} · ${result.backend} in ${result.ms}ms — ${result.fileCount} files${truncNote}.`;
 
       const notes: string[] = [];
       if (result.stubbedPackages?.length) {
@@ -63,7 +70,12 @@ server.registerTool(RENDER_PREVIEW_NAME, renderPreviewConfig, async ({ mainFile,
       }
       if (errs) {
         notes.push(summarizeErrors(result.log || ''));
-        notes.push('For full package fidelity (and an output matching Overleaf), retry with backend: "system" if you have a local TeX install.');
+        // Only worth suggesting when it isn't what already ran — under the
+        // 'auto' default a local TeX is picked up on its own, and telling
+        // someone to switch to the backend they're on sends them hunting.
+        if (result.backend !== 'system') {
+          notes.push('For full package fidelity (and an output matching Overleaf), retry with backend: "system" if you have a local TeX install.');
+        }
       }
 
       return {
@@ -77,7 +89,7 @@ server.registerTool(RENDER_PREVIEW_NAME, renderPreviewConfig, async ({ mainFile,
     // Compile failed — return parsed errors so Claude can self-correct.
     const missingCls = result.verdict?.missingClasses ?? [];
     const clsHint = missingCls.length
-      ? `\n\nThe document class ${missingCls.map((c) => `\`${c}.cls\``).join(', ')} is not in the bundled TeX Live subset, and a class cannot be stubbed the way an unused package can. Either put the .cls next to the source (Overleaf projects can download it), or compile with backend: "system" using a local TeX install.`
+      ? `\n\nThe document class ${missingCls.map((c) => `\`${c}.cls\``).join(', ')} is not in the bundled TeX Live subset, and a class cannot be stubbed the way an unused package can. Put the .cls next to the source — for a conference paper it comes with the author kit, and Overleaf projects can download it.${result.backend === 'system' ? '' : ' Or compile with backend: "system" using a local TeX install.'}`
       : '';
     return {
       isError: true,

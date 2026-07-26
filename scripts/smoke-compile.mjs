@@ -49,8 +49,12 @@ try {
   if (!tools.includes('render_preview')) fail(`render_preview missing; got ${tools.join(', ')}`);
   console.log(`platform ${process.platform}/${process.arch} · node ${process.version} · ${tools.length} tools`);
 
+  // Pinned to wasm: this script exists to prove the bundled engine works on a
+  // clean machine. Under the 'auto' default a runner that has latexmk installed
+  // would compile with system TeX, and the WASM path — the whole point here —
+  // would go untested while the script still passed.
   const result = await client.callTool(
-    { name: 'render_preview', arguments: {} },
+    { name: 'render_preview', arguments: { backend: 'wasm' } },
     undefined,
     { timeout: COMPILE_TIMEOUT_MS },
   );

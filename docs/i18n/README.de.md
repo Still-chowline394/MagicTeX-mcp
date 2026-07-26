@@ -112,7 +112,7 @@ Die MCP-Schnittstelle, für jeden Client, der MCP spricht. (In Claude Code genü
 
 | Tool | Parameter | Was es tut |
 | ---- | ---- | ---- |
-| `render_preview` | `mainFile?` · `engine?` (`pdflatex` \| `xelatex` \| `lualatex`, Standard `xelatex`) · `backend?` (`wasm` \| `system` \| `auto`, Standard `wasm`) | Kompiliert das Projekt und öffnet/aktualisiert den Live-Arbeitsbereich. Ohne Angabe wird die Hauptdatei per `\documentclass`-Suche erkannt. |
+| `render_preview` | `mainFile?` · `engine?` (`pdflatex` \| `xelatex` \| `lualatex`, Standard `xelatex`) · `backend?` (`wasm` \| `system` \| `auto`, Standard `auto` — lokales latexmk falls installiert, sonst die gebündelte WASM-Engine) | Kompiliert das Projekt und öffnet/aktualisiert den Live-Arbeitsbereich. Ohne Angabe wird die Hauptdatei per `\documentclass`-Suche erkannt. |
 | `check_comments` | `includeResolved?` (Standard `false`) | Gibt akzeptierte Kommentare als **lokalisierte Aufgaben** zurück: Seite, Zitat, die Quell-`Datei:Zeile` und deine Bitte. Reviewer-Vorschläge, die noch auf deine Entscheidung warten, werden gemeldet, aber nicht als Arbeit zurückgegeben. |
 | `add_comment` | `quote` · `comment` · `role?` (`reviewer` \| `defender`) · `page?` · `accepted?` | Verankert einen Kommentar an einer Textstelle. Wird als **Vorschlag** gepostet, der auf dein Annehmen/Ablehnen wartet — außer `accepted` ist gesetzt; genau dieses Flag macht den autonomen Modus autonom. |
 | `resolve_comment` | `id` · `note` | Markiert einen Kommentar nach der Änderung als erledigt, mit einer Zeile dazu, was sich geändert hat. Er wird im Arbeitsbereich **grün** und wartet auf deine Prüfung. |

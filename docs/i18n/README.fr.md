@@ -115,7 +115,7 @@ La surface MCP, pour tout client qui parle MCP. (Dans Claude Code, le langage na
 
 | Outil | Paramètres | Ce que ça fait |
 | ---- | ---- | ---- |
-| `render_preview` | `mainFile?` · `engine?` (`pdflatex` \| `xelatex` \| `lualatex`, par défaut `xelatex`) · `backend?` (`wasm` \| `system` \| `auto`, par défaut `wasm`) | Compile le projet et ouvre/rafraîchit l'espace de travail en direct. Si omis, le fichier principal est détecté en cherchant `\documentclass`. |
+| `render_preview` | `mainFile?` · `engine?` (`pdflatex` \| `xelatex` \| `lualatex`, par défaut `xelatex`) · `backend?` (`wasm` \| `system` \| `auto`, par défaut `auto` — latexmk local s'il est installé, sinon le moteur WASM fourni) | Compile le projet et ouvre/rafraîchit l'espace de travail en direct. Si omis, le fichier principal est détecté en cherchant `\documentclass`. |
 | `check_comments` | `includeResolved?` (par défaut `false`) | Renvoie les commentaires acceptés sous forme de **tâches localisées** : page, citation, le `fichier:ligne` source et votre demande. Les suggestions d'un relecteur en attente de votre décision sont signalées mais pas renvoyées comme travail. |
 | `add_comment` | `quote` · `comment` · `role?` (`reviewer` \| `defender`) · `page?` · `accepted?` | Ancre un commentaire sur un passage. Publié comme **suggestion** en attente de votre Accept/Refus, sauf si `accepted` est activé — c'est précisément ce drapeau qui rend le mode autonome autonome. |
 | `resolve_comment` | `id` · `note` | Marque un commentaire comme traité après l'édition, avec une ligne sur ce qui a changé. Il passe au **vert** dans l'espace de travail, en attente de votre relecture. |

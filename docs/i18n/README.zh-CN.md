@@ -106,7 +106,7 @@ Overleaf 账号**：实时 PDF 预览、带**可视化（所见即所得）模�
 
 | 工具 | 参数 | 作用 |
 | ---- | ---- | ---- |
-| `render_preview` | `mainFile?` · `engine?`（`pdflatex` \| `xelatex` \| `lualatex`，默认 `xelatex`）· `backend?`（`wasm` \| `system` \| `auto`，默认 `wasm`） | 编译项目并打开/刷新实时工作区。省略主文件时扫描 `\documentclass` 自动识别。 |
+| `render_preview` | `mainFile?` · `engine?`（`pdflatex` \| `xelatex` \| `lualatex`，默认 `xelatex`）· `backend?`（`wasm` \| `system` \| `auto`，默认 `auto` —— 本机装了 latexmk 就用它，否则用内置 WASM 引擎） | 编译项目并打开/刷新实时工作区。省略主文件时扫描 `\documentclass` 自动识别。 |
 | `check_comments` | `includeResolved?`（默认 `false`） | 把已接受的评论作为**带位置的工作项**返回——页码、引用原文、对应源码 `文件:行号`、你的要求。等待裁决的 reviewer 建议只会被提示，不作为工作项返回。 |
 | `add_comment` | `quote` · `comment` · `role?`（`reviewer` \| `defender`）· `page?` · `accepted?` | 把评论锚定到某段文字上。默认发布为等待你 Accept/Reject 的**建议**；设置 `accepted` 才直接生效——这个标志正是「全自动模式」之所以全自动的开关。 |
 | `resolve_comment` | `id` · `note` | 编辑完成后标记评论已处理，并用一句话说明改了什么。它在工作区里变**绿**，等你复核。 |

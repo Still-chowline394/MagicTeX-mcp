@@ -16,12 +16,12 @@ export const renderPreviewInputSchema = {
   backend: z
     .enum(['wasm', 'system', 'auto'])
     .optional()
-    .describe('Compiler backend: "wasm" (bundled, zero-install; default), "system" (local latexmk for full package fidelity), or "auto" (system if installed, else wasm).'),
+    .describe('Compiler backend. Default "auto": use the local TeX install (latexmk) when there is one — full package fidelity, output matching Overleaf — else the bundled WASM TeX Live. "system" forces the local one and errors if absent; "wasm" forces the bundled one.'),
 };
 
 export const renderPreviewConfig = {
   title: 'Render LaTeX preview',
   description:
-    'Compile the current project\'s LaTeX to a PDF locally (WASM TeX Live in a headless browser — no local TeX install needed) and update the live preview. Returns compile success/errors, the local preview URL, and page count. Call this after editing .tex files to see and verify the rendered result.',
+    'Compile the current project\'s LaTeX to a PDF locally and update the live preview. Uses the machine\'s TeX install when it has one, otherwise a bundled WASM TeX Live in a headless browser — so no local TeX is required. Returns compile success/errors, which engine and backend ran, the local preview URL, and page count. Call this after editing .tex files to see and verify the rendered result.',
   inputSchema: renderPreviewInputSchema,
 };
