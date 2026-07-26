@@ -14,10 +14,10 @@ import { LIST_CHECKPOINTS_NAME, listCheckpointsConfig } from './tools/listCheckp
 import { CHECK_COMMENTS_NAME, checkCommentsConfig, RESOLVE_COMMENT_NAME, resolveCommentConfig, ADD_COMMENT_NAME, addCommentConfig, REPLY_COMMENT_NAME, replyCommentConfig } from './tools/commentsToolDefs.js';
 import { listComments, updateComment, addComment, addReply } from './preview/commentsStore.js';
 import { findAnchor } from './preview/anchorMatch.js';
-import { getPreview, peekPreview, captureDiff } from './engine/browserHost.js';
+import { getPreview, peekPreview, captureDiff, shutdownEngine } from './engine/browserHost.js';
 import { setConfig, requestCompile } from './coordinator.js';
 import { setProjectRoot } from './session.js';
-import { startWatching } from './watch/fileWatcher.js';
+import { startWatching, stopWatching } from './watch/fileWatcher.js';
 import { canTrackHistory, historyStatus, listCheckpoints } from './git/checkpoints.js';
 import { type Engine, type Backend } from './project/compileProject.js';
 import { MainFileError } from './project/resolveMainFile.js';
@@ -249,6 +249,38 @@ server.registerTool(REPLY_COMMENT_NAME, replyCommentConfig, async ({ id, text, r
 });
 
 // (add_comment and reply_to_comment are registered above.)
+
+// Clean shutdown. Until this existed, nothing was released on exit: Chromium,
+// the preview server, its WebSockets and the chokidar watcher were all left to
+// whatever the OS did — and when the process was NOT reaped, to nothing. A
+// leaked server keeps watching the project and recompiling on every save,
+// competing with the live one for CPU while holding a headless Chromium with the
+// WASM TeX Live image resident. That is not hypothetical: twelve orphaned
+// servers accumulated in this repo's own CI and starved a later phase into a
+// fifteen-minute timeout.
+//
+// The install line is `npx -y magictex-mcp`, and killing npx does not reliably
+// kill the node grandchild, which is what makes handlers here worth having
+// rather than relying on process teardown.
+let shuttingDown = false;
+async function shutdown(why: string) {
+  if (shuttingDown) return; // SIGTERM after SIGINT, or a signal during cleanup
+  shuttingDown = true;
+  console.error(`[magictex-mcp] shutting down (${why})`);
+  // Watcher first: it can start a compile, and a compile started now would keep
+  // the engine alive past the teardown that is about to close it.
+  await stopWatching().catch(() => {});
+  await shutdownEngine().catch(() => {});
+}
+
+for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP'] as const) {
+  process.on(sig, () => { void shutdown(sig).then(() => process.exit(0)); });
+}
+// The client going away closes stdio. On Windows that arrives with no signal at
+// all, so a signal handler alone would leave the process running with the parent
+// gone — exactly the orphan this is meant to prevent.
+process.stdin.on('close', () => { void shutdown('stdio closed').then(() => process.exit(0)); });
+process.on('beforeExit', () => { void shutdown('beforeExit'); });
 
 const transport = new StdioServerTransport();
 await server.connect(transport);

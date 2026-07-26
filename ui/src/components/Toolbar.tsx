@@ -8,6 +8,7 @@ const STATUS_LABEL: Record<Status, string> = {
   ok: '✓ up to date',
   error: '✖ compile error',
   disconnected: 'disconnected',
+  stopped: '⚠ this window is no longer live',
 };
 
 export function Toolbar({
@@ -25,6 +26,9 @@ export function Toolbar({
   // Refresh the \title after each compile (it may have been edited).
   useEffect(() => { fetchDocTitle().then(setTitle); }, [reloadTick]);
   const compiling = status === 'compiling';
+  // Nothing is listening on this port any more, so these would fail silently —
+  // and a button that looks live is part of what makes a dead window pass for one.
+  const dead = status === 'stopped';
 
   const downloadPdf = async () => {
     const res = await fetch('/latest.pdf?t=' + Date.now());
@@ -51,8 +55,8 @@ export function Toolbar({
     <div className="toolbar">
       <img className="brand-mark" src="/app/favicon.svg" alt="" width={22} height={22} />
       <strong className="brand" title={title ?? undefined}>{title ?? 'MagicTeX'}</strong>
-      <button className="recompile on" onClick={() => void recompile()} disabled={compiling}
-              title="Compile now">
+      <button className="recompile on" onClick={() => void recompile()} disabled={compiling || dead}
+              title={dead ? 'This window is no longer connected to a server' : 'Compile now'}>
         {compiling ? '⟳ Compiling…' : '⟳ Recompile'}
       </button>
       <span className={`status status-${status}`}>{STATUS_LABEL[status]}</span>
@@ -65,8 +69,8 @@ export function Toolbar({
       >
         💬 Comments{openCount > 0 ? ` · ${openCount}` : ''}
       </button>
-      <button onClick={exportZip} title="Download a clean Overleaf-ready .zip (build inputs only)">⬆ Export .zip</button>
-      <button onClick={downloadPdf} disabled={!hasPdf} title="Download the compiled PDF">⤓ Download PDF</button>
+      <button onClick={exportZip} disabled={dead} title="Download a clean Overleaf-ready .zip (build inputs only)">⬆ Export .zip</button>
+      <button onClick={downloadPdf} disabled={!hasPdf || dead} title="Download the compiled PDF">⤓ Download PDF</button>
       {overleafUrl && (
         <a className="linkbtn" href={overleafUrl} target="_blank" rel="noopener"
            title="One-click open in Overleaf — works only if your GitHub repo is public">

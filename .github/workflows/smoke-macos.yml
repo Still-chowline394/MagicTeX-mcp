@@ -90,6 +90,11 @@ jobs:
       - name: A failed render says where it failed
         run: node scripts/smoke-render-error.mjs
 
+      # A window left open after its server stops keeps showing that server's last
+      # render — including its last error. A real bug was reported off one of those.
+      - name: Shutting down closes the server and tells open windows
+        run: node scripts/smoke-shutdown.mjs
+
       - name: Save engine assets for next time
         if: steps.assets.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4

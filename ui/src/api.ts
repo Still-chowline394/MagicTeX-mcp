@@ -14,7 +14,10 @@ export type WsMessage =
   | { type: 'reload'; name?: string }
   | { type: 'compiling' }
   | { type: 'compile-error'; log: string }
-  | { type: 'comments-changed' };
+  | { type: 'comments-changed' }
+  // Sent once, as the server shuts down. Every start binds a fresh port, so this
+  // tab will never reach that server again — and its contents are now history.
+  | { type: 'server-closing' };
 
 export interface CommentRect { x: number; y: number; w: number; h: number }
 export type CommentStatus = 'suggested' | 'accepted' | 'resolved';
@@ -56,7 +59,11 @@ export async function replyComment(id: string, text: string): Promise<void> {
   });
 }
 
-export type Status = 'connecting' | 'connected' | 'compiling' | 'ok' | 'error' | 'disconnected';
+// `disconnected` is a hiccup worth retrying through; `stopped` means the server
+// this tab was talking to is gone for good. They looked the same until a real
+// bug report was filed off a dead tab — the pane was showing that server's last
+// error while a live instance compiled the same paper fine on another port.
+export type Status = 'connecting' | 'connected' | 'compiling' | 'ok' | 'error' | 'disconnected' | 'stopped';
 
 export async function fetchCheckpoints(): Promise<Checkpoint[]> {
   const r = await fetch('/git/checkpoints');
@@ -156,11 +163,24 @@ export function useLive(onMessage?: (m: WsMessage) => void) {
   useEffect(() => {
     let ws: WebSocket | null = null;
     let closed = false;
+    let stopped = false; // the server said goodbye, or has stayed gone
+    let attempts = 0;
+    // Roughly ten seconds of retrying. A restart on the same port reconnects well
+    // inside that; anything longer and the server is not coming back to this
+    // port, because every start binds a fresh one.
+    const GIVE_UP_AFTER = 10;
     const connect = () => {
       ws = new WebSocket(`ws://${location.host}`);
-      ws.onopen = () => setStatus('connected');
+      ws.onopen = () => { attempts = 0; setStatus('connected'); };
       ws.onmessage = (ev) => {
         const msg = JSON.parse(ev.data) as WsMessage;
+        if (msg.type === 'server-closing') {
+          // An explicit goodbye: no point retrying, and no point pretending the
+          // pane's contents still mean anything.
+          stopped = true;
+          setStatus('stopped');
+          return;
+        }
         if (msg.type === 'reload') {
           if (msg.name) setPdfName(String(msg.name).split(/[\\/]/).pop()!.replace(/\.tex$/i, '') || 'preview');
           setErrorLog('');
@@ -175,7 +195,10 @@ export function useLive(onMessage?: (m: WsMessage) => void) {
         cbRef.current?.(msg);
       };
       ws.onclose = () => {
-        if (closed) return;
+        if (closed || stopped) return;
+        // Retrying forever is why a dead tab was indistinguishable from a live
+        // one: it looks busy rather than finished.
+        if (++attempts > GIVE_UP_AFTER) { stopped = true; setStatus('stopped'); return; }
         setStatus('disconnected');
         setTimeout(connect, 1000);
       };

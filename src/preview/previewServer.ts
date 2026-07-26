@@ -88,6 +88,8 @@ export interface PreviewServerHandle {
   setLatestPdf: (pdf: Uint8Array, name?: string) => void;
   /** Tell viewers a compile is running / failed, or that comments changed. */
   broadcast: (msg: { type: 'compiling' } | { type: 'compile-error'; log: string } | { type: 'comments-changed' }) => void;
+  /** Say goodbye to open tabs, drop every socket, and stop listening. */
+  close: () => Promise<void>;
 }
 
 export function startPreviewServer(): Promise<PreviewServerHandle> {
@@ -362,6 +364,22 @@ export function startPreviewServer(): Promise<PreviewServerHandle> {
         server, port, url, viewerUrl: `${url}/viewer`,
         setLatestPdf: (pdf, name) => { latestPdf = Buffer.from(pdf); latestName = name; send({ type: 'reload', name }); },
         broadcast: (msg) => send(msg),
+        close: () => new Promise<void>((done) => {
+          // Tell the tabs first. Without this a workspace window keeps its last
+          // render on screen and retries a port that will never answer again —
+          // and a reader has no way to tell a stale error from a live one. That
+          // cost a round: a real "render failed" was reported off a dead tab
+          // while a healthy instance was compiling the same paper fine.
+          send({ type: 'server-closing' });
+          // `server.close()` stops new connections but waits for open ones, and a
+          // WebSocket is open by design — so closing the http server alone never
+          // returns. The sockets have to go first.
+          for (const ws of clients) { try { ws.close(); } catch { /* already gone */ } }
+          clients.clear();
+          wss.close(() => server.close(() => done()));
+          // A socket wedged mid-close must not hold the process open past exit.
+          server.closeAllConnections?.();
+        }),
       });
     });
   });
