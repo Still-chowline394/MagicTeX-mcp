@@ -60,7 +60,12 @@ export function startWatching(projectRoot: string): void {
 }
 
 export async function stopWatching(): Promise<void> {
+  // `timer` is nulled too. Leaving a stale Timeout behind meant a later
+  // startWatching() in the same process began with a non-null handle and would
+  // clearTimeout something already fired.
   if (timer) clearTimeout(timer);
+  timer = null;
+  suppressed.clear();
   await watcher?.close();
   watcher = null;
 }
