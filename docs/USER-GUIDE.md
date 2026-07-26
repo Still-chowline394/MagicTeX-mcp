@@ -171,4 +171,7 @@ is an approximation.
   not a guaranteed bit-identical match. It's accurate for the vast majority of papers; always do
   a final compile on your target (Overleaf or your submission system).
 - Change history is stored under a hidden git ref (`refs/latex-preview/checkpoints`) and never
-  touches your branches, `git log`, or working tree.
+  touches your branches, `git log`, or working tree. If the folder isn't a git repository,
+  MagicTeX keeps that ref in a repository of its own at `.latex-preview/history.git` inside the
+  project — so the history moves, copies and is deleted with the folder, and `git` run there still
+  reports no repository.

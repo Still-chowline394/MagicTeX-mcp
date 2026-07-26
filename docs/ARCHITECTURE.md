@@ -57,6 +57,13 @@ open is the React workspace with a lightweight `pdf.js` viewer — no WASM in it
   (TeX log → `{file, line, message}`).
 - `src/export/overleafZip.ts` — builds a clean build-inputs zip (excludes compiled
   PDFs, `.git`, `.latex-preview`) for `/export.zip` and Overleaf's "Upload Project".
+- `src/git/historyRepo.ts` — decides where a project's history lives. A git repo keeps it
+  on the hidden ref inside itself; a plain folder gets a repository of ours at
+  `.latex-preview/history.git` with the project as its work tree, so the history follows the
+  paper instead of the path — it moves, copies and is deleted with the folder, and `git` run
+  there still reports no repository. Pre-0.1.9 histories lived in the per-user cache under a
+  hash of the path; one is brought forward only when its recorded bytes still match a file on
+  disk, so a reused path cannot inherit a different project's checkpoints.
 - `src/git/checkpoints.ts` — Zed-style auto-checkpoints. On each successful compile,
   snapshots the working tree into a parallel commit chain under a **hidden ref**
   (`refs/latex-preview/checkpoints`) using a temp index (`GIT_INDEX_FILE`), so the

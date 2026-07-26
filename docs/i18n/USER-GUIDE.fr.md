@@ -181,4 +181,6 @@ utilise les vrais paquets — l'aperçu local est une approximation.
   toujours une compilation finale sur votre cible (Overleaf ou votre système de soumission).
 - L'historique des modifications est stocké sur une ref git cachée
   (`refs/latex-preview/checkpoints`) et ne touche jamais vos branches, votre `git log` ni votre arbre
-  de travail.
+  de travail. Si le dossier n'est pas un dépôt git, MagicTeX garde cette ref dans un dépôt à lui,
+  dans `.latex-preview/history.git` au sein du projet — l'historique suit donc le dossier quand il
+  est déplacé, copié ou supprimé, et `git` lancé là continue de dire qu'il n'y a pas de dépôt.

@@ -26,6 +26,7 @@ WASM TeX Live 엔진(`texlyre-busytex`, 그 이전의 SwiftLaTeX)은 **브라우
 - `src/preview/diffViewPage.ts` — `show_diff`가 diff를 이미지로 돌려주기 위해 스크린샷을 찍는 숨겨진 페이지.
 - `src/project/*` — `resolveMainFile`(`\documentclass` 찾기), `collectProjectFiles`(프로젝트 트리 수집), `compileProject`(공용 컴파일), `parseLog`(TeX 로그 → `{file, line, message}`).
 - `src/export/overleafZip.ts` — 깨끗한 빌드 입력 zip 생성(컴파일된 PDF, `.git`, `.latex-preview` 제외). `/export.zip`과 Overleaf의 "Upload Project"용.
+- `src/git/historyRepo.ts` —— 프로젝트의 이력을 어디에 둘지 결정합니다. 이미 git 저장소면 이력은 그 안의 숨겨진 ref 에 그대로 두고, 평범한 폴더에는 `.latex-preview/history.git` 에 우리 소유의 저장소를 만들어 프로젝트 자체를 작업 트리로 씁니다 —— 그래서 이력이 경로가 아니라 논문을 따라다니며, 폴더의 이동·복사·삭제와 함께 움직이고, 거기서 `git` 을 실행해도 여전히 저장소가 아니라고 나옵니다. 0.1.9 이전 이력은 경로 해시를 키로 사용자별 캐시에 있었습니다. 기록된 바이트가 디스크의 어떤 파일과 아직 일치할 때만 가져오므로, 재사용된 경로가 다른 프로젝트의 checkpoint 를 물려받는 일은 없습니다.
 - `src/git/checkpoints.ts` — Zed 스타일 자동 체크포인트. 컴파일이 성공할 때마다 임시 index(`GIT_INDEX_FILE`)를 써서 작업 트리를 **숨겨진 ref**(`refs/latex-preview/checkpoints`) 아래의 평행 커밋 체인으로 스냅샷하므로, 사용자의 작업 트리 / index / HEAD / 브랜치는 절대 건드리지 않습니다. 변경을 일으키는 모든 연산(`createCheckpoint`, `restoreCheckpoint`, `restoreFile`)은 `lock.ts` 아래에서 실행됩니다. diff와 체크포인트 목록은 `.latex-preview/` 와 `.claude/` 를 제외합니다(git exclude pathspec) — 둘 다 논문의 일부가 아닙니다.
 - `src/git/remote.ts` — GitHub 원격(있다면)을 파싱해 공개 저장소용 Open-in-Overleaf 링크를 만듭니다.
 - `src/coordinator.ts` — **한 프로세스 내부**의 모든 컴파일(도구 + 감시자)을 하나의 promise 체인으로 직렬화하고, 성공할 때마다 git 체크포인트를 만듭니다. 공유 상태의 크로스 프로세스 직렬화는 `lock.ts`의 일이지 여기가 아닙니다 — coordinator는 WASM 엔진만 담당하고, 엔진 자체가 프로세스당 하나입니다.

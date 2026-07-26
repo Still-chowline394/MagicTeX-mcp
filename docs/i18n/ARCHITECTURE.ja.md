@@ -26,6 +26,7 @@ WASM 版の TeX Live エンジン（`texlyre-busytex`、その前身の SwiftLaT
 - `src/preview/diffViewPage.ts` — `show_diff` が差分を画像として返すためにスクリーンショットを撮る隠しページ。
 - `src/project/*` — `resolveMainFile`（`\documentclass` を探す）、`collectProjectFiles`（プロジェクトツリーの収集）、`compileProject`（共通のコンパイル処理）、`parseLog`（TeX ログ → `{file, line, message}`）。
 - `src/export/overleafZip.ts` — きれいなビルド入力 zip を構築（コンパイル済み PDF、`.git`、`.latex-preview` を除外）。`/export.zip` と Overleaf の「Upload Project」用。
+- `src/git/historyRepo.ts` —— プロジェクトの履歴をどこに置くかを決めます。すでに git リポジトリなら履歴はその内部の隠し ref のまま。ただのフォルダには `.latex-preview/history.git` に置かれた自前のリポジトリを与え、プロジェクト自身を作業ツリーにします——つまり履歴はパスではなく論文に付いて回り、フォルダの移動・コピー・削除と一緒に動き、そこで `git` を実行しても「リポジトリではない」ままです。0.1.9 より前の履歴はパスのハッシュをキーにしてユーザーごとのキャッシュに置かれていました。記録されたバイト列がディスク上のファイルと今も一致する場合にだけ引き継ぐので、使い回されたパスが別プロジェクトの checkpoint を継承することはありません。
 - `src/git/checkpoints.ts` — Zed 風の自動チェックポイント。コンパイル成功のたびに、一時 index（`GIT_INDEX_FILE`）を使って作業ツリーを**隠し ref**（`refs/latex-preview/checkpoints`）配下の並行コミットチェーンにスナップショットするため、ユーザーの作業ツリー / index / HEAD / ブランチには一切触れません。変更を伴う操作（`createCheckpoint`、`restoreCheckpoint`、`restoreFile`）はすべて `lock.ts` の下で実行。差分とチェックポイント一覧は `.latex-preview/` と `.claude/` を除外します（git の exclude pathspec）——どちらも論文の一部ではありません。
 - `src/git/remote.ts` — GitHub リモート（あれば）を解析し、公開リポジトリ向けの Open-in-Overleaf リンクを構築。
 - `src/coordinator.ts` — **1 プロセス内**のすべてのコンパイル（ツール + 監視）を 1 本の promise チェーンで直列化し、成功のたびに git チェックポイントを作成します。共有状態のクロスプロセス直列化は `lock.ts` の仕事であってここではありません——coordinator が担うのは WASM エンジンだけで、それ自体がプロセスごとに 1 つです。
