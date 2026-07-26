@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import '../mathSumPrecise'; // must precede pdfjs — see the file for why
 import * as pdfjs from 'pdfjs-dist';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { createComment, type Comment } from '../api';
 import { normalize, phrase } from '../sync';
 import { groupLines, columnsFromTextItems } from '../lines';
@@ -14,7 +15,37 @@ import { groupLines, columnsFromTextItems } from '../lines';
 // worker's global before loading pdf.js's worker. Patching the main thread
 // alone leaves the font/layout half of pdf.js still calling a method Safari
 // does not have, which blanked the PDF pane.
-pdfjs.GlobalWorkerOptions.workerPort = new Worker(new URL('../pdfWorker.ts', import.meta.url), { type: 'module' });
+//
+// But `workerPort` is not a drop-in for `workerSrc`. Inside pdf.js, the
+// workerSrc path (#initialize) wraps worker creation in try/catch, registers an
+// 'error' listener, and falls back to #setupFakeWorker() — running the parser on
+// the main thread — if anything goes wrong. The workerPort path
+// (#initializeFromPort) does none of that: it attaches a message handler and
+// resolves. So a worker that fails to start left `getDocument().promise`
+// permanently unsettled: no pages, no error, and the render pane stuck on
+// "waiting for first compile…" forever. Strictly worse than the bare message the
+// diagnostics work set out to improve.
+//
+// So the fallback is rebuilt here. Construction is wrapped, and an 'error' from
+// the worker hands pdf.js back its own workerSrc path, which brings its fake
+// worker with it — and the main thread already has the polyfill installed by the
+// import above, so the fallback is not the broken configuration either.
+try {
+  const worker = new Worker(new URL('../pdfWorker.ts', import.meta.url), { type: 'module' });
+  worker.addEventListener('error', (e) => {
+    console.error('[MagicTeX] the pdf.js worker failed to start; falling back to pdf.js\'s own worker', e);
+    pdfjs.GlobalWorkerOptions.workerPort = null;
+    pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+  });
+  pdfjs.GlobalWorkerOptions.workerPort = worker;
+} catch (e) {
+  // A CSP that blocks worker-src, or any environment without `Worker`. Throwing
+  // here would take the whole app down, because this runs at module scope on an
+  // import App.tsx makes unconditionally — a blank workspace instead of a blank
+  // PDF pane.
+  console.error('[MagicTeX] could not construct the pdf.js worker; using pdf.js\'s own', e);
+  pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+}
 
 const MIN_SCALE = 0.4;
 const MAX_SCALE = 3;
