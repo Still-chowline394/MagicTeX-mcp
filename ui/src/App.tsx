@@ -118,6 +118,21 @@ export default function App() {
         openCount={comments.filter((c) => c.status !== 'resolved').length}
         onToggleComments={() => setRightOpen((o) => !o)}
       />
+      {/* A window whose server has stopped keeps showing that server's last
+          render — including its last error. Not dismissible and above everything
+          else, because the failure mode is someone reading a stale error as a
+          current one: that happened, and a real bug was reported off a dead tab
+          while a live instance compiled the same paper fine on another port.
+          Every start binds a fresh port, so this window cannot recover. */}
+      {status === 'stopped' && (
+        <div className="banner-dead" role="alert">
+          <strong>This window is no longer live.</strong>{' '}
+          The MagicTeX server it was connected to has stopped, so everything below is a
+          snapshot from when it did — <em>including any error message</em>. Ask Claude to
+          render a preview again; that opens a new window at a new address. This one can be
+          closed.
+        </div>
+      )}
       {/* Losing the change record is not a footnote. Someone letting an agent
           edit their paper should learn that nothing is being recorded before
           they need to look something up, not when they open a tab they may

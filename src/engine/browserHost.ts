@@ -140,7 +140,9 @@ export async function shutdownEngine() {
   }
   if (serverStarted) {
     const preview = await serverStarted.catch(() => null);
-    preview?.server.close();
+    // `close()`, not `server.close()`: the latter waits on open WebSockets, which
+    // never close on their own, so it hung forever and the tabs were never told.
+    await preview?.close().catch(() => {});
   }
   serverStarted = null;
   browserStarted = null;

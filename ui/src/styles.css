@@ -300,6 +300,18 @@ button.ghost.tiny { font-size: 11px; padding: 1px 6px; margin-left: auto; }
 .banner-warn a { color: #ffdf9b; }
 .banner-warn .ghost { margin-left: auto; color: #ffcf6b; }
 
+/* A dead window. Red rather than amber, and not dismissible: the amber banner
+   says something is degraded while the workspace still tells you the truth,
+   whereas this says nothing on screen is current any more. Mistaking the second
+   for the first is what sent a stale error into a bug report. */
+.banner-dead {
+  padding: 10px 14px; line-height: 1.5; font-size: 13px;
+  color: #ffb4a8; background: #331715; border-bottom: 1px solid #6b2b23;
+}
+.banner-dead strong { color: #ffd7d0; }
+.banner-dead em { color: #ffd7d0; font-style: normal; font-weight: 600; }
+.status-stopped { color: #ff9a8a; font-weight: 600; }
+
 /* Marker on the History tab, so the state is visible without opening it. */
 .tab-warn {
   display: inline-flex; align-items: center; justify-content: center;
