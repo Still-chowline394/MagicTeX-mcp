@@ -1,7 +1,7 @@
 {
   "name": "magictex",
   "displayName": "MagicTeX",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "MagicTeX — a LaTeX editor for AI agents: live PDF preview, PDF comments that drive edits, a Visual (WYSIWYG) mode, and git-tracked history, with slash commands to run it hands-off.",
   "author": {
     "name": "ZoeLinUTS",
