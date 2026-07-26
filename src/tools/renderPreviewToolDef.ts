@@ -13,6 +13,10 @@ export const renderPreviewInputSchema = {
     .enum(['pdflatex', 'xelatex', 'lualatex'])
     .optional()
     .describe('TeX engine. Defaults to xelatex.'),
+  shellEscape: z
+    .boolean()
+    .optional()
+    .describe('Let the document run external programs (LaTeX shell-escape) — needed by \\includesvg (Inkscape), minted (Pygments) and similar. Off by default: it lets a .tex execute shell commands, so enable it only for sources you trust. Has no effect on the wasm backend, which cannot run subprocesses at all.'),
   backend: z
     .enum(['wasm', 'system', 'auto'])
     .optional()

@@ -12,6 +12,10 @@ interface Config {
   mainFile?: string;
   engine?: Engine;
   backend?: Backend;
+  /** Passed through to the system backend. Sticky across watcher-triggered
+   *  recompiles, so a file save doesn't silently drop back to a build the
+   *  document can't complete. */
+  shellEscape?: boolean;
 }
 
 let config: Config | null = null;
