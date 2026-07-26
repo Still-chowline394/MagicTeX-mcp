@@ -17,17 +17,20 @@ import { latex } from 'codemirror-lang-latex';
 import { normalize, phrase, stripLatex } from '../sync';
 import { visualMode } from '../visual';
 import { FileTree } from './FileTree';
+import { saveFile } from '../api';
 
 const LIVE_DEBOUNCE_MS = 1200; // Live mode: recompile this long after you stop typing
 const AUTOSAVE_MS = 30000;      // safety net: persist edits (no recompile) every 30s
 interface SyncTarget { text: string; nonce: number }
 
 export function SourcePanel({
-  reloadTick, syncTarget, onSyncToPdf,
+  reloadTick, syncTarget, onSyncToPdf, dead = false,
 }: {
   reloadTick: number;
   syncTarget?: SyncTarget | null;
   onSyncToPdf?: (text: string) => void;
+  /** The server this window came from has stopped; writes cannot land. */
+  dead?: boolean;
 }) {
   const [files, setFiles] = useState<string[]>([]);
   const [active, setActive] = useState<string | null>(null);
@@ -44,6 +47,9 @@ export function SourcePanel({
   useEffect(() => { localStorage.setItem('ws-tree-h', String(treeHeight)); }, [treeHeight]);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'compiling' | 'error'>('idle');
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Why the save failed, not just that it did. 'save failed' next to a
+  // working-looking editor told the user nothing about their unsaved text.
+  const [saveError, setSaveError] = useState<string | null>(null);
   const contentRef = useRef(content);
   contentRef.current = content;
   const activeRef = useRef(active);
@@ -103,14 +109,19 @@ export function SourcePanel({
     if (!path) return;
     setSaveState('saving');
     try {
-      const r = await fetch(`/api/file?path=${encodeURIComponent(path)}&compile=${compile ? 1 : 0}`, { method: 'PUT', body: contentRef.current });
-      if (!r.ok) throw new Error(await r.text());
+      // Through the api helper, which refuses when the server has said goodbye.
+      // This was the one write that used `fetch` directly, so it was the one with
+      // no guard — and the one where failing quietly costs the user their text
+      // rather than a click. The old bare `catch` turned that into a small
+      // "save failed" chip beside an editor that still looked like it worked.
+      await saveFile(path, contentRef.current, compile);
       cache.current.set(path, contentRef.current);
       setDirty(false);
       setSaveState(compile ? 'compiling' : 'saved');
       setTimeout(() => setSaveState((s) => (s === 'saved' || s === 'compiling' ? 'idle' : s)), 2000);
-    } catch {
+    } catch (e) {
       setSaveState('error');
+      setSaveError(e instanceof Error ? e.message : 'save failed');
     }
   }, []);
 
@@ -126,10 +137,13 @@ export function SourcePanel({
 
   // Safety-net auto-save every 30s when not in Live mode: persist edits to disk
   // WITHOUT recompiling, so you don't lose work but the PDF only rebuilds on demand.
+  // Not while the window is dead: the write cannot land, and retrying it every
+  // 30s only produces a stream of failures behind an editor that looks fine.
   useEffect(() => {
+    if (dead) return;
     const iv = setInterval(() => { if (dirtyRef.current && !liveRef.current) void save(false); }, AUTOSAVE_MS);
     return () => clearInterval(iv);
-  }, [save]);
+  }, [save, dead]);
 
   useEffect(() => () => { if (autoTimer.current) clearTimeout(autoTimer.current); }, []);
   useEffect(() => { localStorage.setItem('ws-live', live ? '1' : '0'); }, [live]);
@@ -255,8 +269,11 @@ export function SourcePanel({
               <button className={visual ? 'on' : ''} onClick={() => setVisual(true)}>Visual</button>
             </span>
             <span className="spacer" />
-            <span className={`save-state save-${saveState}`}>
-              {saveState === 'saving' ? 'saving…' : saveState === 'compiling' ? '✓ saved — recompiling' : saveState === 'saved' ? '✓ saved' : saveState === 'error' ? 'save failed' : ''}
+            {/* "save failed" beside a working-looking editor understated it: the
+                text is not on disk. The reason goes in the tooltip, since when
+                the server has stopped the reason is the only actionable part. */}
+            <span className={`save-state save-${saveState}`} title={saveError ?? undefined}>
+              {saveState === 'saving' ? 'saving…' : saveState === 'compiling' ? '✓ saved — recompiling' : saveState === 'saved' ? '✓ saved' : saveState === 'error' ? '⚠ NOT saved' : ''}
             </span>
             <button
               className={wrap ? 'on' : ''}

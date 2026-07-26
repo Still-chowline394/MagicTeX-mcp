@@ -36,24 +36,54 @@ export interface Comment {
   resolvedNote?: string;
 }
 
+/**
+ * Whether the server this page was loaded from has stopped for good.
+ *
+ * It lives here, not in a component, because every panel already goes through
+ * this module and none of them were told. The dead-window banner was threaded to
+ * the toolbar alone, so the editor kept autosaving into a closed port, History
+ * kept offering a destructive restore, and Comments kept accepting replies —
+ * each failing into a bare `catch` or no catch at all. One guard at the choke
+ * point covers all of them.
+ */
+let serverGone = false;
+
+export class ServerGoneError extends Error {
+  constructor() {
+    super('The MagicTeX server this window was connected to has stopped. Ask Claude to render a preview again — that opens a new window.');
+    this.name = 'ServerGoneError';
+  }
+}
+
+export function isServerGone(): boolean { return serverGone; }
+
+/** Refuse a write that cannot land, with a message worth showing. */
+function requireLive(): void {
+  if (serverGone) throw new ServerGoneError();
+}
+
 export async function fetchComments(): Promise<Comment[]> {
   const r = await fetch('/api/comments');
   return r.ok ? r.json() : [];
 }
 
 export async function createComment(input: { page: number; quote: string; rects: CommentRect[]; text: string }): Promise<void> {
+  requireLive();
   await fetch('/api/comments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
 }
 
 export async function patchComment(id: string, patch: { status?: CommentStatus; text?: string }): Promise<void> {
+  requireLive();
   await fetch(`/api/comments?id=${encodeURIComponent(id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) });
 }
 
 export async function removeComment(id: string): Promise<void> {
+  requireLive();
   await fetch(`/api/comments?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
 
 export async function replyComment(id: string, text: string): Promise<void> {
+  requireLive();
   await fetch(`/api/comments/reply?id=${encodeURIComponent(id)}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, by: 'human' }),
   });
@@ -77,12 +107,14 @@ export async function fetchDiff(sha: string): Promise<string> {
 
 /** Restore the working tree to a checkpoint (revert). Returns an error string or null. */
 export async function restoreCheckpoint(sha: string): Promise<string | null> {
+  if (serverGone) return new ServerGoneError().message;
   const r = await fetch(`/git/restore?sha=${encodeURIComponent(sha)}`, { method: 'POST' });
   return r.ok ? null : (await r.text()) || 'restore failed';
 }
 
 /** Restore a single file to a checkpoint version. Returns an error string or null. */
 export async function restoreFile(sha: string, path: string): Promise<string | null> {
+  if (serverGone) return new ServerGoneError().message;
   const r = await fetch(`/git/restore-file?sha=${encodeURIComponent(sha)}&path=${encodeURIComponent(path)}`, { method: 'POST' });
   return r.ok ? null : (await r.text()) || 'restore failed';
 }
@@ -120,19 +152,37 @@ export async function fetchTree(): Promise<TreeNode[]> {
 }
 /** Upload a figure/asset to `path` (relative to the project root). */
 export async function uploadFile(path: string, file: File): Promise<string | null> {
+  if (serverGone) return new ServerGoneError().message;
   const r = await fetch(`/api/upload?path=${encodeURIComponent(path)}`, { method: 'POST', body: await file.arrayBuffer() });
   return r.ok ? null : (await r.text()) || 'upload failed';
 }
 /** File-system op: mkfile | mkdir | rename | delete. Returns an error string or null. */
 export async function fsOp(op: string, path: string, to?: string): Promise<string | null> {
+  if (serverGone) return new ServerGoneError().message;
   const r = await fetch('/api/fs', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ op, path, to }),
   });
   return r.ok ? null : (await r.text()) || 'operation failed';
 }
 
+/**
+ * Write a project file. `compile` is Ctrl+S / Save; a bare autosave passes false.
+ *
+ * The editor used to call `fetch` directly, so it was the one write with no
+ * guard — and the one where failing silently costs the user their text rather
+ * than a click.
+ */
+export async function saveFile(path: string, content: string, compile: boolean): Promise<void> {
+  requireLive();
+  const r = await fetch(`/api/file?path=${encodeURIComponent(path)}&compile=${compile ? 1 : 0}`, {
+    method: 'PUT', body: content,
+  });
+  if (!r.ok) throw new Error((await r.text()) || 'save failed');
+}
+
 /** Trigger a compile now (the toolbar's manual "Recompile"). */
 export async function recompile(): Promise<void> {
+  requireLive();
   try { await fetch('/api/recompile', { method: 'POST' }); } catch { /* ignore */ }
 }
 
@@ -162,22 +212,35 @@ export function useLive(onMessage?: (m: WsMessage) => void) {
 
   useEffect(() => {
     let ws: WebSocket | null = null;
-    let closed = false;
-    let stopped = false; // the server said goodbye, or has stayed gone
-    let attempts = 0;
-    // Roughly ten seconds of retrying. A restart on the same port reconnects well
-    // inside that; anything longer and the server is not coming back to this
-    // port, because every start binds a fresh one.
-    const GIVE_UP_AFTER = 10;
+    let closed = false;   // this component unmounted
+    let farewell = false; // the server said goodbye — final, never retried
+    let downSince = 0;    // wall clock, not an attempt count
+    let retry: ReturnType<typeof setTimeout> | null = null;
+
+    // Judged by elapsed time, not by number of attempts. Counting attempts
+    // assumed each retry costs a second, which is false in two directions: a
+    // slept laptop fires every overdue timer at once, so eleven failures could
+    // land in a moment and declare a *live* server dead; and a hidden tab is
+    // throttled to about one timer a minute, so ten attempts could span ten
+    // minutes on a server that was already gone.
+    const GIVE_UP_MS = 10_000;
+
     const connect = () => {
       ws = new WebSocket(`ws://${location.host}`);
-      ws.onopen = () => { attempts = 0; setStatus('connected'); };
+      ws.onopen = () => {
+        // Recovery. `stopped` used to latch with no way back, so one bad patch
+        // of network left a working window permanently disabled until a manual
+        // reload. A socket that opens is proof the server is there.
+        downSince = 0;
+        setStatus('connected');
+      };
       ws.onmessage = (ev) => {
         const msg = JSON.parse(ev.data) as WsMessage;
         if (msg.type === 'server-closing') {
           // An explicit goodbye: no point retrying, and no point pretending the
           // pane's contents still mean anything.
-          stopped = true;
+          farewell = true;
+          serverGone = true;
           setStatus('stopped');
           return;
         }
@@ -195,16 +258,26 @@ export function useLive(onMessage?: (m: WsMessage) => void) {
         cbRef.current?.(msg);
       };
       ws.onclose = () => {
-        if (closed || stopped) return;
-        // Retrying forever is why a dead tab was indistinguishable from a live
-        // one: it looks busy rather than finished.
-        if (++attempts > GIVE_UP_AFTER) { stopped = true; setStatus('stopped'); return; }
-        setStatus('disconnected');
-        setTimeout(connect, 1000);
+        if (closed || farewell) return;
+        downSince ||= Date.now();
+        // Down long enough to say so — but keep retrying underneath. Retrying
+        // forever *silently* is what made a dead tab look busy rather than
+        // finished; giving up entirely is what made a live one unusable after a
+        // network blip. Say "stopped", keep knocking.
+        setStatus(Date.now() - downSince >= GIVE_UP_MS ? 'stopped' : 'disconnected');
+        retry = setTimeout(connect, 1000);
       };
     };
     connect();
-    return () => { closed = true; ws?.close(); };
+    return () => {
+      closed = true;
+      // The pending retry has to go too. Without this an unmount inside the
+      // one-second window still fired connect(), opening a socket that nothing
+      // owned or closed — leaked into the server's client set, where it then
+      // held up the server's own shutdown.
+      if (retry) clearTimeout(retry);
+      ws?.close();
+    };
   }, []);
 
   return { status, errorLog, reloadTick, pdfName };

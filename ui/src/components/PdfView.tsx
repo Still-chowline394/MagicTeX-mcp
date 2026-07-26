@@ -138,6 +138,12 @@ export function PdfView({
       setRenderTick((t) => t + 1);
       scroller.scrollTop = ratio * scroller.scrollHeight;
     })().catch((e) => {
+      // A superseded run must not speak. Every other exit in this effect is gated
+      // on `cancelled`; the catch was not, so a run abandoned by a zoom click or
+      // a reload could reject AFTER a newer run had rendered fine and paint a
+      // full failure report over it — styled, deliberately, to be screenshotted
+      // into a bug report. The reporting work manufacturing false reports.
+      if (cancelled) { console.warn('[MagicTeX] superseded render failed during: ' + step, e); return; }
       // The console gets the error object itself, so DevTools can offer a real
       // clickable stack; the pane gets a report someone can screenshot. A
       // screenshot is what actually reaches a maintainer, so it has to carry
