@@ -134,6 +134,14 @@ MagicTeX 是免费开源的（AGPL-3.0）。如果它为你的论文节省了时
 **[赞助本项目](https://github.com/sponsors/ZoeLinUTS)**，这将支持它持续开发。给仓库点个
 ⭐ 也很有帮助。
 
+## 致谢
+
+MagicTeX 由 [Zoe Lin](https://zoelin.dev) 编写和维护，使用 **[Claude Code](https://claude.com/claude-code)** 开发。
+
+感谢 **David Turnbull**，是他告诉我 Knuth 宁可花十年自己造一套排版系统，也不接受自己
+的书排成那样 —— 这个项目至今仍在跟这个故事较劲。也感谢 [`texlyre-busytex`](https://github.com/TeXlyre/texlyre-busytex) 的维护者们，没有那份
+WASM 版 TeX Live，这里在本地一行都跑不起来。
+
 ## 许可证
 
 [AGPL-3.0-or-later](../../LICENSE)——与其所依赖的 `texlyre-busytex` 引擎保持一致。
