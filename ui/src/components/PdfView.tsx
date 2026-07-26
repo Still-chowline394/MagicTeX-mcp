@@ -4,13 +4,17 @@
 // A control strip provides Overleaf-style zoom + page navigation; the render
 // scale is state, and highlights are stored at scale 1 and projected by it.
 import { useCallback, useEffect, useRef, useState } from 'react';
+import '../mathSumPrecise'; // must precede pdfjs — see the file for why
 import * as pdfjs from 'pdfjs-dist';
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { createComment, type Comment } from '../api';
 import { normalize, phrase } from '../sync';
 import { groupLines, columnsFromTextItems } from '../lines';
 
-pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+// Our own worker module: it installs the Math.sumPrecise polyfill into the
+// worker's global before loading pdf.js's worker. Patching the main thread
+// alone leaves the font/layout half of pdf.js still calling a method Safari
+// does not have, which blanked the PDF pane.
+pdfjs.GlobalWorkerOptions.workerPort = new Worker(new URL('../pdfWorker.ts', import.meta.url), { type: 'module' });
 
 const MIN_SCALE = 0.4;
 const MAX_SCALE = 3;
