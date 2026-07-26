@@ -23,6 +23,7 @@ import { type Engine, type Backend } from './project/compileProject.js';
 import { MainFileError } from './project/resolveMainFile.js';
 import { summarizeErrors } from './project/parseLog.js';
 import { INSTALL_TEX_HELP, systemFallbackNote } from './engine/systemTex.js';
+import { blockedToolHelp } from './engine/compileLog.js';
 
 const PKG_ROOT = fileURLToPath(new URL('..', import.meta.url));
 
@@ -43,11 +44,11 @@ let viewerOpened = false;
 let historyWarned = false;
 
 
-server.registerTool(RENDER_PREVIEW_NAME, renderPreviewConfig, async ({ mainFile, engine, backend }) => {
+server.registerTool(RENDER_PREVIEW_NAME, renderPreviewConfig, async ({ mainFile, engine, backend, shellEscape }) => {
   const projectRoot = process.cwd();
   try {
     const preview = await getPreview();
-    setConfig({ projectRoot, mainFile, engine: engine as Engine | undefined, backend: backend as Backend | undefined });
+    setConfig({ projectRoot, mainFile, engine: engine as Engine | undefined, backend: backend as Backend | undefined, shellEscape: shellEscape as boolean | undefined });
     startWatching(projectRoot); // passive live-reload for saves between tool calls
 
     const result = await requestCompile();
@@ -113,13 +114,17 @@ server.registerTool(RENDER_PREVIEW_NAME, renderPreviewConfig, async ({ mainFile,
     }
 
     // Compile failed — return parsed errors so Claude can self-correct.
+    const blockedTools = result.verdict?.blockedTools ?? [];
+    const toolHint = blockedTools.length
+      ? `\n\n${blockedToolHelp(blockedTools, result.backend, shellEscape === true)}`
+      : '';
     const missingCls = result.verdict?.missingClasses ?? [];
     const clsHint = missingCls.length
       ? `\n\nThe document class ${missingCls.map((c) => `\`${c}.cls\``).join(', ')} is not in the bundled TeX Live subset, and a class cannot be stubbed the way an unused package can. Put the .cls next to the source — for a conference paper it comes with the author kit, and Overleaf projects can download it.${result.backend === 'system' ? '' : `\n\nA local TeX install would also have it, and MagicTeX picks one up automatically.\n\n${INSTALL_TEX_HELP}`}`
       : '';
     return {
       isError: true,
-      content: [{ type: 'text', text: `✖ Compile of ${result.mainFile} failed (${result.engine}).\n\n${summarizeErrors(result.log || result.error || '')}${clsHint}` }],
+      content: [{ type: 'text', text: `✖ Compile of ${result.mainFile} failed (${result.engine}).\n\n${summarizeErrors(result.log || result.error || '')}${toolHint}${clsHint}` }],
     };
   } catch (err) {
     const msg = err instanceof MainFileError ? err.message : String((err as Error).message ?? err);

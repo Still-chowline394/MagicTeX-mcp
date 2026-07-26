@@ -34,6 +34,9 @@ export interface CompileProjectOptions {
   mainFile?: string;
   engine?: Engine;
   backend?: Backend;
+  /** Let the document run external programs. System backend only — the WASM
+   *  engine has no subprocesses, so it is silently irrelevant there. */
+  shellEscape?: boolean;
 }
 
 export async function compileProject(opts: CompileProjectOptions): Promise<CompileProjectResult> {
@@ -67,7 +70,7 @@ export async function compileProject(opts: CompileProjectOptions): Promise<Compi
     if (backend === 'system' && !(await hasSystemTex())) {
       return { success: false, pdf: undefined, pdfLen: 0, log: '', ms: 0, error: `backend "system" was requested, but no local TeX was found — looked for \`latexmk\` on PATH.\n\n${INSTALL_TEX_HELP}`, mainFile, engine, backend: 'system', fileCount: files.length, truncated };
     }
-    const out = await compileWithSystemTex(opts.projectRoot, main ? main.path : mainFile, engine);
+    const out = await compileWithSystemTex(opts.projectRoot, main ? main.path : mainFile, engine, opts.shellEscape ?? false);
     const sysVerdict = classifyCompile(out.log ?? '', out.pdfLen);
 
     // Keep the system result whenever it produced something usable — a real TeX

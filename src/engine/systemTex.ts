@@ -96,11 +96,19 @@ const ENGINE_FLAG: Record<Engine, string> = {
 
 /** Compile `mainRelPath` (relative to `root`) with local latexmk; artifacts go
  *  under .latex-preview/build so the project tree stays clean. */
-export async function compileWithSystemTex(root: string, mainRelPath: string, engine: Engine): Promise<CompileOutput> {
+export async function compileWithSystemTex(root: string, mainRelPath: string, engine: Engine, shellEscape = false): Promise<CompileOutput> {
   const started = Date.now();
   const outdir = join(root, '.latex-preview', 'build');
   await mkdir(outdir, { recursive: true });
-  const args = [ENGINE_FLAG[engine] ?? '-pdf', '-interaction=nonstopmode', '-file-line-error', `-outdir=${outdir}`, mainRelPath];
+  // -shell-escape lets the document execute arbitrary shell commands, so it is
+  // opt-in per call rather than a default. Packages like svg and minted cannot
+  // work without it, and the user is the only one who can say whether this
+  // particular source is trusted.
+  const args = [
+    ENGINE_FLAG[engine] ?? '-pdf', '-interaction=nonstopmode', '-file-line-error',
+    ...(shellEscape ? ['-shell-escape'] : []),
+    `-outdir=${outdir}`, mainRelPath,
+  ];
   try {
     const { stdout, stderr } = await pexec('latexmk', args, { cwd: root, timeout: 180_000, maxBuffer: 32 * 1024 * 1024 });
     const pdfPath = join(outdir, basename(mainRelPath).replace(/\.tex$/i, '') + '.pdf');

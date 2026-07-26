@@ -22,7 +22,50 @@ export type CompileVerdict = {
   missingPackages: string[];
   /** Document classes LaTeX couldn't find — these can't be stubbed away. */
   missingClasses: string[];
+  /** External programs the document tried to run and was refused. Tracked apart
+   *  from the errors because the fix depends entirely on which backend ran. */
+  blockedTools: string[];
 };
+
+/**
+ * Documents that shell out: `svg` runs Inkscape, `minted` runs Pygments,
+ * `gnuplottex` runs gnuplot. Every one of them surfaces as a *missing file*,
+ * which is the least useful description available — the file is missing because
+ * the program that writes it was never allowed to run.
+ *
+ * Patterns lifted from a real failing log, not written from memory. A detection
+ * string that doesn't match is a feature that silently doesn't exist.
+ */
+const BLOCKED_TOOL_SIGNS: [RegExp, string][] = [
+  [/wasn't possible to launch the Inkscape export/i, 'Inkscape'],
+  [/Package svg Error: File `.*_svg-tex\.pdf' is missing/i, 'Inkscape'],
+  [/Package minted Error: You must invoke LaTeX with the -shell-escape flag/i, 'Pygments'],
+  [/runsystem\([^)]*\)\.{3}disabled/i, 'an external program'],
+];
+
+/**
+ * What to do about a refused external program — which is a different answer on
+ * each backend, and that difference is the whole reason this exists.
+ *
+ * The bundled engine has no subprocesses at all, so telling a WASM user to
+ * enable shell-escape sends them to do something that cannot possibly help. It
+ * would be the same shape of mistake as naming `latexmk` and stopping.
+ *
+ * The pre-export route leads on wasm and trails on system because it is the only
+ * one that works on both, and it removes a build dependency instead of adding
+ * one.
+ */
+export function blockedToolHelp(tools: string[], backend: 'wasm' | 'system', shellEscape: boolean): string {
+  if (!tools.length) return '';
+  const what = tools.join(' and ');
+  if (backend === 'wasm') {
+    return `This document runs ${what} to build a figure, and the bundled WASM engine cannot run external programs at all — it has no subprocesses, so no flag will enable it.\n\nExport the figure to PDF once and use \\includegraphics, which needs nothing at build time. Or compile with backend: "system" and shellEscape: true, on a machine that has ${what} installed.`;
+  }
+  if (!shellEscape) {
+    return `This document runs ${what} to build a figure, which LaTeX refuses unless shell-escape is on.\n\nRe-run with shellEscape: true — note that this lets the document execute shell commands, so only use it on sources you trust. Or export the figure to PDF once and use \\includegraphics, which needs neither shell-escape nor ${what}.`;
+  }
+  return `Shell-escape is on, so LaTeX was allowed to run ${what}, but the run still failed — most likely ${what} isn't installed or isn't on PATH. Installing it fixes this; exporting the figure to PDF once and using \\includegraphics avoids needing it at all.`;
+}
 
 const FATAL = [
   /^!\s*Emergency stop/m,
@@ -57,6 +100,7 @@ export function classifyCompile(log: string, pdfLen: number): CompileVerdict {
     errors,
     missingPackages: missing('sty'),
     missingClasses: missing('cls'),
+    blockedTools: [...new Set(BLOCKED_TOOL_SIGNS.filter(([re]) => re.test(log)).map(([, tool]) => tool))],
   };
 }
 
