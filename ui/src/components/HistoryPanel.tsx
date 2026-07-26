@@ -1,11 +1,12 @@
 // Left-panel History tab: checkpoint timeline (hidden git ref) + colorized diff.
 // Reuses the existing /git/* endpoints; diff rendered by our own DiffView.
 import { useEffect, useState } from 'react';
-import { fetchCheckpoints, fetchDiff, fetchGitStatus, restoreCheckpoint, restoreFile, type Checkpoint } from '../api';
+import { fetchCheckpoints, fetchDiff, fetchGitStatus, restoreCheckpoint, restoreFile, type Checkpoint, type HistoryMode } from '../api';
 import { DiffView } from './DiffView';
 
 export function HistoryPanel({ reloadTick }: { reloadTick: number }) {
   const [isRepo, setIsRepo] = useState<boolean | null>(null);
+  const [mode, setMode] = useState<HistoryMode | null>(null);
   const [items, setItems] = useState<Checkpoint[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [diff, setDiff] = useState('');
@@ -19,7 +20,7 @@ export function HistoryPanel({ reloadTick }: { reloadTick: number }) {
     // the recompile fires a reload → the effect above refreshes the checkpoint list
   };
 
-  useEffect(() => { fetchGitStatus().then((s) => setIsRepo(s.isRepo)); }, []);
+  useEffect(() => { fetchGitStatus().then((s) => { setIsRepo(s.isRepo); setMode(s.mode); }); }, []);
 
   useEffect(() => {
     if (isRepo === false) return;
@@ -57,6 +58,16 @@ export function HistoryPanel({ reloadTick }: { reloadTick: number }) {
 
   return (
     <div className="history">
+      {/* Say where it is. Someone whose folder isn't a repo gets history that
+          works, then finds `git log` empty with nothing to go on. This is not a
+          warning — the feature is working — so it sits quietly above the
+          timeline rather than as a banner. */}
+      {mode === 'shadow' && (
+        <div className="history-note">
+          Tracked outside your project — this folder isn't a git repository, so history lives
+          in MagicTeX's own cache. Nothing is added to your files, and nothing is pushed anywhere.
+        </div>
+      )}
       <div className="history-list">
         {items.map((c, i) => (
           <div key={c.sha} className={`ck ${c.sha === selected ? 'sel' : ''}`} onClick={() => setSelected(c.sha)}>

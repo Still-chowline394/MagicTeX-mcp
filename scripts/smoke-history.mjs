@@ -117,10 +117,21 @@ console.log(`status: ${JSON.stringify(status2)} · checkpoints: ${Array.isArray(
 // noise is what teaches people to skim past the notes that do matter.
 const gitless = mkdtempSync(join(tmpdir(), 'magictex-gitless-'));
 writeFileSync(join(gitless, 'main.tex'), doc('No git here.'));
-const keep = (process.env.PATH ?? '').split(process.platform === 'win32' ? ';' : ':')
-  .filter((p) => { const l = p.toLowerCase(); return l && !l.includes('git') && !l.includes('mingw') && !l.includes('usr/bin') && !l.includes('usr\bin'); });
-const sep = process.platform === 'win32' ? ';' : ':';
-const strippedEnv = { ...process.env, PATH: keep.join(sep), Path: keep.join(sep) };
+// Hide git without dismantling the machine. Filtering it out of PATH works on
+// Windows but is fatal on macOS, where git lives in /usr/bin alongside
+// everything the server needs — the first compile survived on the runner and
+// the process died before the second. A shim that fails is surgical: only git
+// is affected, every other tool stays exactly where it was.
+function gitlessEnv() {
+  if (process.platform === 'win32') {
+    const keep = (process.env.PATH ?? '').split(';').filter((p) => p && !/git|mingw/i.test(p));
+    return { ...process.env, PATH: keep.join(';'), Path: keep.join(';') };
+  }
+  const shim = mkdtempSync(join(tmpdir(), 'magictex-nogit-shim-'));
+  writeFileSync(join(shim, 'git'), '#!/bin/sh\nexit 127\n', { mode: 0o755 });
+  return { ...process.env, PATH: `${shim}:${process.env.PATH ?? ''}` };
+}
+const strippedEnv = gitlessEnv();
 
 const t3 = new StdioClientTransport({
   command: process.execPath,

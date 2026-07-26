@@ -298,3 +298,10 @@ button.ghost.tiny { font-size: 11px; padding: 1px 6px; margin-left: auto; }
   width: 14px; height: 14px; margin-left: 6px; border-radius: 50%;
   background: #ffcf6b; color: #2a2113; font-size: 10px; font-weight: 700;
 }
+
+/* Where history lives, when it isn't in the project. Informational, not a
+   warning — the feature is working, this only says where to look. */
+.history-note {
+  padding: 8px 14px; font-size: 12px; line-height: 1.5;
+  color: #8b949e; background: #16191d; border-bottom: 1px solid #23262b;
+}
