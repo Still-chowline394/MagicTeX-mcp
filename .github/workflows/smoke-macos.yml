@@ -45,13 +45,13 @@ jobs:
       # rather than silently reuse assets built for the previous release.
       - name: Restore TeX Live WASM assets
         id: assets
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: assets
           key: busytex-assets-${{ hashFiles('package-lock.json') }}
 
       - name: Cache Playwright browsers
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/Library/Caches/ms-playwright
           key: playwright-macos-${{ hashFiles('package-lock.json') }}
@@ -104,7 +104,7 @@ jobs:
 
       - name: Save engine assets for next time
         if: steps.assets.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: assets
           key: busytex-assets-${{ hashFiles('package-lock.json') }}
