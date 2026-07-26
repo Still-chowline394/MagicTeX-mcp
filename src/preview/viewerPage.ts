@@ -43,8 +43,23 @@ export function viewerPageHtml(): string {
           font-family: ui-monospace, monospace; font-size: 11.5px; line-height: 1.4; border-top: 1px solid #1c1c1c; }
   #diff .add { color: #6fbf73; } #diff .del { color: #d07a7a; }
   #diff .hunk { color: #7aa2d0; } #diff .meta { color: #777; }
+  /* Red, not amber, and not dismissible: the amber states mean "degraded but what
+     you see is true"; this means the opposite. Mistaking the second for the first
+     is what sent a stale error into a bug report. */
+  #dead { padding: 10px 14px; line-height: 1.5; font-size: 13px; flex: 0 0 auto;
+          color: #ffb4a8; background: #331715; border-bottom: 1px solid #6b2b23; }
+  #dead strong { color: #ffd7d0; }
+  #dead em { color: #ffd7d0; font-style: normal; font-weight: 600; }
+  #status.dead { color: #ff9a8a; font-weight: 600; }
 </style></head>
 <body>
+  <div id="dead" role="alert" style="display:none">
+    <strong>This window is no longer live.</strong>
+    The MagicTeX server it was connected to has stopped, so everything below is a
+    snapshot from when it did — <em>including any error message</em>. Ask Claude to
+    render a preview again; that opens a new window at a new address. This one can
+    be closed.
+  </div>
   <div id="bar">
     <strong>LaTeX Live Preview</strong>
     <span id="status" class="busy">connecting…</span>
@@ -224,11 +239,34 @@ export function viewerPageHtml(): string {
   });
 
   // ---- WebSocket ----
+  //
+  // This page keeps whatever the server last pushed on screen — including its
+  // last compile error. Every server start binds a fresh port, so once its server
+  // stops it can never reconnect, and a reader has no way to tell a stale error
+  // from a live one. A real bug was filed off a window in exactly that state
+  // while a healthy instance compiled the same paper fine on another port.
+  //
+  // The workspace at /app learned to say so; this page is what render_preview
+  // opens whenever ui/dist has not been built, so it has to say it too.
+  let downSince = 0;
+  let farewell = false;
+  const GIVE_UP_MS = 10000;
+  function markDead() {
+    document.getElementById('dead').style.display = 'block';
+    setStatus('dead', '⚠ this window is no longer live');
+    // The controls that would now fail silently. A button that looks live is
+    // part of what makes a dead window pass for one.
+    for (const id of ['history', 'export', 'download']) {
+      const el = document.getElementById(id);
+      if (el) el.disabled = true;
+    }
+  }
   function connect() {
     const ws = new WebSocket('ws://' + location.host);
-    ws.onopen = () => { setStatus('ok', 'connected'); render(); };
+    ws.onopen = () => { downSince = 0; setStatus('ok', 'connected'); render(); };
     ws.onmessage = (ev) => {
       const msg = JSON.parse(ev.data);
+      if (msg.type === 'server-closing') { farewell = true; markDead(); return; }
       if (msg.type === 'reload') {
         if (msg.name) pdfBase = String(msg.name).split(/[\\\\/]/).pop().replace(/\\.tex$/i, '') || 'preview';
         render();
@@ -241,7 +279,16 @@ export function viewerPageHtml(): string {
         setStatus('busy', 'compiling…');
       }
     };
-    ws.onclose = () => { setStatus('err', 'disconnected'); setTimeout(connect, 1000); };
+    ws.onclose = () => {
+      if (farewell) return;
+      // Judged on elapsed time, not attempts: a slept laptop fires every overdue
+      // timer at once, and a hidden tab is throttled to about one a minute.
+      // Retries continue underneath, so a window that was merely offline recovers.
+      if (!downSince) downSince = Date.now();
+      if (Date.now() - downSince >= GIVE_UP_MS) markDead();
+      else setStatus('err', 'disconnected');
+      setTimeout(connect, 1000);
+    };
   }
   connect();
 </script>

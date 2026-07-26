@@ -95,6 +95,13 @@ jobs:
       - name: Shutting down closes the server and tells open windows
         run: node scripts/smoke-shutdown.mjs
 
+      # /viewer is what render_preview opens when ui/dist is missing — a fresh
+      # clone, or a publish that dropped it. Every other smoke uses /app, so this
+      # fallback had no coverage at all, and shipped without the stale-window
+      # warning the workspace had.
+      - name: The legacy viewer also knows when its server has stopped
+        run: node scripts/smoke-legacy-viewer.mjs
+
       - name: Save engine assets for next time
         if: steps.assets.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
