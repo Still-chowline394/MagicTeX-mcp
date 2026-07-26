@@ -13,25 +13,24 @@
 // time. The floor is a real one — chokidar 5 needs >= 20.19.0 and playwright
 // needs >= 20, so a Node 18 install would start fine and then silently stop
 // live-reloading, which is worse than refusing to run.
-const MIN_MAJOR = 20;
-const MIN_MINOR = 19;
-const [major, minor] = process.versions.node.split('.').map(Number);
-if (major < MIN_MAJOR || (major === MIN_MAJOR && minor < MIN_MINOR)) {
-  console.error(`
-✖ MagicTeX needs Node ${MIN_MAJOR}.${MIN_MINOR} or newer — you are running v${process.versions.node}.
+//
+// The floor is now READ from `engines` rather than restated here. It used to be
+// two hardcoded numbers, and a later change added a second check in
+// src/server.ts with a third — three floors, of which only this one could ever
+// fire (ESM evaluates every `import` before a module body, so on an old Node
+// chokidar throws long before src/server.ts reaches its own check).
+//
+// ./nodeVersion.mjs is written in old syntax on purpose and pulls in nothing, so
+// static-importing it here is safe on the very Node versions being rejected.
+import { readFileSync } from 'node:fs';
+import { floorOf, isBelowFloor, tooOldMessage, exitWithMessage } from './nodeVersion.mjs';
 
-  Install the current LTS from https://nodejs.org/ — the macOS and Windows
-  installers replace your existing Node — then restart your MCP client.
-
-  Using nvm:  nvm install --lts && nvm alias default 'lts/*'
-
-  Note that MCP clients launched from a GUI may not see a nvm-managed Node at
-  all; if that happens, point the "command" in your MCP config at the absolute
-  path from \`which node\`.
-`);
-  process.exit(1);
+const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+const range = pkg.engines && pkg.engines.node;
+if (isBelowFloor(process.versions.node, range)) {
+  exitWithMessage(tooOldMessage(process.versions.node, floorOf(range)), 1);
+} else {
+  const { register } = await import('tsx/esm/api');
+  register();
+  await import(new URL('../src/server.ts', import.meta.url).href);
 }
-
-const { register } = await import('tsx/esm/api');
-register();
-await import(new URL('../src/server.ts', import.meta.url).href);
