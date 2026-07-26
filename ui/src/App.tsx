@@ -76,8 +76,11 @@ export default function App() {
   const [syncToSource, setSyncToSource] = useState<{ text: string; nonce: number } | null>(null);
   // Read once at mount: whether git exists doesn't change under a running server.
   const [historyMode, setHistoryMode] = useState<HistoryMode | null>(null);
+  const [historyDetail, setHistoryDetail] = useState<string | undefined>();
+  // Anything that isn't 'project' or 'shadow' means nothing is being recorded.
+  const noHistory = historyMode === 'no-git' || historyMode === 'unwritable';
   const [warnDismissed, setWarnDismissed] = useState(false);
-  useEffect(() => { fetchGitStatus().then((s) => setHistoryMode(s.mode)); }, []);
+  useEffect(() => { fetchGitStatus().then((s) => { setHistoryMode(s.mode); setHistoryDetail(s.detail); }); }, []);
   const [syncToPdf, setSyncToPdf] = useState<{ text: string; nonce: number } | null>(null);
   const onSyncToSource = useCallback((text: string) => {
     setLeftTab('source');
@@ -119,12 +122,23 @@ export default function App() {
           edit their paper should learn that nothing is being recorded before
           they need to look something up, not when they open a tab they may
           never open. Dismissible, because after you've read it once it's noise. */}
-      {historyMode === 'unavailable' && !warnDismissed && (
+      {noHistory && !warnDismissed && (
         <div className="banner-warn" role="status">
-          <strong>Change history is off.</strong> No <code>git</code> was found on your PATH,
-          so edits aren't being recorded and you can't diff or roll back. Everything else works.
-          Install from <a href="https://git-scm.com/" target="_blank" rel="noreferrer">git-scm.com</a> and
-          restart — no account or remote is involved; the history stays on this machine.
+          <strong>Change history is off.</strong>{' '}
+          {historyMode === 'no-git' ? (
+            <>
+              No <code>git</code> was found on your PATH, so edits aren't being recorded and you
+              can't diff or roll back. Everything else works. Install from{' '}
+              <a href="https://git-scm.com/" target="_blank" rel="noreferrer">git-scm.com</a> and
+              restart — no account or remote is involved; the history stays on this machine.
+            </>
+          ) : (
+            <>
+              MagicTeX couldn't create its history store, so edits aren't being recorded.
+              Everything else works, and <code>git</code> itself is fine — the problem is
+              this path: <code>{historyDetail ?? 'unknown error'}</code>
+            </>
+          )}
           <button className="ghost" onClick={() => setWarnDismissed(true)} title="Dismiss">×</button>
         </div>
       )}
@@ -133,7 +147,7 @@ export default function App() {
           <div className="tabs">
             <button className={leftTab === 'source' ? 'on' : ''} onClick={() => setLeftTab('source')}>Source</button>
             <button className={leftTab === 'history' ? 'on' : ''} onClick={() => setLeftTab('history')}>
-              History{historyMode === 'unavailable' && <span className="tab-warn" title="No git found — nothing is being recorded">!</span>}
+              History{noHistory && <span className="tab-warn" title="Nothing is being recorded — see the banner">!</span>}
             </button>
             <span className="spacer" />
             <button className="ghost" onClick={() => setLeftOpen(false)} title="Collapse">«</button>

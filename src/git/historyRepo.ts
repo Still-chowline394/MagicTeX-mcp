@@ -21,17 +21,28 @@ import { cacheRoot } from '../engine/assetsDir.js';
 import { git, gitOrNull } from './exec.js';
 
 export type HistoryMode =
-  | 'project'      // the project is a git repo; checkpoints go on a hidden ref in it
-  | 'shadow'       // not a repo; history lives in our cache, work tree is the project
-  | 'unavailable'; // no usable git binary — no history is possible
+  | 'project'     // the project is a git repo; checkpoints go on a hidden ref in it
+  | 'shadow'      // not a repo; history lives in our cache, work tree is the project
+  | 'no-git'      // no git binary on PATH
+  | 'unwritable'; // git is fine, but the history store could not be created
 
+/**
+ * Two ways to have no history, and they need different things from the reader:
+ * one is "install git", the other is "look at this path". They were a single
+ * `'unavailable'` state whose message always said the first — so a failed setup
+ * told people to install software they already had, and left them with nowhere
+ * to go after they did.
+ */
 export interface HistoryRepo {
   mode: HistoryMode;
   /** Env to pass to every git call for this project. Empty for 'project'. */
   env: NodeJS.ProcessEnv;
+  /** For 'unwritable': where it tried, and what the OS said back. Both matter —
+   *  a permissions error and a full disk need different responses. */
+  detail?: string;
 }
 
-const UNAVAILABLE: HistoryRepo = { mode: 'unavailable', env: {} };
+const NO_GIT: HistoryRepo = { mode: 'no-git', env: {} };
 
 /** Identity for commits we create. A shadow repo has no user config to inherit,
  *  and `commit-tree` fails outright without one — which would have turned "no
@@ -73,8 +84,8 @@ export async function historyRepo(root: string): Promise<HistoryRepo> {
   if (hit) return hit;
 
   if (!(await hasGit())) {
-    cache.set(root, UNAVAILABLE);
-    return UNAVAILABLE;
+    cache.set(root, NO_GIT);
+    return NO_GIT;
   }
 
   // An existing repo keeps the current behaviour: checkpoints sit on a hidden
@@ -101,11 +112,17 @@ export async function historyRepo(root: string): Promise<HistoryRepo> {
     const resolved: HistoryRepo = { mode: 'shadow', env };
     cache.set(root, resolved);
     return resolved;
-  } catch {
-    // Cache dir unwritable, git refused to init — degrade to no history rather
-    // than failing the compile that triggered this.
-    cache.set(root, UNAVAILABLE);
-    return UNAVAILABLE;
+  } catch (err) {
+    // Degrade to no history rather than failing the compile that triggered this
+    // — but keep why. Reported as "no git found", this sent people to install
+    // software they already had, and left them nowhere to go once they had.
+    const resolved: HistoryRepo = {
+      mode: 'unwritable',
+      env: {},
+      detail: `${dir}: ${(err as Error)?.message ?? String(err)}`,
+    };
+    cache.set(root, resolved);
+    return resolved;
   }
 }
 
