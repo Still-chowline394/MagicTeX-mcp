@@ -120,8 +120,12 @@ There's nothing to clone and no TeX install; `npx` fetches it on first use.
    downloads the WASM TeX Live assets (~480 MB, one time), compiles, and opens the
    live preview tab. Subsequent edits reload it automatically.
 
-The WASM assets are **not** in this repo — they're fetched on first run into
-`assets/`. To pre-fetch them manually: `npx texlyre-busytex download-assets assets`.
+The WASM assets are **not** in this repo. They're fetched on first run into a
+per-user cache — `~/Library/Caches/magictex` on macOS, `$XDG_CACHE_HOME/magictex`
+on Linux, `%LOCALAPPDATA%\magictex` on Windows — so upgrading MagicTeX doesn't
+re-download them, and a checkout, a global install and an `npx` run share one copy.
+Set `MAGICTEX_ASSETS_DIR` to put them elsewhere. To pre-fetch:
+`npx texlyre-busytex download-assets <that directory>`.
 
 ## Install as a Claude Code plugin (slash commands)
 
@@ -282,7 +286,7 @@ the comment loop, the review workflow, and traceable history possible.
 
 ## Requirements
 
-- Node 20+
+- Node 20.19+ (the floor `chokidar` and `playwright` actually need; the server checks at startup and says so)
 - Playwright's Chromium (installed automatically; ~150–300 MB) — or set it to reuse
   your installed Chrome.
 - ~650 MB disk for the one-time WASM TeX Live assets (a normal paper only needs the
