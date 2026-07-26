@@ -35,6 +35,9 @@ export function PdfView({
   const scrollRef = useRef<HTMLDivElement>(null);
   const pagesRef = useRef<HTMLDivElement>(null);
   const [note, setNote] = useState<string>('waiting for first compile…');
+  // A note is either prose for the reader or a failure report to be copied out.
+  // They want opposite typography, so the pane needs to know which it is holding.
+  const [noteIsReport, setNoteIsReport] = useState(false);
   const [renderTick, setRenderTick] = useState(0); // bumps after pages exist in the DOM
   const [draft, setDraft] = useState<Draft | null>(null);
   const [draftText, setDraftText] = useState('');
@@ -48,13 +51,21 @@ export function PdfView({
   // ── Render PDF pages (canvas + text layer) ──────────────────────────────
   useEffect(() => {
     let cancelled = false;
+    // What the render was doing when it threw. A rendering failure reported as
+    // bare `String(e)` cost three rounds of guessing on a real bug: the message
+    // "TypeError: undefined is not a function (near '...e of t...')" named no
+    // page, no step and no stack, so every reading of it was a guess. Whatever
+    // fails next should say where.
+    let step = 'starting';
     (async () => {
       const container = pagesRef.current;
       const scroller = scrollRef.current;
       if (!container || !scroller) return;
+      step = 'fetching /latest.pdf';
       const res = await fetch('/latest.pdf?t=' + Date.now());
-      if (!res.ok) { setNote('No PDF yet — ask Claude to render a preview.'); return; }
+      if (!res.ok) { setNoteIsReport(false); setNote('No PDF yet — ask Claude to render a preview.'); return; }
       const data = new Uint8Array(await res.arrayBuffer());
+      step = `parsing PDF (${data.length} bytes)`;
       const doc = await pdfjs.getDocument({ data }).promise;
       if (cancelled) return;
       // Preserve scroll position as a ratio so zoom keeps you in place.
@@ -62,6 +73,7 @@ export function PdfView({
       // Render every page off-screen, then swap in at once — no blank flash.
       const next = document.createDocumentFragment();
       for (let i = 1; i <= doc.numPages; i++) {
+        step = `page ${i}/${doc.numPages}: getPage`;
         const pg = await doc.getPage(i);
         if (cancelled) return;
         if (i === 1) baseWidth.current = pg.getViewport({ scale: 1 }).width;
@@ -85,7 +97,9 @@ export function PdfView({
         next.appendChild(wrap);
         // pdf.js v5 made `canvas` the required parameter and demoted
         // `canvasContext` to a back-compat alias, so pass the element.
+        step = `page ${i}/${doc.numPages}: canvas render`;
         await pg.render({ canvas, viewport: vp }).promise;
+        step = `page ${i}/${doc.numPages}: text layer`;
         const textLayer = new pdfjs.TextLayer({ textContentSource: pg.streamTextContent(), container: textDiv, viewport: vp });
         await textLayer.render();
         // Column boundaries come from the PDF's own coordinates, not from the
@@ -103,12 +117,17 @@ export function PdfView({
         // it. A worse failure than the misplaced highlight it was added to fix.
         // Without boundaries the grouping falls back to inferring them, which is
         // what every release before this one did.
+        //
+        // `step` is still set inside the guard. Nothing here can reach the outer
+        // report any more, but the warning below is the only trace a skipped page
+        // leaves, and "which page, at which stage" is the part worth having in it.
+        step = `page ${i}/${doc.numPages}: column detection`;
         try {
           const content = await pg.getTextContent();
           const cols = columnsFromTextItems(content.items, pg.getViewport({ scale: 1 }).height);
           wrap.dataset.columns = JSON.stringify(cols);
         } catch (e) {
-          console.warn('[magictex] column detection skipped for page', i, e);
+          console.warn(`[magictex] column detection skipped — ${step}`, e);
         }
       }
       if (cancelled) return;
@@ -118,7 +137,27 @@ export function PdfView({
       onPages?.(doc.numPages);
       setRenderTick((t) => t + 1);
       scroller.scrollTop = ratio * scroller.scrollHeight;
-    })().catch((e) => setNote('render failed: ' + String(e)));
+    })().catch((e) => {
+      // The console gets the error object itself, so DevTools can offer a real
+      // clickable stack; the pane gets a report someone can screenshot. A
+      // screenshot is what actually reaches a maintainer, so it has to carry
+      // enough on its own — which step, which browser, which pdf.js.
+      console.error('[MagicTeX] PDF render failed during: ' + step, e);
+      const err = e as { message?: string; stack?: string; name?: string };
+      // pdf.js re-creates worker exceptions on this side of a postMessage, and a
+      // stack does not survive that trip — so for the errors most worth
+      // diagnosing there is nothing to print. Say so, rather than leaving a gap
+      // that reads like the report simply forgot: "no stack" is itself the clue
+      // that the failure happened inside the worker, not in this file.
+      const stack = err?.stack
+        ? '\n' + err.stack.split('\n').slice(0, 6).join('\n')
+        : '\n(no stack — the error crossed the pdf.js worker boundary, which does not carry one)';
+      setNoteIsReport(true);
+      setNote(
+        `render failed while ${step}\n\n${err?.name ?? 'Error'}: ${err?.message ?? String(e)}${stack}` +
+        `\n\npdf.js ${pdfjs.version} · ${navigator.userAgent}`,
+      );
+    });
     return () => { cancelled = true; };
   }, [reloadTick, scale, onPages]);
 
@@ -427,7 +466,7 @@ export function PdfView({
         </div>
       </div>
       <div className="pdf-scroll" ref={scrollRef} onMouseUp={onMouseUp} onClick={onClick}>
-        {note && <div className="pdf-note">{note}</div>}
+        {note && <div className={noteIsReport ? 'pdf-note pdf-note-report' : 'pdf-note'}>{note}</div>}
         <div className="pdf-pages" ref={pagesRef} />
         {draft && (
           <div className="composer" style={{ left: draft.x, top: draft.y }} onMouseUp={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>

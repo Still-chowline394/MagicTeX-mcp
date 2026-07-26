@@ -84,6 +84,12 @@ jobs:
       - name: Highlights stay on their words at every zoom
         run: node scripts/smoke-highlight-zoom.mjs
 
+      # A rendering failure nobody can reproduce is only as debuggable as the
+      # message the reporter can screenshot. One that named no step, no page and
+      # no stack produced three wrong root causes in a row.
+      - name: A failed render says where it failed
+        run: node scripts/smoke-render-error.mjs
+
       - name: Save engine assets for next time
         if: steps.assets.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
