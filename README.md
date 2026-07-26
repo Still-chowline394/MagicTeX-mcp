@@ -28,7 +28,7 @@ just a one-time WASM asset download.
 A guided walkthrough of the comment → agent loop lives at
 **[zoelin.dev/tools/magictex](https://zoelin.dev/tools/magictex)**, built from real
 tool output. It's a replay, not a hosted instance — the TeX engine is a one-time
-~480 MB download and the agent half is Claude itself, so MagicTeX runs next to your
+~650 MB download and the agent half is Claude itself, so MagicTeX runs next to your
 project rather than in a web page.
 
 ## The workspace
@@ -117,7 +117,7 @@ There's nothing to clone and no TeX install; `npx` fetches it on first use.
 2. **Restart Claude Code** (or `/mcp` reconnect) so it picks up the server.
 
 3. **Ask Claude to render.** e.g. *"render a preview of this paper"* → the first call
-   downloads the WASM TeX Live assets (~480 MB, one time), compiles, and opens the
+   downloads the WASM TeX Live assets (~650 MB, one time), compiles, and opens the
    live preview tab. Subsequent edits reload it automatically.
 
 The WASM assets are **not** in this repo. They're fetched on first run into a
@@ -289,10 +289,12 @@ the comment loop, the review workflow, and traceable history possible.
 - Node 20.19+ (the floor `chokidar` and `playwright` actually need; the server checks at startup and says so)
 - Playwright's Chromium (installed automatically; ~150–300 MB) — or set it to reuse
   your installed Chrome.
-- ~650 MB disk for the one-time WASM TeX Live assets (a normal paper only needs the
-  ~118 MB basic set; larger package sets load on demand). Cached per user, not per
-  install, so upgrading MagicTeX doesn't re-download them. Override the location
-  with `MAGICTEX_ASSETS_DIR`.
+- ~650 MB disk for the one-time WASM TeX Live assets — all of it fetched on the
+  first run, in three package sets (basic 87 MB, recommended 190 MB, extra 324 MB,
+  plus the 31 MB engine). A normal paper only *loads* the basic set; the larger two
+  sit on disk until something needs them. Cached per user, not per install, so
+  upgrading MagicTeX doesn't re-download them. Override the location with
+  `MAGICTEX_ASSETS_DIR`.
 - **A local TeX install is optional.** See below for when it matters.
 
 ### Do I need a local TeX distribution?
@@ -325,13 +327,22 @@ Every compile tells you which one ran — `xelatex · system` or `xelatex · was
 npm install
 npm run typecheck    # tsc for the server and the UI
 npm run build:ui     # build the React workspace to ui/dist
-npm test             # comment store, anchor matching, and an MCP workflow E2E
+npm test             # the unit suite — engine-free, no browser, seconds
 npm start            # run the server on stdio (for a manual MCP client)
 ```
 
-CI (`.github/workflows/ci.yml`) runs typecheck + UI build + tests on Node 20 and 22
-for every push and pull request. The tests are engine-free (no headless browser), so
-they're fast and deterministic; please keep them green and add coverage with changes.
+Two tiers, on purpose. `npm test` covers the comment store, anchor matching, line
+and column geometry, the history repo, asset paths, compile-log classification, the
+preview server's shutdown, and an MCP workflow E2E — all without a browser or a TeX
+engine, so it stays fast and deterministic. CI (`.github/workflows/ci.yml`) runs
+typecheck + UI build + that suite on Node 20 and 22 for every push and pull request.
+
+The things a unit test structurally cannot see — highlight geometry at several zoom
+levels, what a failed render actually tells the reader, whether shutting down closes
+the server and warns any open window — live in `scripts/smoke-*.mjs` and run against
+a real browser and a real compile in `.github/workflows/smoke-macos.yml`. Each of
+those exists because something shipped broken that the unit suite was green through.
+Please keep both green and add coverage with changes.
 
 ## Documentation
 
