@@ -35,7 +35,7 @@ export interface Line<S extends LineSpan> {
  * no per-gap rule can separate them. Whether text crosses a given x is not a
  * matter of degree.
  */
-function columnBoundaries(spans: LineSpan[]): number[] {
+export function columnBoundaries(spans: LineSpan[]): number[] {
   if (spans.length < 20) return []; // too little text to infer a layout from
   const minX = Math.min(...spans.map((s) => s.l));
   const maxX = Math.max(...spans.map((s) => s.l + s.w));
@@ -95,8 +95,20 @@ function columnBoundaries(spans: LineSpan[]): number[] {
  * Spans that straddle a boundary (a full-width title, a wide figure caption)
  * are their own group, since they really do span the page.
  */
-export function groupLines<S extends LineSpan>(spans: S[]): Line<S>[] {
-  const boundaries = columnBoundaries(spans);
+/**
+ * @param given Column boundaries in the same coordinate space as `spans`. Pass
+ *   the ones derived from the PDF's own text content: the rendered text layer is
+ *   an approximation that degrades at small font sizes — spans overflow into
+ *   their neighbours and fill the gutter — so detecting columns from the DOM
+ *   gave a different answer at each zoom level of the same document (two
+ *   boundaries at 150%, one at 124%, none at 102%, measured). The PDF's
+ *   coordinates don't move when the reader zooms.
+ *
+ *   Omit it only where no PDF is at hand, such as unit tests: detection from the
+ *   spans themselves still runs as a fallback.
+ */
+export function groupLines<S extends LineSpan>(spans: S[], given?: number[]): Line<S>[] {
+  const boundaries = given ?? columnBoundaries(spans);
 
   const columnOf = (s: S): number => {
     for (const b of boundaries) if (s.l < b && s.l + s.w > b) return -1; // straddles
