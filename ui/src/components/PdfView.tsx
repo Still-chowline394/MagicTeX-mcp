@@ -8,7 +8,7 @@ import * as pdfjs from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { createComment, type Comment } from '../api';
 import { normalize, phrase } from '../sync';
-import { groupLines, columnBoundaries, type LineSpan } from '../lines';
+import { groupLines, columnsFromTextItems } from '../lines';
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -91,14 +91,21 @@ export function PdfView({
         // each zoom of the same document: two boundaries at 150%, one at 124%,
         // none at 102%, at which point a highlight spanned the whole page.
         // Computed once per page in scale-1 units, projected where it's used.
-        const base = pg.getViewport({ scale: 1 });
-        const content = await pg.getTextContent();
-        const items: LineSpan[] = [];
-        for (const it of content.items as { str: string; transform: number[]; width: number; height: number }[]) {
-          if (!it.str.trim()) continue;
-          items.push({ start: 0, len: it.str.length, l: it.transform[4], t: base.height - it.transform[5], w: it.width, h: it.height || 10 });
+        //
+        // Wrapped, and deliberately: this is an input to highlight placement, not
+        // to rendering. Shipped without the guard it threw on a document whose
+        // text content carries entries with no `str` — pdf.js mixes marked-content
+        // markers in among the text items — and took the whole PDF pane down with
+        // it. A worse failure than the misplaced highlight it was added to fix.
+        // Without boundaries the grouping falls back to inferring them, which is
+        // what every release before this one did.
+        try {
+          const content = await pg.getTextContent();
+          const cols = columnsFromTextItems(content.items, pg.getViewport({ scale: 1 }).height);
+          wrap.dataset.columns = JSON.stringify(cols);
+        } catch (e) {
+          console.warn('[magictex] column detection skipped for page', i, e);
         }
-        wrap.dataset.columns = JSON.stringify(columnBoundaries(items));
       }
       if (cancelled) return;
       container.replaceChildren(next);

@@ -35,6 +35,33 @@ export interface Line<S extends LineSpan> {
  * no per-gap rule can separate them. Whether text crosses a given x is not a
  * matter of degree.
  */
+/**
+ * Column boundaries straight from a PDF page's text content.
+ *
+ * Defensive about the item shape on purpose. `getTextContent()` returns text
+ * items mixed with marked-content markers, which carry no `str` — reading it
+ * without checking threw inside the render loop and took the whole PDF pane
+ * down, on a document that happened to contain them. Anything unrecognisable is
+ * skipped rather than trusted.
+ */
+export function columnsFromTextItems(items: unknown, pageHeight: number): number[] {
+  // The list itself is checked before the entries. The failure that prompted
+  // this reported `undefined is not a function` pointing at the for-of, which is
+  // what a non-iterable gives you — so the list being absent was at least as
+  // likely as an entry being malformed. Both are handled; neither is assumed.
+  if (!Array.isArray(items)) return [];
+  const spans: LineSpan[] = [];
+  for (const raw of items) {
+    const it = raw as Partial<{ str: string; transform: number[]; width: number; height: number }>;
+    if (!it || typeof it.str !== 'string' || !it.str.trim()) continue;
+    if (!Array.isArray(it.transform) || it.transform.length < 6) continue;
+    const [, , , , x, y] = it.transform;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+    spans.push({ start: 0, len: it.str.length, l: x, t: pageHeight - y, w: it.width ?? 0, h: it.height || 10 });
+  }
+  return columnBoundaries(spans);
+}
+
 export function columnBoundaries(spans: LineSpan[]): number[] {
   if (spans.length < 20) return []; // too little text to infer a layout from
   const minX = Math.min(...spans.map((s) => s.l));
