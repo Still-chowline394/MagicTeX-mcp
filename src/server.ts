@@ -22,7 +22,7 @@ import { isGitRepo, listCheckpoints } from './git/checkpoints.js';
 import { type Engine, type Backend } from './project/compileProject.js';
 import { MainFileError } from './project/resolveMainFile.js';
 import { summarizeErrors } from './project/parseLog.js';
-import { INSTALL_TEX_HELP } from './engine/systemTex.js';
+import { INSTALL_TEX_HELP, systemFallbackNote } from './engine/systemTex.js';
 
 const PKG_ROOT = fileURLToPath(new URL('..', import.meta.url));
 
@@ -39,6 +39,7 @@ const server = new McpServer({ name: 'magictex-mcp', version });
 const hasWorkspace = existsSync(join(PKG_ROOT, 'ui', 'dist', 'index.html'));
 
 let viewerOpened = false;
+
 
 server.registerTool(RENDER_PREVIEW_NAME, renderPreviewConfig, async ({ mainFile, engine, backend }) => {
   const projectRoot = process.cwd();
@@ -64,6 +65,12 @@ server.registerTool(RENDER_PREVIEW_NAME, renderPreviewConfig, async ({ mainFile,
         : `✓ Compiled ${result.mainFile} with ${result.engine} · ${result.backend} in ${result.ms}ms — ${result.fileCount} files${truncNote}.`;
 
       const notes: string[] = [];
+      // Say it first: this PDF came off a different toolchain than the one the
+      // machine is set up for, and that is the single most important thing about
+      // it. Left unsaid, a broken local TeX reads as a clean success.
+      if (result.systemFallback) {
+        notes.push(systemFallbackNote(result.systemFallback));
+      }
       if (result.stubbedPackages?.length) {
         notes.push(
           `Stubbed out ${result.stubbedPackages.map((p) => `\\usepackage{${p}}`).join(', ')} — not in the bundled TeX Live and unused here, so it no longer blocks the compile.`,

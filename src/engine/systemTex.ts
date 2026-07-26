@@ -33,6 +33,49 @@ export const INSTALL_TEX_HELP = [
   'matches Overleaf exactly.',
 ].join('\n');
 
+/**
+ * The `\usepackage` name is not always the name you install. `tlmgr install
+ * algorithm` fails; the bundle is `algorithms`. Handing someone a command that
+ * errors is worse than handing them nothing, so map the cases where the two
+ * differ and pass everything else through unchanged.
+ */
+const CTAN_BUNDLE: Record<string, string> = {
+  algorithm: 'algorithms',
+  algorithmic: 'algorithms',
+  algpseudocode: 'algorithmicx',
+  algorithmicx: 'algorithmicx',
+  IEEEtran: 'ieeetran',
+  llncs: 'llncs',
+};
+
+export interface SystemFallback {
+  errors: string[];
+  missingPackages: string[];
+  missingClasses: string[];
+}
+
+/**
+ * Explain a backend substitution in terms the reader can act on: what their own
+ * TeX choked on, what they are looking at instead, and the one command that
+ * closes the gap.
+ *
+ * Without this, `auto` falling back to WASM is indistinguishable from a clean
+ * success on the toolchain they configured — which is how a minimal BasicTeX
+ * install got reported as "Compile succeeded" while quietly producing output
+ * from a different TeX Live than the author believed they were using.
+ */
+export function systemFallbackNote(f: SystemFallback): string {
+  const missing = [...f.missingPackages, ...f.missingClasses];
+  const why = missing.length
+    ? `${missing.map((m) => `\`${m}\``).join(', ')} not found`
+    : (f.errors[0] ?? 'it produced no PDF');
+  const packages = [...new Set(missing.map((m) => CTAN_BUNDLE[m] ?? m))];
+  const fix = packages.length
+    ? `\n\nTo compile with your own TeX instead:\n  tlmgr install ${packages.join(' ')}\n(prefix with sudo on a system-wide TeX Live)`
+    : '';
+  return `Your local TeX was tried first and failed — ${why}. Fell back to the bundled WASM engine, which got through it, so this PDF exists — but it came from a subset of TeX Live and may not match Overleaf.${fix}`;
+}
+
 let cached: 'latexmk' | null | undefined;
 
 /** Is a usable local TeX (latexmk) on PATH? Cached after the first check. */
