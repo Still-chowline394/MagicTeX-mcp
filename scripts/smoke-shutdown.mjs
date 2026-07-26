@@ -75,6 +75,14 @@ try {
   check('the workspace is live before the shutdown',
     await portOpen(port) && !(await page.$('.banner-dead')));
 
+  // Open the editor on a real file BEFORE the shutdown. Afterwards the file list
+  // cannot be fetched at all, so a tab opened later has nothing to type into —
+  // which is not the case under test. The case under test is the one that loses
+  // work: an editor already open, with the user still typing into it.
+  await page.click('.tabs button:has-text("Source")').catch(() => {});
+  const editor = await page.waitForSelector('.cm-content', { timeout: 20_000 }).catch(() => null);
+  check('the editor is open before the shutdown', !!editor, 'no CodeMirror editor appeared');
+
   // SIGTERM is what a supervisor sends; on Windows there are no POSIX signals, so
   // the stdio-close path is what actually fires. Both routes land in the same
   // shutdown, and this exercises whichever one the platform provides.
@@ -92,6 +100,25 @@ try {
   check('the toolbar agrees', /no longer live/i.test(await page.textContent('.status') ?? ''));
   check('Recompile is disabled — it would fail silently',
     await page.isDisabled('.recompile'));
+
+  // The one that costs more than a click. The editor was never told the server
+  // had stopped, so it stayed fully editable and its 30-second autosave kept
+  // PUTting into a closed port, failing into a bare `catch` that showed a small
+  // "save failed" chip. The user keeps typing into a buffer that will never
+  // reach disk. Losing someone's text quietly is the worst thing in this file.
+  if (editor) {
+    await editor.click();
+    await page.keyboard.type(' edited after the server stopped');
+    await page.click('.editor-bar button:has-text("Save")').catch(() => {});
+    await page.waitForTimeout(800);
+    const chip = await page.textContent('.save-state').catch(() => '');
+    const why = await page.getAttribute('.save-state', 'title').catch(() => null);
+    check('the editor says the text is NOT saved', /not saved/i.test(chip ?? ''),
+      `save chip read ${JSON.stringify(chip)}`);
+    check('and says why, so the user knows the text is only in this window',
+      /stopped|render a preview again/i.test(why ?? ''),
+      `title was ${JSON.stringify(why)}`);
+  }
 
   // Regression guards, and honest about being only that: both of these pass
   // without the fix too, because a clean transport close tears the process down
