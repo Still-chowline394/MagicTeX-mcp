@@ -11,6 +11,7 @@ import { dirname, extname, join, normalize } from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer, type WebSocket } from 'ws';
+import { refuseReason, allowWebSocket } from './originGuard.js';
 import { hostPageHtml } from '../engine/hostPage.js';
 import { viewerPageHtml } from './viewerPage.js';
 import { diffViewHtml } from './diffViewPage.js';
@@ -114,7 +115,22 @@ export function startPreviewServer(): Promise<PreviewServerHandle> {
     res.end(JSON.stringify(body));
   };
 
+  // Set once listen() has assigned a port; the guard needs it to recognise its
+  // own origin, and every request arrives after that.
+  let boundPort = 0;
+
   const server = createServer(async (req, res) => {
+    // Before anything is read or written. This server is reachable from every
+    // web page the user visits, because localhost is reachable from every
+    // origin — see originGuard.ts for what that allowed.
+    const refuse = refuseReason(req, boundPort);
+    if (refuse) {
+      res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8', ...ISOLATION_HEADERS });
+      res.end(`MagicTeX refused this request: ${refuse}
+`);
+      return;
+    }
+
     const reqUrl = new URL(req.url ?? '/', 'http://127.0.0.1');
     const pathname = decodeURIComponent(reqUrl.pathname);
 
@@ -353,7 +369,12 @@ export function startPreviewServer(): Promise<PreviewServerHandle> {
     res.writeHead(404, ISOLATION_HEADERS).end('not found');
   });
 
-  const wss = new WebSocketServer({ server });
+  const wss = new WebSocketServer({
+    server,
+    // Handshakes are exempt from the same-origin policy, so without this any
+    // page can connect, confirm the port, and watch the compile stream.
+    verifyClient: (info: { origin?: string }) => allowWebSocket(info.origin, boundPort),
+  });
   wss.on('connection', (ws) => {
     clients.add(ws);
     ws.on('close', () => clients.delete(ws));
@@ -366,6 +387,7 @@ export function startPreviewServer(): Promise<PreviewServerHandle> {
     server.listen(0, '127.0.0.1', () => {
       const addr = server.address();
       const port = typeof addr === 'object' && addr ? addr.port : 0;
+      boundPort = port;
       const url = `http://127.0.0.1:${port}`;
       resolve({
         server, port, url, viewerUrl: `${url}/viewer`,

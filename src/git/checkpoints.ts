@@ -166,8 +166,26 @@ export async function restoreCheckpoint(root: string, sha: string): Promise<void
 export async function restoreFile(root: string, sha: string, relPath: string): Promise<void> {
   const { env: ENV } = await historyRepo(root);
   if (!SHA_RE.test(sha)) throw new Error('invalid checkpoint id');
+  // A review flagged this as a pathspec injection — `path=*` supposedly turning
+  // a per-file restore into a whole-tree revert. Measured against real git, it
+  // is not:
+  //
+  //   $ git checkout-index -f -- '*'
+  //   git checkout-index: * is not in the cache        (exit 1, nothing written)
+  //   $ git checkout-index -f -- ':(glob)**/*.tex'
+  //   git checkout-index: :(glob)**/*.tex is not in the cache
+  //
+  // checkout-index is plumbing: it looks entries up in the index by exact name
+  // and honours neither globs nor pathspec magic. The `:(literal)` prefix added
+  // to "fix" this broke the real feature for the same reason — it is not a
+  // filename either. test/restoreFilePathspec.test.ts pins the behaviour, so if
+  // a future git starts interpreting these we find out from a red test rather
+  // than from a user.
+  //
+  // Segment-wise rather than `includes('..')`: the latter also rejects a
+  // legitimate `notes..old.tex`.
   const rel = String(relPath).replace(/^[/\\]+/, '');
-  if (!rel || rel.includes('..')) throw new Error('invalid path');
+  if (!rel || rel.split(/[/\\]/).some((s) => s === '..' || s === '.')) throw new Error('invalid path');
   const reachable = await gitOrNull(root, ['merge-base', '--is-ancestor', sha, REF], ENV);
   if (reachable === null) throw new Error('unknown checkpoint');
   await withLock(root, async () => {
