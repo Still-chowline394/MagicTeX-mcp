@@ -2,7 +2,7 @@
 // PDF center with anchored comments; Comments workspace on the right. Both side
 // panels resize with Overleaf-style drag splitters (widths persisted).
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchComments, useLive, type Comment } from './api';
+import { fetchComments, fetchGitStatus, useLive, type Comment, type HistoryMode } from './api';
 import { Toolbar } from './components/Toolbar';
 import { PdfView } from './components/PdfView';
 import { HistoryPanel } from './components/HistoryPanel';
@@ -74,6 +74,10 @@ export default function App() {
   // Text-match sync between the PDF and the source editor (nonce forces re-fire
   // even when the same text is clicked twice).
   const [syncToSource, setSyncToSource] = useState<{ text: string; nonce: number } | null>(null);
+  // Read once at mount: whether git exists doesn't change under a running server.
+  const [historyMode, setHistoryMode] = useState<HistoryMode | null>(null);
+  const [warnDismissed, setWarnDismissed] = useState(false);
+  useEffect(() => { fetchGitStatus().then((s) => setHistoryMode(s.mode)); }, []);
   const [syncToPdf, setSyncToPdf] = useState<{ text: string; nonce: number } | null>(null);
   const onSyncToSource = useCallback((text: string) => {
     setLeftTab('source');
@@ -111,11 +115,26 @@ export default function App() {
         openCount={comments.filter((c) => c.status !== 'resolved').length}
         onToggleComments={() => setRightOpen((o) => !o)}
       />
+      {/* Losing the change record is not a footnote. Someone letting an agent
+          edit their paper should learn that nothing is being recorded before
+          they need to look something up, not when they open a tab they may
+          never open. Dismissible, because after you've read it once it's noise. */}
+      {historyMode === 'unavailable' && !warnDismissed && (
+        <div className="banner-warn" role="status">
+          <strong>Change history is off.</strong> No <code>git</code> was found on your PATH,
+          so edits aren't being recorded and you can't diff or roll back. Everything else works.
+          Install from <a href="https://git-scm.com/" target="_blank" rel="noreferrer">git-scm.com</a> and
+          restart — no account or remote is involved; the history stays on this machine.
+          <button className="ghost" onClick={() => setWarnDismissed(true)} title="Dismiss">×</button>
+        </div>
+      )}
       <div className="layout">
         <div className={`left ${leftOpen ? '' : 'closed'}`} style={leftOpen ? { flexBasis: leftWidth } : undefined}>
           <div className="tabs">
             <button className={leftTab === 'source' ? 'on' : ''} onClick={() => setLeftTab('source')}>Source</button>
-            <button className={leftTab === 'history' ? 'on' : ''} onClick={() => setLeftTab('history')}>History</button>
+            <button className={leftTab === 'history' ? 'on' : ''} onClick={() => setLeftTab('history')}>
+              History{historyMode === 'unavailable' && <span className="tab-warn" title="No git found — nothing is being recorded">!</span>}
+            </button>
             <span className="spacer" />
             <button className="ghost" onClick={() => setLeftOpen(false)} title="Collapse">«</button>
           </div>

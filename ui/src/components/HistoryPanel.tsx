@@ -19,7 +19,7 @@ export function HistoryPanel({ reloadTick }: { reloadTick: number }) {
     // the recompile fires a reload → the effect above refreshes the checkpoint list
   };
 
-  useEffect(() => { fetchGitStatus().then(setIsRepo); }, []);
+  useEffect(() => { fetchGitStatus().then((s) => setIsRepo(s.isRepo)); }, []);
 
   useEffect(() => {
     if (isRepo === false) return;
