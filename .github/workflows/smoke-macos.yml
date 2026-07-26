@@ -102,6 +102,12 @@ jobs:
       - name: The legacy viewer also knows when its server has stopped
         run: node scripts/smoke-legacy-viewer.mjs
 
+      # Three ways the editor silently discarded what someone had typed. All are
+      # timing bugs that only exist between a click and a response, so they need
+      # a real browser driving the real workspace.
+      - name: The editor does not lose unsaved text
+        run: node scripts/smoke-editor-keeps-text.mjs
+
       - name: Save engine assets for next time
         if: steps.assets.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
