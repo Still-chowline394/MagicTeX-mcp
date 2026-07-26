@@ -268,25 +268,51 @@ server.registerTool(REPLY_COMMENT_NAME, replyCommentConfig, async ({ id, text, r
 // The install line is `npx -y magictex-mcp`, and killing npx does not reliably
 // kill the node grandchild, which is what makes handlers here worth having
 // rather than relying on process teardown.
-let shuttingDown = false;
-async function shutdown(why: string) {
-  if (shuttingDown) return; // SIGTERM after SIGINT, or a signal during cleanup
-  shuttingDown = true;
-  console.error(`[magictex-mcp] shutting down (${why})`);
-  // Watcher first: it can start a compile, and a compile started now would keep
-  // the engine alive past the teardown that is about to close it.
-  await stopWatching().catch(() => {});
-  await shutdownEngine().catch(() => {});
+// The whole teardown has to fit inside the client's fuse: StdioClientTransport
+// does stdin.end() → 2s → SIGTERM → 2s → SIGKILL. Past that we are killed
+// holding everything, so releasing most of it in time beats releasing all of it
+// too late.
+const SHUTDOWN_BUDGET_MS = 3000;
+
+// Cached, not a boolean. A `if (shuttingDown) return` guard made the SECOND
+// caller resolve immediately — and since each caller then runs process.exit(0),
+// the second signal killed the process while the first teardown was still inside
+// browser.close(). The disconnect above sends stdin-close and SIGTERM two
+// seconds apart every time, so that was the normal path, not an edge case.
+// Returning the in-flight promise makes every caller wait for the same work.
+let shutdownRun: Promise<void> | null = null;
+
+function shutdown(why: string): Promise<void> {
+  shutdownRun ??= (async () => {
+    console.error(`[magictex-mcp] shutting down (${why})`);
+    // Watcher first: it can start a compile, and a compile started now would
+    // keep the engine alive past the teardown that is about to close it.
+    await stopWatching().catch(() => {});
+    await shutdownEngine().catch(() => {});
+  })();
+  return shutdownRun;
+}
+
+/** Tear down within the budget, then exit regardless. */
+function shutdownAndExit(why: string, code = 0): void {
+  const bail = new Promise<void>((r) => setTimeout(() => {
+    console.error(`[magictex-mcp] shutdown exceeded ${SHUTDOWN_BUDGET_MS}ms — exiting anyway`);
+    r();
+  }, SHUTDOWN_BUDGET_MS).unref());
+  void Promise.race([shutdown(why), bail]).then(() => process.exit(code));
 }
 
 for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP'] as const) {
-  process.on(sig, () => { void shutdown(sig).then(() => process.exit(0)); });
+  process.on(sig, () => shutdownAndExit(sig));
 }
 // The client going away closes stdio. On Windows that arrives with no signal at
 // all, so a signal handler alone would leave the process running with the parent
 // gone — exactly the orphan this is meant to prevent.
-process.stdin.on('close', () => { void shutdown('stdio closed').then(() => process.exit(0)); });
-process.on('beforeExit', () => { void shutdown('beforeExit'); });
+process.stdin.on('close', () => shutdownAndExit('stdio closed'));
+// There is deliberately no `beforeExit` handler. It does not fire on an explicit
+// process.exit(), and running the teardown there without exiting left the
+// shutdown latched while the loop kept turning — so anything a later compile
+// rebuilt could never be torn down again.
 
 const transport = new StdioServerTransport();
 await server.connect(transport);

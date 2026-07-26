@@ -44,6 +44,13 @@ const PDFJS_ROOT = depDir('pdfjs-dist');
 const DIFF2HTML_ROOT = join(depDir('diff2html'), 'bundles');
 const UI_DIST = join(PKG_ROOT, 'ui', 'dist');
 
+// Shutdown budget. The MCP client's disconnect is stdin.end() → 2s → SIGTERM →
+// 2s → SIGKILL, so everything here has to finish inside a few seconds or it may
+// as well not run. Long enough for a localhost socket to flush a small frame;
+// short enough that a wedged one costs nothing.
+const GOODBYE_FLUSH_MS = 250;
+const CLOSE_DEADLINE_MS = 1500;
+
 const MIME: Record<string, string> = {
   '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
   '.wasm': 'application/wasm', '.data': 'application/octet-stream',
@@ -365,20 +372,56 @@ export function startPreviewServer(): Promise<PreviewServerHandle> {
         setLatestPdf: (pdf, name) => { latestPdf = Buffer.from(pdf); latestName = name; send({ type: 'reload', name }); },
         broadcast: (msg) => send(msg),
         close: () => new Promise<void>((done) => {
-          // Tell the tabs first. Without this a workspace window keeps its last
-          // render on screen and retries a port that will never answer again —
-          // and a reader has no way to tell a stale error from a live one. That
-          // cost a round: a real "render failed" was reported off a dead tab
-          // while a healthy instance was compiling the same paper fine.
-          send({ type: 'server-closing' });
-          // `server.close()` stops new connections but waits for open ones, and a
-          // WebSocket is open by design — so closing the http server alone never
-          // returns. The sockets have to go first.
-          for (const ws of clients) { try { ws.close(); } catch { /* already gone */ } }
-          clients.clear();
-          wss.close(() => server.close(() => done()));
-          // A socket wedged mid-close must not hold the process open past exit.
+          // Measured, on the version this replaces: with one WebSocket peer that
+          // never answered a close frame, close() took 30 015 ms — the ws
+          // library's closeTimeout — and an HTTP request sent one second in was
+          // still answered with 200. Both are fatal here, because the MCP client
+          // disconnects with stdin.end() → 2 s → SIGTERM → 2 s → SIGKILL: the
+          // process dies at ~4 s still holding Chromium and the port, which is
+          // the leak this whole path exists to prevent.
+          //
+          // Three things were wrong and all three are fixed below.
+
+          let settled = false;
+          const finish = () => { if (!settled) { settled = true; done(); } };
+
+          // 1. Stop listening FIRST. Previously server.close() ran only inside
+          //    wss.close()'s callback, so the port kept accepting for the whole
+          //    WebSocket drain — and anything that connected in that window was
+          //    then something server.close() had to wait for, unboundedly.
+          server.close(finish);
           server.closeAllConnections?.();
+
+          // 2. Say goodbye, and wait for it to reach the wire rather than
+          //    guessing. This is the only thing that lets a stale window know it
+          //    is stale, so it is worth the few milliseconds — but not worth
+          //    blocking shutdown on a peer that has stopped reading.
+          let pending = clients.size;
+          const cutSockets = () => {
+            // terminate(), not close(): close() starts a handshake and waits for
+            // a reply that a suspended tab or a half-open TCP connection will
+            // never send. The goodbye has already been flushed (or timed out).
+            for (const ws of clients) { try { ws.terminate(); } catch { /* gone */ } }
+            clients.clear();
+            wss.close();
+            finish();
+          };
+          const flushed = () => { if (--pending <= 0) cutSockets(); };
+          if (pending === 0) {
+            cutSockets();
+          } else {
+            const data = JSON.stringify({ type: 'server-closing' });
+            for (const ws of clients) {
+              try { ws.send(data, flushed); } catch { flushed(); }
+            }
+            // 3. A bound on the goodbye, so one backpressured socket cannot hold
+            //    the process past the client's SIGKILL.
+            setTimeout(cutSockets, GOODBYE_FLUSH_MS).unref();
+          }
+
+          // Whatever else happens, this resolves. A shutdown step that can hang
+          // is worse than one that gives up: the caller is on a 4-second fuse.
+          setTimeout(finish, CLOSE_DEADLINE_MS).unref();
         }),
       });
     });

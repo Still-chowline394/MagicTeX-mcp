@@ -33,10 +33,29 @@ let engineStarted: Promise<{ browser: Browser; page: Page; preview: PreviewServe
 
 let currentPreview: PreviewServerHandle | null = null; // set once the server is up
 
+// Set before shutdown starts tearing anything down, and never cleared. Teardown
+// is not instantaneous, and the server keeps answering requests while it runs —
+// so a tool call or a debounced watcher compile arriving in that window used to
+// find the tier handles already nulled and cheerfully build a NEW preview server
+// (on a new port) and a NEW Chromium, moments before process.exit reclaimed the
+// process and orphaned them. That is the exact leak this file's shutdown exists
+// to prevent, reintroduced by the shutdown itself.
+let disposed = false;
+
+// The teardown budget is a few seconds (see src/server.ts); Chromium gets most
+// of it, but not all, so a wedged browser cannot cost us the port as well.
+const BROWSER_CLOSE_MS = 2000;
+
+/** Thrown when something asks for an engine tier after shutdown began. */
+class ShuttingDownError extends Error {
+  constructor() { super('MagicTeX is shutting down.'); this.name = 'ShuttingDownError'; }
+}
+
 /** Tier 1 — the local HTTP server behind the workspace, /latest.pdf and the WS
  *  push. Needed by every code path; costs a port. It serves /busytex/* lazily
  *  per request, so it does not need the engine assets to exist. */
 export function ensureServer(): Promise<PreviewServerHandle> {
+  if (disposed) return Promise.reject(new ShuttingDownError());
   serverStarted ??= startPreviewServer().then((preview) => {
     currentPreview = preview;
     return preview;
@@ -47,6 +66,7 @@ export function ensureServer(): Promise<PreviewServerHandle> {
 /** Tier 2 — headless Chromium. Needed to screenshot the diff page; no TeX
  *  engine and no assets involved. */
 function ensureBrowser() {
+  if (disposed) return Promise.reject(new ShuttingDownError());
   browserStarted ??= (async () => {
     const preview = await ensureServer();
     const browser = await chromium.launch({ headless: true });
@@ -58,6 +78,7 @@ function ensureBrowser() {
 /** Tier 3 — the WASM TeX engine: the ~650 MB asset download plus a page that
  *  initializes busytex. Only a wasm-backend compile needs this. */
 export function ensureEngine() {
+  if (disposed) return Promise.reject(new ShuttingDownError());
   engineStarted ??= (async () => {
     const { browser, preview } = await ensureBrowser();
     await ensureAssets(); // fetch WASM assets on first run if missing
@@ -134,16 +155,40 @@ export async function captureDiff(path: string): Promise<{ empty: boolean; png?:
 /** Tear down whichever tiers actually started — the browser may never have been
  *  launched (system backend), and the server may be the only thing running. */
 export async function shutdownEngine() {
-  if (browserStarted) {
-    const { browser } = await browserStarted.catch(() => ({ browser: null }));
-    await browser?.close().catch(() => {});
-  }
+  // First, and before any await: from here on, nothing may build a new tier.
+  // Previously the handles were nulled at the END, which is the one arrangement
+  // that lets an in-flight compile rebuild everything mid-teardown.
+  disposed = true;
+
+  // The preview server goes first. It is the fast, user-visible half — closing it
+  // is what tells open windows they have gone stale — while browser.close() can
+  // take hundreds of milliseconds or, on a wedged Chromium, hang. Doing the
+  // browser first meant a hung browser stopped the tabs from ever being told.
   if (serverStarted) {
     const preview = await serverStarted.catch(() => null);
-    // `close()`, not `server.close()`: the latter waits on open WebSockets, which
-    // never close on their own, so it hung forever and the tabs were never told.
+    // `close()`, not `server.close()`: the latter waits on open connections, and
+    // a WebSocket is open by design.
     await preview?.close().catch(() => {});
   }
+  if (browserStarted) {
+    const { browser } = await browserStarted.catch(() => ({ browser: null }));
+    // Bounded. `.catch()` covers a rejection, not a hang, and Playwright's
+    // close() can hang on a wedged browser process — which would swallow the
+    // caller's whole shutdown budget and get us SIGKILLed holding the port too.
+    await Promise.race([
+      browser?.close().catch(() => {}) ?? Promise.resolve(),
+      new Promise<void>((r) => setTimeout(r, BROWSER_CLOSE_MS).unref()),
+    ]);
+  }
+  serverStarted = null;
+  browserStarted = null;
+  engineStarted = null;
+  currentPreview = null;
+}
+
+/** Test-only: undo `disposed` so a suite can start a fresh host in-process. */
+export function __resetForTests() {
+  disposed = false;
   serverStarted = null;
   browserStarted = null;
   engineStarted = null;
