@@ -5,11 +5,9 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sumPrecise } from '../ui/src/mathSumPrecise.js';
 
-// pdf.js 6.x calls Math.sumPrecise, which Safari does not implement. Calling an
-// absent method there reads as "TypeError: undefined is not a function" — which
-// is what blanked the PDF pane on a real paper. Chrome versions before 151 log
-// the same failure as a warning and carry on, which is why it looked
-// document-specific for three rounds of wrong guesses.
+// pdf.js 6.x calls Math.sumPrecise, which Safari ≤26.1 and Chrome ≤146 lack.
+// This polyfill is installed on the global Math, so anything wrong in it is
+// wrong for every glyph advance pdf.js measures.
 
 test('matches plain addition where plain addition is exact', () => {
   assert.equal(sumPrecise([1, 2, 3, 4]), 10);
@@ -19,9 +17,9 @@ test('matches plain addition where plain addition is exact', () => {
 
 test('keeps the low bits that naive summation drops', () => {
   // The reason the proposal exists: small terms vanish into a large one and
-  // never come back. Both expectations here are measured, not assumed — a first
-  // draft asserted naive summation returned 0 for the first case, when it
-  // returns 1, and the test failed on its own arithmetic rather than the code's.
+  // never come back. Both expectations are measured, not assumed — a first draft
+  // asserted naive summation returned 0 for the first case, when it returns 1,
+  // and failed on its own arithmetic rather than the code's.
   const a = [1e100, 1, -1e100, 1];
   assert.equal(a.reduce((x, y) => x + y, 0), 1, 'naive loses one of the two 1s');
   assert.equal(sumPrecise(a), 2, 'both survive');
@@ -31,8 +29,46 @@ test('keeps the low bits that naive summation drops', () => {
   assert.equal(sumPrecise(b), 4);
 });
 
-test('an empty iterable gives -0, as the proposal specifies', () => {
-  assert.ok(Object.is(sumPrecise([]), -0));
+// The whole of what follows was broken and shipped. Every case here returned NaN
+// or the wrong zero, because compensated summation was applied to values it
+// cannot handle: once a partial sum is ±Infinity the compensation is ∓Infinity
+// and `sum + compensation` is NaN.
+
+test('infinities are not turned into NaN', () => {
+  assert.equal(sumPrecise([Infinity]), Infinity);
+  assert.equal(sumPrecise([Infinity, 1]), Infinity);
+  assert.equal(sumPrecise([1, Infinity, 2]), Infinity);
+  assert.equal(sumPrecise([-Infinity]), -Infinity);
+  assert.equal(sumPrecise([-Infinity, 5]), -Infinity);
+});
+
+test('opposing infinities and NaN give NaN, as specified', () => {
+  assert.ok(Number.isNaN(sumPrecise([Infinity, -Infinity])));
+  assert.ok(Number.isNaN(sumPrecise([NaN])));
+  assert.ok(Number.isNaN(sumPrecise([1, NaN, 2])));
+  assert.ok(Number.isNaN(sumPrecise([Infinity, NaN])));
+});
+
+test('signed zero follows the proposal', () => {
+  assert.ok(Object.is(sumPrecise([]), -0), 'empty is -0');
+  assert.ok(Object.is(sumPrecise([-0]), -0));
+  assert.ok(Object.is(sumPrecise([-0, -0]), -0));
+  assert.ok(Object.is(sumPrecise([0, -0]), 0), 'a positive zero wins');
+  assert.ok(Object.is(sumPrecise([0]), 0));
+  // A real sum that lands on zero is +0, not -0.
+  assert.ok(Object.is(sumPrecise([1, -1]), 0));
+});
+
+test('overflow saturates rather than returning NaN — a documented divergence', () => {
+  // The proposal sums exactly and rounds once, so [MAX, MAX, -MAX] is MAX.
+  // Neumaier cannot recover from an intermediate Infinity, and doing so needs a
+  // full expansion sum. This pins the deviation deliberately: Infinity, not NaN,
+  // and not silently something else.
+  assert.equal(sumPrecise([1e308, 1e308]), Infinity);
+  assert.equal(sumPrecise([-1e308, -1e308]), -Infinity);
+  const max = Number.MAX_VALUE;
+  assert.equal(sumPrecise([max, max, -max]), Infinity,
+    'diverges from the spec (which gives MAX) — but not by producing NaN');
 });
 
 test('accepts any iterable, not just arrays', () => {
@@ -41,8 +77,6 @@ test('accepts any iterable, not just arrays', () => {
 });
 
 test('installs itself on Math when the runtime lacks it', async () => {
-  // Importing the module is what patches the global; this asserts the patch
-  // happened rather than that the export exists.
   await import('../ui/src/mathSumPrecise.js');
   assert.equal(typeof Math.sumPrecise, 'function');
   assert.equal(Math.sumPrecise!([1e100, 1, -1e100, 1]), 2);
@@ -50,9 +84,7 @@ test('installs itself on Math when the runtime lacks it', async () => {
 
 // The half that matters most, and the half that is easiest to get wrong: a
 // worker has its own global, so patching the main thread leaves pdf.js's font
-// and layout code still calling a method that isn't there. This checks the
-// polyfill is actually inside the built worker chunk, not merely imported
-// somewhere in the app.
+// and layout code still calling a method that isn't there.
 test('the polyfill is compiled into the worker bundle, not just the main one', () => {
   const dist = join(dirname(dirname(fileURLToPath(import.meta.url))), 'ui', 'dist', 'assets');
   let files: string[];
