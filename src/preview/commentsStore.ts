@@ -44,32 +44,69 @@ function storePath(root: string): string {
   return join(root, '.latex-preview', FILE);
 }
 
-export async function listComments(root: string): Promise<Comment[]> {
-  try {
-    const raw = await readFile(storePath(root), 'utf8');
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    // One-time upgrade for files written before the 'pending'->'accepted' rename
-    // (see the CommentStatus comment above) — normalize on read and persist so
-    // this only runs once per file.
-    //
-    // Shape is normalized here as well. This file is plain JSON sitting in the
-    // user's project: it can be hand-edited, written by an older version, or
-    // produced directly by an agent. Returning it as Comment[] unchecked is a
-    // claim the type system cannot verify, and one missing `rects` was enough
-    // to take down the whole PDF pane. Guarantee the array fields exist once,
-    // here, instead of defending at every read site.
-    let migrated = false;
-    for (const c of parsed) {
-      if (c?.status === 'pending') { c.status = 'accepted'; migrated = true; }
-      if (c && !Array.isArray(c.rects)) { c.rects = []; migrated = true; }
-      if (c && !Array.isArray(c.replies)) { c.replies = []; migrated = true; }
-    }
-    if (migrated) await save(root, parsed);
-    return parsed;
-  } catch {
-    return [];
+/** The store exists but cannot be read. Never swallowed — see listComments. */
+export class CommentStoreUnreadableError extends Error {
+  constructor(path: string, cause: unknown) {
+    super(
+      `MagicTeX could not read ${path}: ${cause instanceof Error ? cause.message : String(cause)}. ` +
+      'Refusing to touch it — writing now would replace every comment it holds. ' +
+      'Fix or move the file, then try again.',
+    );
+    this.name = 'CommentStoreUnreadableError';
   }
+}
+
+/**
+ * Every comment in this project.
+ *
+ * Two rules, both learned the hard way.
+ *
+ * **A read never writes.** This used to persist its normalisation from inside a
+ * read, with no lock — and since `addComment` never set `replies`, the
+ * "one-time upgrade" was re-triggered by every freshly added comment, so it ran
+ * on essentially every read. A reader would load [c1,c2]; another agent would
+ * take the lock and save [c1,c2,c3]; the reader's unlocked save then put
+ * [c1,c2] back. c3 was gone, after its author had already been told it landed.
+ * Normalising in memory costs nothing and persists on the next real write,
+ * which does hold the lock.
+ *
+ * **A missing file is not an unreadable one.** A blanket catch returned [] for
+ * both, and the next mutator wrote that [] over the file — so one transient
+ * EACCES, one hand-edit with a stray comma, or one stale `.tmp-*` renamed in
+ * destroyed every comment atomically and silently, and the caller got a 200.
+ * Only ENOENT now means "none yet"; anything else throws.
+ */
+export async function listComments(root: string): Promise<Comment[]> {
+  const path = storePath(root);
+  let raw: string;
+  try {
+    raw = await readFile(path, 'utf8');
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return []; // no comments yet
+    throw new CommentStoreUnreadableError(path, e);
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    throw new CommentStoreUnreadableError(path, e);
+  }
+  if (!Array.isArray(parsed)) {
+    throw new CommentStoreUnreadableError(path, new Error('expected a JSON array of comments'));
+  }
+
+  // Normalised in memory only. This file is plain JSON in the user's project: it
+  // can be hand-edited, written by an older version, or produced by an agent, so
+  // returning it as Comment[] unchecked is a claim the type system cannot make —
+  // and one missing `rects` was once enough to take down the whole PDF pane.
+  for (const c of parsed as Comment[]) {
+    if (!c) continue;
+    if ((c.status as string) === 'pending') c.status = 'accepted'; // pre-rename files
+    if (!Array.isArray(c.rects)) c.rects = [];
+    if (!Array.isArray(c.replies)) c.replies = [];
+  }
+  return parsed as Comment[];
 }
 
 // Atomic write (temp file + rename): a concurrent listComments() from another
@@ -98,6 +135,11 @@ export async function addComment(
     text: String(input.text).slice(0, 4000),
     status: input.status ?? 'accepted',
     role: input.role ?? 'human',
+    // Written explicitly, so a new comment is already in the normalised shape.
+    // Omitting it meant every fresh comment made the next read think the file
+    // needed upgrading — which is what turned a one-time migration into a write
+    // on almost every read.
+    replies: [],
     created: new Date().toISOString(),
   };
   // The whole read -> mutate -> write runs as one cross-process critical
