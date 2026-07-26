@@ -61,9 +61,47 @@ export function SourcePanel({
   const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cmRef = useRef<ReactCodeMirrorRef>(null);
   const cache = useRef<Map<string, string>>(new Map());
+  // Unsaved text for files that are not currently open. The three data-loss bugs
+  // in this file all came from the same gap: nothing tracked which text belonged
+  // to which file, so a buffer could be discarded on a switch, or applied to the
+  // wrong file, or declared saved when it was not.
+  const parked = useRef<Map<string, string>>(new Map());
+  const [dirtyPaths, setDirtyPaths] = useState<Set<string>>(new Set());
   const pendingJumpLine = useRef<number | null>(null);
+  // Parked files plus the one on screen, so the marker is right for the file the
+  // user is actually looking at as well as the ones they left.
+  const allDirty = useMemo(() => {
+    const s = new Set(dirtyPaths);
+    if (dirty && active) s.add(active);
+    else if (active) s.delete(active);
+    return s;
+  }, [dirtyPaths, dirty, active]);
 
   const openFile = useCallback(async (path: string) => {
+    // Park the outgoing file's unsaved text before anything overwrites the
+    // buffer. Without this, switching files silently threw the edits away: the
+    // cache only ever held the last text FETCHED or SAVED, never the dirty
+    // buffer, so three paragraphs typed into main.tex and then a click on
+    // intro.tex left those paragraphs existing nowhere. No prompt, no warning,
+    // and Live mode is off by default so autosave might be 30s away.
+    const leaving = activeRef.current;
+    if (leaving && leaving !== path && dirtyRef.current) {
+      parked.current.set(leaving, contentRef.current);
+      setDirtyPaths((s) => new Set(s).add(leaving));
+    }
+
+    // Coming back to a file we are holding unsaved text for: that text wins over
+    // what is on disk, or reopening the tab would be the same silent discard.
+    const held = parked.current.get(path);
+    if (held !== undefined) {
+      setActive(path);
+      setContent(held);
+      setDirty(true);
+      setSaveState('idle');
+      setLoadError(null);
+      return;
+    }
+
     try {
       const r = await fetch(`/api/file?path=${encodeURIComponent(path)}`);
       if (!r.ok) { setLoadError(`Couldn't load ${path}: ${await r.text()}`); return; }
@@ -97,10 +135,29 @@ export function SourcePanel({
       .then((text) => {
         if (text === null) return;
         cache.current.set(path, text);
+        // Only into the file it was fetched FOR. This request outlives a click:
+        // it started for main.tex, the user opened intro.tex before it resolved,
+        // and without this check main.tex's body was written into intro.tex's
+        // editor — where the next Ctrl+S, or the Live debounce, or the 30s
+        // autosave after one keystroke, saved it over intro.tex and then
+        // compiled and checkpointed the wreckage.
+        if (activeRef.current !== path) return;
         if (text !== contentRef.current && !dirtyRef.current) setContent(text);
       })
       .catch(() => {});
   }, [reloadTick]);
+
+  // Unsaved text lives only in this tab. The browser's own prompt is the last
+  // thing standing between a stray Cmd-W and someone's afternoon.
+  useEffect(() => {
+    const warn = (e: BeforeUnloadEvent) => {
+      if (!dirtyRef.current && parked.current.size === 0) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, []);
 
   // Save the open file. `compile` true → also recompile (Ctrl+S / Save / Live);
   // false → a bare safety save that leaves the PDF untouched.
@@ -114,11 +171,29 @@ export function SourcePanel({
       // no guard — and the one where failing quietly costs the user their text
       // rather than a click. The old bare `catch` turned that into a small
       // "save failed" chip beside an editor that still looked like it worked.
-      await saveFile(path, contentRef.current, compile);
-      cache.current.set(path, contentRef.current);
-      setDirty(false);
-      setSaveState(compile ? 'compiling' : 'saved');
-      setTimeout(() => setSaveState((s) => (s === 'saved' || s === 'compiling' ? 'idle' : s)), 2000);
+      // Snapshot what is actually being written. Reading contentRef again after
+      // the await describes a buffer that may have moved on.
+      const written = contentRef.current;
+      await saveFile(path, written, compile);
+      cache.current.set(path, written);
+
+      // Only clear the flag if nothing was typed while the request was in
+      // flight. It used to clear unconditionally, so keystrokes during the PUT
+      // were marked saved while disk still held the older text — and since
+      // dirtyRef was then false forever, the interval skipped the file, the
+      // Save button went disabled, and the next reload refetched and replaced
+      // the editor with the older version. The user watched their text revert
+      // with no error anywhere.
+      if (contentRef.current === written) {
+        setDirty(false);
+        parked.current.delete(path);
+        setDirtyPaths((s) => { const n = new Set(s); n.delete(path); return n; });
+        setSaveState(compile ? 'compiling' : 'saved');
+        setTimeout(() => setSaveState((s) => (s === 'saved' || s === 'compiling' ? 'idle' : s)), 2000);
+      } else {
+        // Still dirty, deliberately: what is on disk is not what is on screen.
+        setSaveState('idle');
+      }
     } catch (e) {
       setSaveState('error');
       setSaveError(e instanceof Error ? e.message : 'save failed');
@@ -239,7 +314,7 @@ export function SourcePanel({
 
   return (
     <div className="source">
-      <FileTree active={active} onOpen={openFile} refreshKey={reloadTick} height={treeHeight} />
+      <FileTree active={active} onOpen={openFile} refreshKey={reloadTick} height={treeHeight} dirtyPaths={allDirty} />
       <div
         className="vsplitter"
         title="Drag to resize the file tree"
