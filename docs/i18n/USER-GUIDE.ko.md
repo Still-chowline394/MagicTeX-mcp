@@ -165,4 +165,6 @@ WASM 엔진은 TeX Live의 **부분집합**(basic + recommended + extra)을 담�
   않습니다. 대다수 논문에 충분히 정확하지만, 최종 제출처(Overleaf나 투고 시스템)에서 반드시 최종
   컴파일을 하세요.
 - 변경 이력은 숨겨진 git ref(`refs/latex-preview/checkpoints`)에 저장되며 당신의 브랜치, `git log`,
-  작업 트리를 절대 건드리지 않습니다.
+  작업 트리를 절대 건드리지 않습니다. 폴더가 git 저장소가 아니면 MagicTeX 는 그 ref 를 프로젝트
+  안 `.latex-preview/history.git` 에 있는 자체 저장소에 보관합니다 — 이력이 폴더와 함께 이동하고
+  복사되고 삭제되며, 거기서 `git` 을 실행해도 여전히 저장소가 아니라고 나옵니다.

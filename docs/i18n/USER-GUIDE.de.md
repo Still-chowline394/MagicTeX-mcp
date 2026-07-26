@@ -179,4 +179,7 @@ echten Pakete — die lokale Vorschau ist eine Näherung.
   WASM), keine garantiert bitgleiche Übereinstimmung. Für die allermeisten Paper ist es genau; mach
   immer eine finale Kompilierung auf deinem Ziel (Overleaf oder deinem Einreichungssystem).
 - Der Änderungsverlauf liegt auf einer versteckten Git-Ref (`refs/latex-preview/checkpoints`) und
-  fasst deine Branches, dein `git log` und deinen Arbeitsbaum nie an.
+  fasst deine Branches, dein `git log` und deinen Arbeitsbaum nie an. Ist der Ordner kein
+  Git-Repository, hält MagicTeX diese Ref in einem eigenen Repository unter
+  `.latex-preview/history.git` im Projekt — der Verlauf wandert, kopiert und verschwindet also
+  mit dem Ordner, und `git` meldet dort weiterhin kein Repository.

@@ -36,9 +36,9 @@ export function HistoryPanel({ reloadTick }: { reloadTick: number }) {
   }, [selected]);
 
   if (isRepo === false) {
-    // A project that isn't a git repo now gets a shadow repo in the cache, so
-    // the only way to reach this is a missing binary. Saying "not a git
-    // repository" here sent people off to run `git init`, which wouldn't help.
+    // A project that isn't a git repo now gets a repo of ours inside it, so the
+    // only way to reach this is a missing binary. Saying "not a git repository"
+    // here sent people off to run `git init`, which wouldn't help.
     return (
       <div className="panel-hint">
         History needs <code>git</code>, and none was found on your PATH. Install it
@@ -61,11 +61,18 @@ export function HistoryPanel({ reloadTick }: { reloadTick: number }) {
       {/* Say where it is. Someone whose folder isn't a repo gets history that
           works, then finds `git log` empty with nothing to go on. This is not a
           warning — the feature is working — so it sits quietly above the
-          timeline rather than as a banner. */}
+          timeline rather than as a banner.
+
+          It used to say the history lived in MagicTeX's cache and that nothing
+          was added to your files. Both stopped being true when history moved
+          into the project, and a note about where your work is kept is the last
+          place to leave a stale claim. */}
       {mode === 'shadow' && (
         <div className="history-note">
-          Tracked outside your project — this folder isn't a git repository, so history lives
-          in MagicTeX's own cache. Nothing is added to your files, and nothing is pushed anywhere.
+          This folder isn't a git repository, so MagicTeX keeps its own history
+          in <code>.latex-preview/history.git</code> beside your files. Your own <code>git</code> is
+          untouched, nothing is pushed anywhere, and the history moves, copies and is deleted
+          with the folder.
         </div>
       )}
       <div className="history-list">

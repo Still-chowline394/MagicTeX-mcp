@@ -172,4 +172,7 @@ pré-visualização local é uma aproximação.
   correspondência bit a bit garantida. É preciso para a grande maioria dos artigos; sempre faça uma
   compilação final no seu destino (Overleaf ou seu sistema de submissão).
 - O histórico de mudanças fica numa ref oculta do git (`refs/latex-preview/checkpoints`) e nunca toca
-  seus branches, seu `git log` ou sua árvore de trabalho.
+  seus branches, seu `git log` ou sua árvore de trabalho. Se a pasta não for um repositório git,
+  o MagicTeX guarda essa ref num repositório próprio em `.latex-preview/history.git` dentro do
+  projeto — o histórico se move, se copia e é apagado junto com a pasta, e `git` rodado ali
+  continua dizendo que não há repositório.

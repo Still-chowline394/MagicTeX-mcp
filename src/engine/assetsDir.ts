@@ -18,8 +18,12 @@ const IN_PACKAGE = join(PKG_ROOT, 'assets', 'busytex');
 /** The marker we treat as "the assets are really here", not just an empty dir. */
 const MARKER = 'busytex.wasm';
 
-/** Per-user cache root for everything MagicTeX keeps outside a project: the WASM
- *  engine, and the shadow history repos for projects that aren't git repos. */
+/** Per-user cache root for what MagicTeX keeps outside a project — now just the
+ *  WASM engine, which is shared and re-downloadable. Checkpoint history used to
+ *  live here too, keyed by a hash of the project path; it moved into the project
+ *  so that it follows the paper rather than the path, and so that deleting a
+ *  paper deletes its drafts. `historyRepo.ts` still reads the old location once,
+ *  to bring existing timelines forward. */
 export function cacheRoot(): string {
   const home = homedir();
   if (process.platform === 'win32') {
