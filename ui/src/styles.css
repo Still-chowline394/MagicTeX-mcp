@@ -93,6 +93,14 @@ body.resizing .pdf-scroll, body.resizing .editor-scroll { pointer-events: none; 
    outer layout and the composer drifts far from the selection. */
 .pdf-scroll { flex: 1 1 auto; overflow: auto; position: relative; }
 .pdf-note { padding: 16px; color: #ccc; }
+/* The failure-report variant: keeps its line breaks, stays selectable so it can
+   be copied into an issue, and scrolls rather than widening the pane on a long
+   user-agent string. */
+.pdf-note-report {
+  white-space: pre-wrap; word-break: break-word;
+  font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  user-select: text; max-width: 100%; overflow-x: auto;
+}
 .pdf-pages { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 14px; }
 .page { position: relative; background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,.5); }
 .page canvas { display: block; }
