@@ -78,6 +78,12 @@ jobs:
       - name: History works with and without a project git repo
         run: node scripts/smoke-history.mjs
 
+      # A highlight that drifts off its words is the review loop quietly lying
+      # about what a comment refers to. This only shows up on a multi-line
+      # highlight at particular zoom levels, so it needs a real browser.
+      - name: Highlights stay on their words at every zoom
+        run: node scripts/smoke-highlight-zoom.mjs
+
       - name: Save engine assets for next time
         if: steps.assets.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4

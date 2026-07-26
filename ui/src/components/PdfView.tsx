@@ -8,7 +8,7 @@ import * as pdfjs from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { createComment, type Comment } from '../api';
 import { normalize, phrase } from '../sync';
-import { groupLines } from '../lines';
+import { groupLines, columnBoundaries, type LineSpan } from '../lines';
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -84,6 +84,21 @@ export function PdfView({
         await pg.render({ canvas, viewport: vp }).promise;
         const textLayer = new pdfjs.TextLayer({ textContentSource: pg.streamTextContent(), container: textDiv, viewport: vp });
         await textLayer.render();
+        // Column boundaries come from the PDF's own coordinates, not from the
+        // rendered text layer. That layer is an approximation which degrades at
+        // small font sizes — spans overflow into their neighbours and fill the
+        // gutter — so detecting columns from the DOM answered differently at
+        // each zoom of the same document: two boundaries at 150%, one at 124%,
+        // none at 102%, at which point a highlight spanned the whole page.
+        // Computed once per page in scale-1 units, projected where it's used.
+        const base = pg.getViewport({ scale: 1 });
+        const content = await pg.getTextContent();
+        const items: LineSpan[] = [];
+        for (const it of content.items as { str: string; transform: number[]; width: number; height: number }[]) {
+          if (!it.str.trim()) continue;
+          items.push({ start: 0, len: it.str.length, l: it.transform[4], t: base.height - it.transform[5], w: it.width, h: it.height || 10 });
+        }
+        wrap.dataset.columns = JSON.stringify(columnBoundaries(items));
       }
       if (cancelled) return;
       container.replaceChildren(next);
@@ -225,10 +240,17 @@ export function PdfView({
     // hits() works at span granularity, but pdf.js emits spans covering many
     // words at once, so taking a span's own edge put the highlight's start up to
     // a whole span early. A Range over the text node gives the true glyph
-    // position; it is measured as a FRACTION of the span's client width and
-    // reapplied to the offset width, because the text layer scales spans with a
-    // transform that client rects include and offsetWidth does not.
-    const edgeInSpan = (s: Span, localNorm: number, side: 'left' | 'right'): number | null => {
+    // position.
+    //
+    // Everything here is measured in the page's VISUAL space — client rects,
+    // minus the page's own origin. It used to mix spaces: offsetWidth for the
+    // span boxes and a client-rect fraction reapplied to them for the edges.
+    // pdf.js gives each span a `transform: scaleX(k)` so the text matches the
+    // PDF's advance widths, and offsetWidth does not include that scale — so
+    // every span was as wide as its layout box rather than as wide as its
+    // glyphs. k is recomputed at each zoom level, which is why the highlights
+    // moved when you changed zoom rather than being consistently wrong.
+    const edgeInSpan = (s: Span, localNorm: number, side: 'left' | 'right', pageLeft: number): number | null => {
       const node = s.el.firstChild;
       if (!node || node.nodeType !== Node.TEXT_NODE) return null;
       const raw = node.textContent ?? '';
@@ -239,10 +261,8 @@ export function PdfView({
       if (side === 'left') { range.setStart(node, rawIdx); range.setEnd(node, raw.length); }
       else { range.setStart(node, 0); range.setEnd(node, rawIdx); }
       const rect = range.getBoundingClientRect();
-      const box = s.el.getBoundingClientRect();
-      if (!box.width || !rect.width) return null;
-      const frac = ((side === 'left' ? rect.left : rect.right) - box.left) / box.width;
-      return s.l + frac * s.w;
+      if (!rect.width) return null;
+      return (side === 'left' ? rect.left : rect.right) - pageLeft;
     };
     // groupLines lives in ../lines: knowing each line's FULL extent (not just the
     // matched words on it) is what lets interior lines get a flush box below, and
@@ -255,13 +275,28 @@ export function PdfView({
       const words = norm.split(' ').filter(Boolean);
       let concat = '';
       const all: Span[] = [];
+      // Client rects, not offsets: pdf.js scales each span with a transform that
+      // offsetWidth ignores, so offset geometry describes the layout box rather
+      // than the glyphs. `.page` is position:relative with no border, so
+      // subtracting its origin lands in exactly the coordinate space `.hl-layer`
+      // (inset: 0) positions boxes in.
+      const pageBox = page.getBoundingClientRect();
       for (const s of page.querySelectorAll('.textLayer span')) {
         const el = s as HTMLElement;
         const n = normalize(el.textContent ?? '');
         if (!n) continue;
-        all.push({ start: concat.length, len: n.length, l: el.offsetLeft, t: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight, el });
+        const r = el.getBoundingClientRect();
+        all.push({
+          start: concat.length, len: n.length,
+          l: r.left - pageBox.left, t: r.top - pageBox.top, w: r.width, h: r.height,
+          el,
+        });
         concat += n + ' ';
       }
+      // Stored at scale 1 by the renderer; project to what is on screen now.
+      const cols: number[] = (() => {
+        try { return JSON.parse((page as HTMLElement).dataset.columns ?? '[]') as number[]; } catch { return []; }
+      })().map((x) => x * (parseFloat(getComputedStyle(page).getPropertyValue('--scale-factor')) || 1));
       const at = anchor(concat, words, true);
       if (at < 0) return null;
       const tailEnd = anchor(concat, words, false);
@@ -274,7 +309,7 @@ export function PdfView({
       // them is flush, full width, top to bottom — none of that depends on any
       // single word's box, so font-metric quirks on interior words can't
       // fragment the highlight the way per-word boxes did.
-      const touched = groupLines(all).filter((L) => hits(L).length > 0);
+      const touched = groupLines(all, cols).filter((L) => hits(L).length > 0);
       if (!touched.length) return null;
       return touched.map((L, i) => {
         let l = L.l, r = L.r;
@@ -283,11 +318,11 @@ export function PdfView({
           // the span edge when the offset lands in the gap between two spans or
           // the node isn't measurable.
           const host = hits(L).find((s) => s.start <= at && at < s.start + s.len);
-          l = (host && edgeInSpan(host, at - host.start, 'left')) ?? Math.min(...hits(L).map((s) => s.l));
+          l = (host && edgeInSpan(host, at - host.start, 'left', pageBox.left)) ?? Math.min(...hits(L).map((s) => s.l));
         }
         if (i === touched.length - 1) {
           const host = hits(L).find((s) => s.start < end && end <= s.start + s.len);
-          r = (host && edgeInSpan(host, end - host.start, 'right')) ?? Math.max(...hits(L).map((s) => s.l + s.w));
+          r = (host && edgeInSpan(host, end - host.start, 'right', pageBox.left)) ?? Math.max(...hits(L).map((s) => s.l + s.w));
         }
         return { l, t: L.t, w: r - l, h: L.b - L.t };
       });
