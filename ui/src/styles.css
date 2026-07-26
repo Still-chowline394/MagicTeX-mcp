@@ -160,6 +160,9 @@ body.resizing-v { cursor: row-resize; user-select: none; }
 .tree-caret { width: 12px; text-align: center; color: #888; flex: 0 0 auto; }
 .tree-icon { flex: 0 0 auto; font-size: 12px; }
 .tree-name { overflow: hidden; text-overflow: ellipsis; }
+/* Unsaved changes, including in files that are not open. Edits now survive a
+   file switch, which is only an improvement if you can see that they did. */
+.tree-dirty { margin-left: 6px; color: #ffcf6b; font-size: 15px; line-height: 1; flex: 0 0 auto; }
 .tree-actions { margin-left: auto; display: none; gap: 2px; padding-right: 6px; }
 .tree-row:hover .tree-actions { display: flex; }
 .tree-actions button { background: none; border: none; color: #9aa3ad; padding: 0 4px; font-size: 12px; }

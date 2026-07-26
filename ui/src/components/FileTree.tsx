@@ -4,10 +4,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchTree, fsOp, uploadFile, type TreeNode } from '../api';
 
 export function FileTree({
-  active, onOpen, refreshKey, height,
+  active, onOpen, refreshKey, height, dirtyPaths,
 }: {
   active: string | null;
   onOpen: (path: string) => void;
+  /** Files holding unsaved edits — including ones not currently open. Without a
+   *  marker, parking a buffer on a file switch is just a quieter way to lose it:
+   *  the user has no way to know the text is still there, waiting. */
+  dirtyPaths?: Set<string>;
   refreshKey: number; // bump to reload the tree (e.g. after external edits)
   height: number;     // pane height in px (drag-resizable from the parent)
 }) {
@@ -78,6 +82,9 @@ export function FileTree({
           <span className="tree-caret">{node.type === 'dir' ? (isOpen ? '▾' : '▸') : ''}</span>
           <span className="tree-icon">{node.type === 'dir' ? '📁' : node.editable === false ? '🖼' : '📄'}</span>
           <span className="tree-name">{node.name}</span>
+          {dirtyPaths?.has(node.path) && (
+            <span className="tree-dirty" title="unsaved changes — still here, not yet on disk">•</span>
+          )}
           <span className="tree-actions" onClick={(e) => e.stopPropagation()}>
             {node.type === 'dir' && <button title="New file here" onClick={() => newFile(node.path)}>+</button>}
             {node.type === 'dir' && <button title="Upload here" onClick={() => pickUpload(node.path)}>⬆</button>}
