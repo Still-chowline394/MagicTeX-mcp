@@ -72,6 +72,12 @@ jobs:
       - name: A broken edit must not cost you the preview
         run: node scripts/smoke-error-handling.mjs
 
+      # Both halves matter: a plain folder gets history without a .git appearing
+      # in it, and a real repo keeps recording to its hidden ref. Adding the
+      # first case rewrote every git call site, so the second needs guarding too.
+      - name: History works with and without a project git repo
+        run: node scripts/smoke-history.mjs
+
       - name: Save engine assets for next time
         if: steps.assets.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4

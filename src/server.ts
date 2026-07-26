@@ -18,7 +18,7 @@ import { getPreview, peekPreview, captureDiff } from './engine/browserHost.js';
 import { setConfig, requestCompile } from './coordinator.js';
 import { setProjectRoot } from './session.js';
 import { startWatching } from './watch/fileWatcher.js';
-import { isGitRepo, listCheckpoints } from './git/checkpoints.js';
+import { canTrackHistory, listCheckpoints } from './git/checkpoints.js';
 import { type Engine, type Backend } from './project/compileProject.js';
 import { MainFileError } from './project/resolveMainFile.js';
 import { summarizeErrors } from './project/parseLog.js';
@@ -115,8 +115,8 @@ server.registerTool(SHOW_DIFF_NAME, showDiffConfig, async ({ checkpoint }) => {
   setProjectRoot(projectRoot); // the diff endpoints read this
   try {
     await getPreview(); // ensure the preview server + headless browser are up
-    if (!(await isGitRepo(projectRoot))) {
-      return { isError: true, content: [{ type: 'text', text: '✖ Not a git repository — nothing to diff.' }] };
+    if (!(await canTrackHistory(projectRoot))) {
+      return { isError: true, content: [{ type: 'text', text: "✖ History needs git, and none was found on PATH. Install it from https://git-scm.com/ and restart — no account or remote is involved; the history stays on this machine." }] };
     }
     const path = checkpoint ? `/diff-view?sha=${encodeURIComponent(checkpoint)}` : '/diff-view';
     const { empty, png } = await captureDiff(path);
@@ -137,8 +137,8 @@ server.registerTool(SHOW_DIFF_NAME, showDiffConfig, async ({ checkpoint }) => {
 server.registerTool(LIST_CHECKPOINTS_NAME, listCheckpointsConfig, async ({ limit }) => {
   const projectRoot = process.cwd();
   setProjectRoot(projectRoot);
-  if (!(await isGitRepo(projectRoot))) {
-    return { content: [{ type: 'text', text: 'Not a git repository — no checkpoint history.' }] };
+  if (!(await canTrackHistory(projectRoot))) {
+    return { content: [{ type: 'text', text: "History needs git, and none was found on PATH. Install it from https://git-scm.com/ and restart — no account or remote is involved; the history stays on this machine." }] };
   }
   const all = await listCheckpoints(projectRoot);
   if (!all.length) return { content: [{ type: 'text', text: 'No checkpoints yet.' }] };
