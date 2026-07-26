@@ -48,7 +48,10 @@ test('a fresh install resolves outside the package directory', async () => {
     const dir = mod.busytexDir();
     assert.ok(!dir.startsWith(root), `expected a path outside ${root}, got ${dir}`);
     assert.ok(dir.startsWith(homedir()), `expected a per-user cache path, got ${dir}`);
-    assert.equal(mod.busytexPresent(), false);
+    // Deliberately no assertion about busytexPresent() here: it reports on the
+    // *machine's* cache, so a developer who has ever downloaded the engine would
+    // fail a test about where new installs resolve to. Presence is covered above
+    // against a tree this test controls.
   } finally {
     cleanup();
   }

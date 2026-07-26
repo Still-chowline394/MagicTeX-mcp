@@ -8,6 +8,7 @@ import * as pdfjs from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { createComment, type Comment } from '../api';
 import { normalize, phrase } from '../sync';
+import { groupLines } from '../lines';
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -243,29 +244,11 @@ export function PdfView({
       const frac = ((side === 'left' ? rect.left : rect.right) - box.left) / box.width;
       return s.l + frac * s.w;
     };
-    // Group ALL of a page's text spans into visual lines — "same line" means the
-    // new span's vertical range overlaps the line's accumulated range (tolerates
-    // italic/math/sub-superscript runs having a different box than roman text on
-    // the same baseline; a real line break is close to a full font-size, far
-    // bigger than any such overlap). Knowing each line's FULL extent (not just
-    // the matched words on it) is what lets middle lines get a flush, full-width
-    // box below, independent of any single word's box.
-    const groupLines = (spans: Span[]) => {
-      const sorted = [...spans].sort((a, b) => a.t - b.t || a.l - b.l);
-      const lines: { t: number; b: number; l: number; r: number; spans: Span[] }[] = [];
-      for (const s of sorted) {
-        const cur = lines[lines.length - 1];
-        const overlap = cur ? Math.min(s.t + s.h, cur.b) - Math.max(s.t, cur.t) : -1;
-        if (cur && overlap > Math.min(s.h, cur.b - cur.t) * 0.3) {
-          cur.l = Math.min(cur.l, s.l); cur.r = Math.max(cur.r, s.l + s.w);
-          cur.t = Math.min(cur.t, s.t); cur.b = Math.max(cur.b, s.t + s.h);
-          cur.spans.push(s);
-        } else {
-          lines.push({ t: s.t, b: s.t + s.h, l: s.l, r: s.l + s.w, spans: [s] });
-        }
-      }
-      return lines;
-    };
+    // groupLines lives in ../lines: knowing each line's FULL extent (not just the
+    // matched words on it) is what lets interior lines get a flush box below, and
+    // that same property is what made a two-column page paint across the gutter
+    // until the grouping learned about columns. Extracted so the geometry can be
+    // unit-tested with synthetic coordinates.
     const liveBoxes = (page: Element, quote: string): { l: number; t: number; w: number; h: number }[] | null => {
       const norm = normalize(quote);
       if (!norm) return null;

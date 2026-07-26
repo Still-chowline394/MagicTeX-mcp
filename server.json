@@ -3,7 +3,7 @@
   "name": "io.github.ZoeLinUTS/magictex",
   "title": "MagicTeX",
   "description": "LaTeX editor for AI agents: live PDF preview, PDF comments that drive edits, git history",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "websiteUrl": "https://github.com/ZoeLinUTS/MagicTeX-mcp",
   "repository": {
     "url": "https://github.com/ZoeLinUTS/MagicTeX-mcp",
@@ -13,7 +13,7 @@
     {
       "registryType": "npm",
       "identifier": "magictex-mcp",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "transport": {
         "type": "stdio"
       }
