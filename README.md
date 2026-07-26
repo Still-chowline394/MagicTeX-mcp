@@ -79,9 +79,15 @@ anchored annotations):
 - **Real projects.** Auto-detects the main file, gathers multi-file
   `\input`/`\include`, `.bib`, in-repo `.cls`/`.sty`/`.bst` and figures, runs
   BibTeX and reruns when needed; common missing packages are auto-injected.
-- **Compile backend.** Zero-install **WASM** TeX Live by default; pass
-  `backend: "system"` (or `"auto"`) to `render_preview` to compile with your local
-  **latexmk** for full package fidelity.
+- **Compile backend.** Uses your local **latexmk** when you have one — full package
+  fidelity, output matching Overleaf — and the bundled zero-install **WASM** TeX Live
+  when you don't. Force either with `backend: "system"` / `"wasm"`. Every compile
+  reports which one ran.
+- **Document classes.** `IEEEtran` is bundled, because no venue class ships in the
+  WASM TeX Live and a missing class can't be worked around the way a package can.
+  Conference classes (NeurIPS, ICML, CVPR, ACL, AAAI …) carry no redistributable
+  licence, so put the `.cls` from the author kit beside your source — it's picked up
+  automatically.
 - **MCP tools:** `render_preview` (compile + open the workspace), `check_comments` /
   `resolve_comment` / `add_comment` / `reply_to_comment` (the review loop), `show_diff`
   (side-by-side diff as an image — useful on image-capable clients).
@@ -172,7 +178,7 @@ plain English, or use the slash commands above — these are the underlying tool
 
 | Tool | Parameters | What it does |
 | ---- | ---------- | ------------ |
-| `render_preview` | `mainFile?` · `engine?` (`pdflatex` \| `xelatex` \| `lualatex`, default `xelatex`) · `backend?` (`wasm` \| `system` \| `auto`, default `wasm`) | Compiles the project and opens/refreshes the live workspace. The main file is auto-detected by scanning for `\documentclass` if omitted. |
+| `render_preview` | `mainFile?` · `engine?` (`pdflatex` \| `xelatex` \| `lualatex`, default `xelatex`) · `backend?` (`wasm` \| `system` \| `auto`, default `auto` — local latexmk if installed, else the bundled WASM engine) | Compiles the project and opens/refreshes the live workspace. The main file is auto-detected by scanning for `\documentclass` if omitted. |
 | `check_comments` | `includeResolved?` (default `false`) | Returns the accepted comments as located work items — page, quoted passage, the source `file:line`, and the ask. Reviewer suggestions awaiting your decision are reported but not returned as work. |
 | `add_comment` | `quote` · `comment` · `role?` (`reviewer` \| `defender`) · `page?` · `accepted?` | Anchors a comment onto a passage. Posts as a *suggestion* awaiting your Accept/Reject unless `accepted` is set — that flag is what makes autonomous mode autonomous. |
 | `resolve_comment` | `id` · `note` | Marks a comment done after the edit, with one line describing what changed. It turns **green** in the workspace for your review. |

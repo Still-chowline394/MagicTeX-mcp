@@ -1,0 +1,4 @@
+# Vendored TeX files are redistributed verbatim under their own licences, so
+# they must not pick up CRLF from a Windows checkout — what we ship should be
+# byte-for-byte what CTAN publishes.
+assets/fallback-styles/* -text

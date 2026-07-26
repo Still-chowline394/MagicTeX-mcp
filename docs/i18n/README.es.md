@@ -112,7 +112,7 @@ La superficie MCP, para cualquier cliente que hable MCP. (En Claude Code basta c
 
 | Herramienta | Parámetros | Qué hace |
 | ---- | ---- | ---- |
-| `render_preview` | `mainFile?` · `engine?` (`pdflatex` \| `xelatex` \| `lualatex`, por defecto `xelatex`) · `backend?` (`wasm` \| `system` \| `auto`, por defecto `wasm`) | Compila el proyecto y abre/actualiza el espacio de trabajo en vivo. Si se omite, detecta el archivo principal buscando `\documentclass`. |
+| `render_preview` | `mainFile?` · `engine?` (`pdflatex` \| `xelatex` \| `lualatex`, por defecto `xelatex`) · `backend?` (`wasm` \| `system` \| `auto`, por defecto `auto` — latexmk local si está instalado, si no el motor WASM incluido) | Compila el proyecto y abre/actualiza el espacio de trabajo en vivo. Si se omite, detecta el archivo principal buscando `\documentclass`. |
 | `check_comments` | `includeResolved?` (por defecto `false`) | Devuelve los comentarios aceptados como **tareas localizadas**: página, cita, el `archivo:línea` de origen y tu petición. Las sugerencias de un revisor pendientes de tu decisión se informan, pero no se devuelven como trabajo. |
 | `add_comment` | `quote` · `comment` · `role?` (`reviewer` \| `defender`) · `page?` · `accepted?` | Ancla un comentario en un pasaje. Se publica como **sugerencia** a la espera de tu Accept/Reject salvo que actives `accepted`: ese indicador es justamente lo que hace autónomo al modo autónomo. |
 | `resolve_comment` | `id` · `note` | Marca un comentario como hecho tras la edición, con una línea sobre lo que cambió. Se pone **verde** en el espacio de trabajo, esperando tu revisión. |

@@ -47,8 +47,13 @@ const client = new Client({ name: 'smoke-errors', version: '0' }, { capabilities
 await client.connect(transport);
 
 let base = null;
-const render = async (label) => {
-  const r = await client.callTool({ name: 'render_preview', arguments: {} }, undefined, { timeout: COMPILE_TIMEOUT_MS });
+// backend is pinned, never left to the default. Every assertion below is about
+// the bundled WASM engine — its stubbing, its missing-package handling, its
+// bundled classes. Under the 'auto' default a runner that happens to have
+// latexmk installed would quietly exercise system TeX instead and pass without
+// testing any of it.
+const render = async (label, args = {}) => {
+  const r = await client.callTool({ name: 'render_preview', arguments: { backend: 'wasm', ...args } }, undefined, { timeout: COMPILE_TIMEOUT_MS });
   const out = r.content.map((c) => c.text ?? '').join('\n');
   base ??= out.match(/http:\/\/127\.0\.0\.1:\d+/)?.[0];
   let pages = 0;
@@ -76,6 +81,30 @@ const restored = await render('3 restored');
 writeFileSync(tex, doc('Second page.').replace(String.raw`\usepackage{amsmath}`, String.raw`\usepackage{amsmath}` + '\n' + String.raw`\usepackage{magictexnosuchpkg}`));
 const stubbed = await render('4 unused missing package');
 
+// A vendored document class. IEEEtran is in no tier of the bundled TeX Live, so
+// without assets/fallback-styles/IEEEtran.cls this is an Emergency stop and no
+// PDF at all — deleting the file has to fail here rather than silently ship.
+// \IEEEPARstart only exists in the real class, so it also catches a stub or a
+// truncated download standing in for it.
+writeFileSync(tex, [
+  String.raw`\documentclass[conference]{IEEEtran}`,
+  String.raw`\begin{document}`,
+  String.raw`\title{Bundled Class Check}`,
+  String.raw`\author{\IEEEauthorblockN{Smoke Test}}`,
+  String.raw`\maketitle`,
+  String.raw`\begin{abstract}`,
+  'The class must typeset a real two-column IEEE paper, not merely be found.',
+  String.raw`\end{abstract}`,
+  String.raw`\begin{IEEEkeywords}`,
+  'document class, regression test',
+  String.raw`\end{IEEEkeywords}`,
+  String.raw`\section{Body}`,
+  String.raw`\IEEEPARstart{T}{his} macro exists only in IEEEtran.`,
+  String.raw`\end{document}`,
+  '',
+].join('\n'));
+const ieee = await render('5 bundled IEEEtran class');
+
 const checks = [
   ['good source renders all 3 pages', good.pages === 3],
   ['a broken recompile keeps the good preview', broken.pages === 3],
@@ -83,6 +112,8 @@ const checks = [
   ['recovery restores a clean compile', restored.pages === 3 && /^✓ Compiled/.test(restored.out)],
   ['an unused missing package still compiles', stubbed.pages === 3],
   ['the stub is disclosed to the user', /Stubbed out/.test(stubbed.out)],
+  ['a bundled IEEEtran paper compiles clean', ieee.pages >= 1 && /^✓ Compiled/.test(ieee.out)],
+  ['the run reports which backend produced it', / · wasm /.test(ieee.out)],
 ];
 
 console.log('');

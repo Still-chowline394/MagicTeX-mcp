@@ -108,7 +108,7 @@ MCP を話すあらゆるクライアント向けのインターフェース層�
 
 | ツール | 引数 | 何をするか |
 | ---- | ---- | ---- |
-| `render_preview` | `mainFile?` · `engine?`（`pdflatex` \| `xelatex` \| `lualatex`、既定 `xelatex`）· `backend?`（`wasm` \| `system` \| `auto`、既定 `wasm`） | プロジェクトをコンパイルしてライブワークスペースを開く／更新。省略時は `\documentclass` を走査して主ファイルを自動判定。 |
+| `render_preview` | `mainFile?` · `engine?`（`pdflatex` \| `xelatex` \| `lualatex`、既定 `xelatex`）· `backend?`（`wasm` \| `system` \| `auto`、既定 `auto` — ローカルに latexmk があればそれを、なければ同梱の WASM エンジンを使用） | プロジェクトをコンパイルしてライブワークスペースを開く／更新。省略時は `\documentclass` を走査して主ファイルを自動判定。 |
 | `check_comments` | `includeResolved?`（既定 `false`） | 受理済みコメントを**位置情報付きの作業項目**として返す——ページ、引用箇所、対応するソースの `ファイル:行`、依頼内容。判断待ちの reviewer 提案は通知されるだけで作業としては返らない。 |
 | `add_comment` | `quote` · `comment` · `role?`（`reviewer` \| `defender`）· `page?` · `accepted?` | コメントを本文に固定する。既定では Accept/Reject 待ちの**提案**として投稿され、`accepted` を立てたときだけ即有効——このフラグこそが自律モードを自律たらしめている。 |
 | `resolve_comment` | `id` · `note` | 編集後にコメントを完了扱いにし、変更内容を一行で記す。ワークスペースで**緑**になり、確認待ちになる。 |

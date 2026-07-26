@@ -49,9 +49,16 @@ export async function compileProject(opts: CompileProjectOptions): Promise<Compi
   // compiles the on-disk project directly — full package fidelity, no fallback
   // shims. 'system' with no local TeX is a clear error rather than a silent WASM
   // fallback (so the user knows their choice couldn't be honored).
-  const wantSystem = opts.backend === 'system' || (opts.backend === 'auto' && (await hasSystemTex()));
+  //
+  // 'auto' is the default. The zero-install promise was that you don't *need* a
+  // local TeX, not that we'd decline to use one: defaulting to wasm meant someone
+  // with MacTeX on PATH silently got the bundled subset — no venue classes, no
+  // `svg` — and output that doesn't match Overleaf, without ever being told a
+  // better compiler was sitting right there.
+  const backend: Backend = opts.backend ?? 'auto';
+  const wantSystem = backend === 'system' || (backend === 'auto' && (await hasSystemTex()));
   if (wantSystem) {
-    if (opts.backend === 'system' && !(await hasSystemTex())) {
+    if (backend === 'system' && !(await hasSystemTex())) {
       return { success: false, pdf: undefined, pdfLen: 0, log: '', ms: 0, error: 'backend "system" requested but no local TeX (latexmk) was found on PATH.', mainFile, engine, backend: 'system', fileCount: files.length, truncated };
     }
     const out = await compileWithSystemTex(opts.projectRoot, main ? main.path : mainFile, engine);
