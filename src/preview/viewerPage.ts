@@ -43,8 +43,23 @@ export function viewerPageHtml(): string {
           font-family: ui-monospace, monospace; font-size: 11.5px; line-height: 1.4; border-top: 1px solid #1c1c1c; }
   #diff .add { color: #6fbf73; } #diff .del { color: #d07a7a; }
   #diff .hunk { color: #7aa2d0; } #diff .meta { color: #777; }
+  /* Red, not amber, and not dismissible: the amber states mean "degraded but what
+     you see is true"; this means the opposite. Mistaking the second for the first
+     is what sent a stale error into a bug report. */
+  #dead { padding: 10px 14px; line-height: 1.5; font-size: 13px; flex: 0 0 auto;
+          color: #ffb4a8; background: #331715; border-bottom: 1px solid #6b2b23; }
+  #dead strong { color: #ffd7d0; }
+  #dead em { color: #ffd7d0; font-style: normal; font-weight: 600; }
+  #status.dead { color: #ff9a8a; font-weight: 600; }
 </style></head>
 <body>
+  <div id="dead" role="alert" style="display:none">
+    <strong>This window is no longer live.</strong>
+    The MagicTeX server it was connected to has stopped, so everything below is a
+    snapshot from when it did — <em>including any error message</em>. Ask Claude to
+    render a preview again; that opens a new window at a new address. This one can
+    be closed.
+  </div>
   <div id="bar">
     <strong>LaTeX Live Preview</strong>
     <span id="status" class="busy">connecting…</span>
@@ -85,7 +100,17 @@ export function viewerPageHtml(): string {
   const listEl = document.getElementById('list');
   const diffEl = document.getElementById('diff');
 
-  function setStatus(cls, text) { statusEl.className = cls; statusEl.textContent = text; }
+  // Once the window is dead it stays dead. This started as a plain call that set
+  // the banner and the status — and CI on macOS caught a render finishing AFTER
+  // it and putting back "✓ up to date" and an enabled Download button, because
+  // render() ends with exactly that. Same shape as the stale-render bug fixed in
+  // the workspace's PdfView: a superseded async run overwriting current state.
+  // Reordering would only move the race, so the flag is checked here instead.
+  let dead = false;
+  function setStatus(cls, text) {
+    if (dead) return;
+    statusEl.className = cls; statusEl.textContent = text;
+  }
 
   // ---- Download ----
   let pdfBase = 'preview';
@@ -118,6 +143,7 @@ export function viewerPageHtml(): string {
 
   // ---- PDF render ----
   async function render() {
+    if (dead) return; // nothing to fetch it from
     setStatus('busy', 'rendering…');
     const scroll = mainEl.scrollTop;
     try {
@@ -141,7 +167,8 @@ export function viewerPageHtml(): string {
       metaEl.textContent = doc.numPages + ' page' + (doc.numPages === 1 ? '' : 's');
       errEl.style.display = 'none';
       setStatus('ok', '✓ up to date');
-      hasPdf = true; downloadBtn.disabled = false;
+      hasPdf = true;
+      if (!dead) downloadBtn.disabled = false;
       mainEl.scrollTop = scroll;
     } catch (e) {
       setStatus('err', 'render failed');
@@ -224,11 +251,38 @@ export function viewerPageHtml(): string {
   });
 
   // ---- WebSocket ----
+  //
+  // This page keeps whatever the server last pushed on screen — including its
+  // last compile error. Every server start binds a fresh port, so once its server
+  // stops it can never reconnect, and a reader has no way to tell a stale error
+  // from a live one. A real bug was filed off a window in exactly that state
+  // while a healthy instance compiled the same paper fine on another port.
+  //
+  // The workspace at /app learned to say so; this page is what render_preview
+  // opens whenever ui/dist has not been built, so it has to say it too.
+  let downSince = 0;
+  let farewell = false;
+  const GIVE_UP_MS = 10000;
+  function markDead() {
+    if (dead) return;
+    document.getElementById('dead').style.display = 'block';
+    // Written directly, not through setStatus, which is now a no-op once dead.
+    statusEl.className = 'dead';
+    statusEl.textContent = '⚠ this window is no longer live';
+    dead = true;
+    // The controls that would now fail silently. A button that looks live is
+    // part of what makes a dead window pass for one.
+    for (const id of ['history', 'export', 'download']) {
+      const el = document.getElementById(id);
+      if (el) el.disabled = true;
+    }
+  }
   function connect() {
     const ws = new WebSocket('ws://' + location.host);
-    ws.onopen = () => { setStatus('ok', 'connected'); render(); };
+    ws.onopen = () => { downSince = 0; setStatus('ok', 'connected'); render(); };
     ws.onmessage = (ev) => {
       const msg = JSON.parse(ev.data);
+      if (msg.type === 'server-closing') { farewell = true; markDead(); return; }
       if (msg.type === 'reload') {
         if (msg.name) pdfBase = String(msg.name).split(/[\\\\/]/).pop().replace(/\\.tex$/i, '') || 'preview';
         render();
@@ -241,7 +295,16 @@ export function viewerPageHtml(): string {
         setStatus('busy', 'compiling…');
       }
     };
-    ws.onclose = () => { setStatus('err', 'disconnected'); setTimeout(connect, 1000); };
+    ws.onclose = () => {
+      if (farewell) return;
+      // Judged on elapsed time, not attempts: a slept laptop fires every overdue
+      // timer at once, and a hidden tab is throttled to about one a minute.
+      // Retries continue underneath, so a window that was merely offline recovers.
+      if (!downSince) downSince = Date.now();
+      if (Date.now() - downSince >= GIVE_UP_MS) markDead();
+      else setStatus('err', 'disconnected');
+      setTimeout(connect, 1000);
+    };
   }
   connect();
 </script>
