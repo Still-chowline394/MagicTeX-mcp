@@ -4,7 +4,7 @@ import { resolveMainFile } from './resolveMainFile.js';
 import { collectProjectFiles } from './collectProjectFiles.js';
 import { getFallbackStyles } from '../engine/fallbackStyles.js';
 import { compile, type CompileOutput } from '../engine/browserHost.js';
-import { probeSystemTex, compileWithSystemTex, systemTexUnavailableMessage, type SystemTexProbe } from '../engine/systemTex.js';
+import { probeSystemTex, compileWithSystemTex, systemTexUnavailableMessage, type SystemTexProbe, type SystemFallback } from '../engine/systemTex.js';
 import { classifyCompile, stubPackage, usesPackage, type CompileVerdict } from '../engine/compileLog.js';
 
 export type Engine = 'xelatex' | 'pdflatex' | 'lualatex';
@@ -26,7 +26,7 @@ export interface CompileProjectResult extends CompileOutput {
    *  so this result came from the bundled engine instead. Carried so the caller
    *  can disclose the substitution — a fallback nobody is told about is how a
    *  broken toolchain gets reported as a success. */
-  systemFallback?: { errors: string[]; missingPackages: string[]; missingClasses: string[] };
+  systemFallback?: SystemFallback;
   /** What we found when we looked for a local TeX. Carried even when the WASM
    *  backend ran, because the case that needs explaining most is "the bundled
    *  engine could not do this AND there is no local TeX" — where the reader is
@@ -103,6 +103,7 @@ export async function compileProject(opts: CompileProjectOptions): Promise<Compi
       errors: sysVerdict.errors.slice(0, 3),
       missingPackages: sysVerdict.missingPackages,
       missingClasses: sysVerdict.missingClasses,
+      blockedTools: sysVerdict.blockedTools,
     };
   }
 

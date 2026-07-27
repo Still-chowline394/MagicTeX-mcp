@@ -137,7 +137,7 @@ server.registerTool(RENDER_PREVIEW_NAME, renderPreviewConfig, async ({ mainFile,
     // and what the local-TeX situation on this machine really is.
     const missingPkgs = (result.verdict?.missingPackages ?? []).filter((p) => !missingCls.includes(p));
     const pkgHint = missingPkgs.length && result.backend !== 'system'
-      ? `\n\n${missingPkgs.map((p) => `\`${p}\``).join(', ')} ${missingPkgs.length > 1 ? 'are' : 'is'} not in the bundled TeX Live subset, and the source really uses ${missingPkgs.length > 1 ? 'them' : 'it'} — so ${missingPkgs.length > 1 ? 'they cannot' : 'it cannot'} be stubbed out without rendering something different from what you wrote.\n\n${systemTexAdvice(result.systemTex)}`
+      ? `\n\n${missingPkgs.map((p) => `\`${p}\``).join(', ')} ${missingPkgs.length > 1 ? 'are' : 'is'} not in the bundled TeX Live subset, and the source really uses ${missingPkgs.length > 1 ? 'them' : 'it'} — so ${missingPkgs.length > 1 ? 'they cannot' : 'it cannot'} be stubbed out without rendering something different from what you wrote.\n\n${systemTexAdvice(result.systemTex, { packages: missingPkgs, fallback: result.systemFallback })}`
       : '';
     return {
       isError: true,
