@@ -84,20 +84,46 @@ npm view magictex-mcp version
 
 ## 3. Publish to the MCP registry
 
-This is the step that was missed. `server.json` is not published by `npm publish`
-— it goes to the official registry separately, with `mcp-publisher`
-(https://github.com/modelcontextprotocol/registry). The `io.github.ZoeLinUTS/*`
-namespace authenticates against the matching GitHub account.
+This is the step that was missed in 0.1.9. `server.json` is not published by
+`npm publish` — it goes to the official registry separately, with
+`mcp-publisher` (https://github.com/modelcontextprotocol/registry), which lives
+at the repo root and is gitignored.
 
-**Check** — this is the authority, not the tool's own output:
+```powershell
+.\mcp-publisher.exe login github     # device code; the token expires between releases
+.\mcp-publisher.exe publish
+```
+
+The `io.github.ZoeLinUTS/*` namespace authenticates against the matching GitHub
+account. **Log in first.** The token from the previous release will have expired,
+and the failure is not obvious:
+
+```
+Error: publish failed: server returned status 401:
+  "Invalid or expired Registry JWT token" ... "token is expired"
+```
+
+If a `publish` returns 401, check the registry before re-running. In 0.1.10 the
+publish had already succeeded and the 401 came afterwards; logging in and
+retrying then returned `400 cannot publish duplicate version`, which reads like
+a new problem and is actually the confirmation.
+
+**Check — and read `isLatest`, not the newest timestamp:**
+
+```powershell
+(Invoke-RestMethod "https://registry.modelcontextprotocol.io/v0/servers?search=magictex&limit=100").servers |
+  % { [pscustomobject]@{ v = $_.server.version; latest = $_._meta.'io.modelcontextprotocol.registry/official'.isLatest } }
+```
 
 ```bash
 curl -s "https://registry.modelcontextprotocol.io/v0/servers?search=magictex&limit=100" \
   | grep -o '"version":"[^"]*"' | tail -3
 ```
 
-The newest entry must be the version you just published, and its
-`isLatest` flag must be true.
+The entry flagged `isLatest` must be the version you just published. Sorting the
+list by `publishedAt` and taking the last one is *not* the same check — a freshly
+published version can be missing from the search index for a while, so that
+method reported the previous release as current minutes after 0.1.10 went up.
 
 ## 4. Tag and create the GitHub release
 
@@ -121,8 +147,16 @@ npm install --prefix /tmp/verify magictex-mcp@<version>
 
 then run `bin/cli.mjs` from that prefix against a scratch project and call
 `render_preview`. Point `MAGICTEX_ASSETS_DIR` at assets you already have so this
-does not re-download 480 MB — **with native separators**; a path written with
-forward slashes was refused outright before 0.1.10.
+does not re-download 480 MB. (Either separator works from 0.1.10 on; before that
+a forward-slash path was refused outright, which is what #84 was.)
 
-This check is not decoration. It is how #84 was found, half an hour after 0.1.9
+Assert four things, because each has been wrong at least once: the package
+installs, `ui/dist` is in the tarball, the server answers MCP, and a real
+document compiles.
+
+`ui/dist` is the one to keep: it is gitignored and built by `prepublishOnly`, so
+if that hook ever stops firing the workspace ships empty and every other check
+here still passes.
+
+This step is not decoration. It is how #84 was found, half an hour after 0.1.9
 went out.
