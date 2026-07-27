@@ -17,20 +17,25 @@ import { latex } from 'codemirror-lang-latex';
 import { normalize, phrase, stripLatex } from '../sync';
 import { visualMode } from '../visual';
 import { FileTree } from './FileTree';
-import { saveFile } from '../api';
+import { saveFile, type Status } from '../api';
 
 const LIVE_DEBOUNCE_MS = 1200; // Live mode: recompile this long after you stop typing
 const AUTOSAVE_MS = 30000;      // safety net: persist edits (no recompile) every 30s
 interface SyncTarget { text: string; nonce: number }
 
 export function SourcePanel({
-  reloadTick, syncTarget, onSyncToPdf, dead = false,
+  reloadTick, syncTarget, onSyncToPdf, dead = false, liveStatus, compileSeq = 0,
 }: {
   reloadTick: number;
   syncTarget?: SyncTarget | null;
   onSyncToPdf?: (text: string) => void;
   /** The server this window came from has stopped; writes cannot land. */
   dead?: boolean;
+  /** The live compile status. The save chip follows this rather than a timer —
+   *  it is the only thing that knows when a compile is actually over. */
+  liveStatus?: Status;
+  /** Bumped whenever a compile ends. See the chip effect. */
+  compileSeq?: number;
 }) {
   const [files, setFiles] = useState<string[]>([]);
   const [active, setActive] = useState<string | null>(null);
@@ -45,11 +50,13 @@ export function SourcePanel({
   });
   const treeDrag = useRef<{ startY: number; startH: number } | null>(null);
   useEffect(() => { localStorage.setItem('ws-tree-h', String(treeHeight)); }, [treeHeight]);
-  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'compiling' | 'error'>('idle');
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'compiling' | 'compile-failed' | 'error'>('idle');
   const [loadError, setLoadError] = useState<string | null>(null);
   // Why the save failed, not just that it did. 'save failed' next to a
   // working-looking editor told the user nothing about their unsaved text.
   const [saveError, setSaveError] = useState<string | null>(null);
+  const seqRef = useRef(compileSeq);
+  seqRef.current = compileSeq;
   const contentRef = useRef(content);
   contentRef.current = content;
   const activeRef = useRef(active);
@@ -165,6 +172,7 @@ export function SourcePanel({
     const path = activeRef.current;
     if (!path) return;
     setSaveState('saving');
+    if (compile) seqAtSave.current = seqRef.current;
     try {
       // Through the api helper, which refuses when the server has said goodbye.
       // This was the one write that used `fetch` directly, so it was the one with
@@ -189,7 +197,10 @@ export function SourcePanel({
         parked.current.delete(path);
         setDirtyPaths((s) => { const n = new Set(s); n.delete(path); return n; });
         setSaveState(compile ? 'compiling' : 'saved');
-        setTimeout(() => setSaveState((s) => (s === 'saved' || s === 'compiling' ? 'idle' : s)), 2000);
+        // Only the bare save is over when the request is. A compiling chip is
+        // cleared by the compile finishing — see the effect below. Clearing it
+        // on a timer is what made Ctrl+S report a success that had not happened.
+        if (!compile) setTimeout(() => setSaveState((s) => (s === 'saved' ? 'idle' : s)), 2000);
       } else {
         // Still dirty, deliberately: what is on disk is not what is on screen.
         setSaveState('idle');
@@ -199,6 +210,42 @@ export function SourcePanel({
       setSaveError(e instanceof Error ? e.message : 'save failed');
     }
   }, []);
+
+  // A compiling chip is cleared by the compile finishing — never by a clock.
+  //
+  // It used to clear on a two-second timer that had nothing to do with the
+  // compile. On a real paper an edit takes ~12.5s, so the chip went quiet with
+  // ten seconds still to run, and did exactly the same when the compile FAILED:
+  // a save that broke the document looked like one that worked. The socket
+  // already carries compiling/reload/compile-error; this follows that.
+  //
+  // What this does not do is tie the chip to *its own* compile — there is no id
+  // to match on, and compiles are serialised, so a save made while another one
+  // is in flight can be resolved by that one. That is a smaller lie than a
+  // timer's (a compile really did just finish) and it needs a compile id on the
+  // wire to fix properly.
+  // Which compile generation this save is waiting on. Without it the effect
+  // below fired while liveStatus still held the PREVIOUS compile's 'ok' and
+  // declared success immediately — a race the browser smoke caught after the
+  // first version of this fix looked right in the source.
+  const seqAtSave = useRef(0);
+
+  useEffect(() => {
+    if (saveState !== 'compiling') return;
+    if (compileSeq <= seqAtSave.current) return; // our compile has not ended yet
+    if (liveStatus === 'ok') {
+      setSaveState('saved');
+      const t = setTimeout(() => setSaveState((s) => (s === 'saved' ? 'idle' : s)), 2000);
+      return () => clearTimeout(t);
+    }
+    if (liveStatus === 'error') {
+      // NOT 'error': that chip reads "⚠ NOT saved", and the file was saved —
+      // it is the compile that failed. Reusing it would have replaced one false
+      // statement with another.
+      setSaveState('compile-failed');
+      setSaveError('Your text was saved. The compile failed — see the error panel.');
+    }
+  }, [liveStatus, saveState, compileSeq]);
 
   const onChange = useCallback((v: string) => {
     setContent(v);
@@ -348,7 +395,7 @@ export function SourcePanel({
                 text is not on disk. The reason goes in the tooltip, since when
                 the server has stopped the reason is the only actionable part. */}
             <span className={`save-state save-${saveState}`} title={saveError ?? undefined}>
-              {saveState === 'saving' ? 'saving…' : saveState === 'compiling' ? '✓ saved — recompiling' : saveState === 'saved' ? '✓ saved' : saveState === 'error' ? '⚠ NOT saved' : ''}
+              {saveState === 'saving' ? 'saving…' : saveState === 'compiling' ? '✓ saved — recompiling' : saveState === 'saved' ? '✓ saved' : saveState === 'compile-failed' ? '✓ saved — ⚠ compile failed' : saveState === 'error' ? '⚠ NOT saved' : ''}
             </span>
             <button
               className={wrap ? 'on' : ''}

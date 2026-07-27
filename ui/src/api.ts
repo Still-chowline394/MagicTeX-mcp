@@ -206,6 +206,12 @@ export function useLive(onMessage?: (m: WsMessage) => void) {
   const [status, setStatus] = useState<Status>('connecting');
   const [errorLog, setErrorLog] = useState('');
   const [reloadTick, setReloadTick] = useState(0);
+  // Bumped by anything that ENDS a compile, success or failure. A caller that
+  // records it before triggering one can then tell "my compile finished" from
+  // "the status still says what the last compile left behind" — which a bare
+  // `status === 'ok'` cannot, and which made the save chip declare success the
+  // instant it was shown.
+  const [compileSeq, setCompileSeq] = useState(0);
   const [pdfName, setPdfName] = useState('preview');
   const cbRef = useRef(onMessage);
   cbRef.current = onMessage;
@@ -249,11 +255,13 @@ export function useLive(onMessage?: (m: WsMessage) => void) {
           setErrorLog('');
           setStatus('ok');
           setReloadTick((t) => t + 1);
+          setCompileSeq((n) => n + 1);
         } else if (msg.type === 'compiling') {
           setStatus('compiling');
         } else if (msg.type === 'compile-error') {
           setStatus('error');
           setErrorLog(msg.log || 'compile failed');
+          setCompileSeq((n) => n + 1);
         }
         cbRef.current?.(msg);
       };
@@ -280,5 +288,5 @@ export function useLive(onMessage?: (m: WsMessage) => void) {
     };
   }, []);
 
-  return { status, errorLog, reloadTick, pdfName };
+  return { status, errorLog, reloadTick, pdfName, compileSeq };
 }
