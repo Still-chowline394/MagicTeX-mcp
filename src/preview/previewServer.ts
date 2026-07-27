@@ -7,7 +7,7 @@
 // need cross-origin isolation (spike finding).
 import { createServer, type Server, type ServerResponse } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
-import { dirname, extname, join, normalize } from 'node:path';
+import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer, type WebSocket } from 'ws';
@@ -67,9 +67,33 @@ const ISOLATION_HEADERS = {
   'Cross-Origin-Resource-Policy': 'cross-origin',
 };
 
+/**
+ * Serve a file from one of our own asset directories.
+ *
+ * Both sides get resolved, and the comparison includes the separator. The old
+ * `normalize(join(root, rel)).startsWith(root)` got both halves wrong.
+ *
+ * **The root was never normalised.** `join`/`normalize` return the platform
+ * separator, so on Windows `filePath` came back with backslashes while `root`
+ * stayed exactly as the caller had it. For `MAGICTEX_ASSETS_DIR` that is a path
+ * a human typed — usually into a JSON config, where a backslash has to be
+ * doubled and a forward slash does not:
+ *
+ *   root     C:/Users/Zoe Lin/…/assets/busytex
+ *   filePath C:\Users\Zoe Lin\…\assets\busytex\busytex.wasm     -> 403
+ *
+ * Every engine asset 403'd, and what the user saw was "BusyTeX worker failed to
+ * initialize", with nothing pointing at the setting they had just added.
+ *
+ * **A prefix match is not containment.** `C:\Users\zoe\project-elsewhere\x.tex`
+ * starts with `C:\Users\zoe\proj`. Not reachable today, since serveFrom is only
+ * ever handed our own directories — but it is the same line, and `filesApi`'s
+ * guard has carried both halves since the server was hardened.
+ */
 async function serveFrom(root: string, rel: string, res: ServerResponse) {
-  const filePath = normalize(join(root, rel));
-  if (!filePath.startsWith(root)) { res.writeHead(403).end('forbidden'); return; }
+  const base = resolve(root);
+  const filePath = resolve(base, rel);
+  if (filePath !== base && !filePath.startsWith(base + sep)) { res.writeHead(403).end('forbidden'); return; }
   try {
     const body = await readFile(filePath);
     // HTML must never be cached: after a UI rebuild the old hashed chunks are
