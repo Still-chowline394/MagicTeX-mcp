@@ -108,6 +108,13 @@ jobs:
       - name: The editor does not lose unsaved text
         run: node scripts/smoke-editor-keeps-text.mjs
 
+      # The save chip used to clear on a two-second timer unconnected to the
+      # compile, so on a real paper it went quiet ten seconds early — and did the
+      # same when the compile failed. Only a real browser can catch a lie that
+      # lives between the PUT returning and the compile ending.
+      - name: The save chip tells the truth
+        run: node scripts/smoke-save-chip-tells-truth.mjs
+
       - name: Save engine assets for next time
         if: steps.assets.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6

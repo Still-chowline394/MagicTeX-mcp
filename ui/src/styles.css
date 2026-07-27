@@ -177,6 +177,9 @@ body.resizing-v { cursor: row-resize; user-select: none; }
                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .save-state { font-size: 12px; }
 .save-saved { color: #7ee787; } .save-error { color: #ff7b72; } .save-saving { color: #ffcf6b; }
+.save-compiling { color: #ffcf6b; }
+/* Saved, but the compile failed — the save is not in question, the build is. */
+.save-compile-failed { color: #ff7b72; }
 .format-bar { flex: 0 0 auto; display: flex; align-items: center; gap: 3px; flex-wrap: wrap;
               padding: 4px 8px; border-bottom: 1px solid #17181a; background: #26282c; }
 .format-bar button { padding: 2px 8px; min-width: 26px; font-size: 12px; background: #3a3d42; }
