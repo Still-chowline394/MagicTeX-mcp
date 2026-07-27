@@ -42,7 +42,7 @@ test('a genuinely absent latexmk still gets the install help', () => {
 });
 
 test('advice on a failed compile depends on what is actually on the machine', () => {
-  // Same failed compile, three machines, three different right answers. Before
+  // Same failed compile, different machines, different right answers. Before
   // this the reader got a raw log line and nothing else.
   const absent = systemTexAdvice({ usable: false, reason: 'absent' });
   assert.match(absent, /tug\.org/, 'tell someone with no TeX what to install');
@@ -51,10 +51,54 @@ test('advice on a failed compile depends on what is actually on the machine', ()
   assert.match(broken, /strawberryperl\.com/);
   assert.doesNotMatch(broken, /tug\.org\/texlive\/\s*$/,
     'telling someone who already has MiKTeX to go install a distribution is the loop being closed');
+});
 
-  const usable = systemTexAdvice({ usable: true });
-  assert.match(usable, /tlmgr install/, 'their TeX ran, so the package is simply not installed in it');
-  assert.doesNotMatch(usable, /strawberryperl/);
+// The next three exist because the first version of this advice asserted two
+// things it had not measured, and both were caught by running it against a real
+// paper rather than by reading it. A message that sounds right and is false is
+// worse than no message: it sends the reader off to fix something they do not
+// have.
+
+test('a working local TeX that was never invoked is not described as having failed', () => {
+  // `backend: "wasm"` was forced, so nothing ran locally. The old text said
+  // "your local TeX ran and did not get through this either".
+  const msg = systemTexAdvice({ usable: true }, { packages: ['newtxmath'] });
+  assert.doesNotMatch(msg, /ran and/, 'claimed a run that never happened');
+  assert.match(msg, /backend: "wasm"/, 'the actionable thing is to stop forcing the bundled engine');
+});
+
+test('a local TeX that ran is only blamed for what it actually reported', () => {
+  // It sailed past newtxmath and died on a figure needing shell-escape. The old
+  // text said the package was "not installed there" and offered a tlmgr command
+  // for a package the local TeX already had.
+  const msg = systemTexAdvice(
+    { usable: true },
+    { packages: ['newtxmath'], fallback: { errors: [], missingPackages: [], missingClasses: [], blockedTools: ['Inkscape'] } },
+  );
+  assert.doesNotMatch(msg, /tlmgr install newtxmath/, 'told the reader to install a package their TeX already has');
+  assert.match(msg, /it has it/);
+  assert.match(msg, /Inkscape/, 'the reason it really failed is the useful part');
+  assert.doesNotMatch(msg, /different reason\s*$/, 'the sentence trailed off when no reason was carried');
+});
+
+test('and when it reported nothing readable, the sentence still finishes', () => {
+  // latexmk over an existing build directory can fail with a log carrying none
+  // of the signatures we classify — every field of the fallback empty. Measured
+  // on a real project, not hypothetical.
+  const msg = systemTexAdvice(
+    { usable: true },
+    { packages: ['newtxmath'], fallback: { errors: [], missingPackages: [], missingClasses: [], blockedTools: [] } },
+  );
+  assert.doesNotMatch(msg, /different reason\s*\n/, 'trailed off mid-sentence');
+  assert.match(msg, /backend: "system"/, 'give them a way to see the output we could not read');
+});
+
+test('a package the local TeX is also missing does get a tlmgr command, with the real name', () => {
+  const msg = systemTexAdvice(
+    { usable: true },
+    { packages: ['newtxmath'], fallback: { errors: [], missingPackages: ['newtxmath'], missingClasses: [], blockedTools: [] } },
+  );
+  assert.match(msg, /tlmgr install newtxmath/, 'a placeholder like `<package>` is a command nobody can paste');
 });
 
 // ── the staleness fix ───────────────────────────────────────────────────────

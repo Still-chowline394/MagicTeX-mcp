@@ -52,6 +52,12 @@ export interface SystemFallback {
   errors: string[];
   missingPackages: string[];
   missingClasses: string[];
+  /** Tools the document needs that LaTeX refused to run (svg -> Inkscape,
+   *  minted -> Pygments). Carried because this is how a real paper's local-TeX
+   *  run actually failed, and without it the caller could say only "it failed
+   *  for a different reason" and then trail off — classifyCompile files these
+   *  under blockedTools, not errors, so `errors` came back empty. */
+  blockedTools?: string[];
 }
 
 /**
@@ -142,9 +148,46 @@ export function forgetSystemTex(): void {
  * moment where "install a TeX distribution" is either the right answer or
  * exactly the wrong one, and the difference is invisible from the log.
  */
-export function systemTexAdvice(p?: SystemTexProbe): string {
+export function systemTexAdvice(
+  p?: SystemTexProbe,
+  ctx: { packages?: string[]; fallback?: SystemFallback } = {},
+): string {
+  // Two things this got wrong on its first outing against a real paper, both the
+  // same mistake — asserting something that had not been measured:
+  //
+  //   1. Asked for `backend: "wasm"` it said "your local TeX ran and did not get
+  //      through this either" about a TeX that was never invoked.
+  //   2. Under `auto` it blamed the local TeX's failure on THIS missing package,
+  //      when the local TeX had sailed past it and died on something else
+  //      entirely (a figure needing shell-escape).
+  //
+  // So: only the `fallback` — which exists solely when the local TeX actually
+  // ran — may be used to say anything about what the local TeX did, and only the
+  // packages IT reported missing may be handed to tlmgr.
+  const bundle = (n: string) => CTAN_BUNDLE[n] ?? n;
   if (p?.usable) {
-    return 'Your local TeX ran and did not get through this either — the missing package is not installed there. Install it with `tlmgr install <package>` (prefix with sudo on a system-wide TeX Live).';
+    if (!ctx.fallback) {
+      return 'You have a working local TeX, and it was not used because this run asked for the bundled engine. Re-run without `backend: "wasm"` — the default picks your local TeX up automatically, and it is likely to have this package.';
+    }
+    const alsoMissingThere = [...new Set([...ctx.fallback.missingPackages, ...ctx.fallback.missingClasses])]
+      .filter((m) => (ctx.packages ?? []).includes(m));
+    if (alsoMissingThere.length) {
+      return `Your local TeX ran and is missing ${alsoMissingThere.length > 1 ? 'these too' : 'this too'}. Add ${alsoMissingThere.length > 1 ? 'them' : 'it'} with \`tlmgr install ${[...new Set(alsoMissingThere.map(bundle))].join(' ')}\` (prefix with sudo on a system-wide TeX Live).`;
+    }
+    // The local TeX got past this package and failed on something else. Saying
+    // "install it there" would send the reader to fix a problem they do not have.
+    // Three sources for "why", in descending order of how much they tell the
+    // reader — and a real one for the case where the local run reported nothing
+    // at all, which does happen: latexmk on a second run over an existing build
+    // directory can fail with a log carrying none of the signatures we classify,
+    // leaving every field of the fallback empty. An earlier version trailed off
+    // mid-sentence there.
+    const why = ctx.fallback.errors[0]
+      ? `:\n\n  ${ctx.fallback.errors[0]}`
+      : ctx.fallback.blockedTools?.length
+        ? `: the document needs ${ctx.fallback.blockedTools.join(', ')}, which LaTeX will not run without shell-escape. Re-run with \`shellEscape: true\` if you trust this source.`
+        : ', which it did not report in a form we could read. Re-run with `backend: "system"` to see its output directly.';
+    return `Your local TeX ran and got further — it did not report this package missing, so it has it. It failed for a different reason${why}\n\nFixing that is the shorter path to a PDF than getting the bundled engine through this package.`;
   }
   if (p?.reason === 'broken') {
     const perl = /script engine|perl/i.test(p.detail ?? '');
