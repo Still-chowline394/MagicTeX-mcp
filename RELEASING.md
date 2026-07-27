@@ -1,0 +1,122 @@
+# Releasing
+
+Four steps. They used to live only as habit, and 0.1.9 shipped with two of them
+missed — the notes were never committed, and the MCP registry was left pointing
+at 0.1.8, so anyone installing from there got a version without the data-loss
+fixes. Nothing would have surfaced that; you have to go and look.
+
+So every step below ends with a check. **The checks are the point.** A missed
+publish looks exactly like a successful one from here.
+
+Versions are semver: a patch on `0.1.9` is `0.1.10`, never `0.1.9.1`.
+
+---
+
+## 0. Before you start
+
+Everything being released is already merged into `main`, and `main` is green.
+
+```bash
+git checkout main && git pull --ff-only
+npm test                    # unit
+npm run build:ui
+```
+
+Run the browser smokes too, at least `compile`, `history` and
+`editor-keeps-text` — they drive a real headless browser and cover what the unit
+tests cannot:
+
+```bash
+node scripts/smoke-compile.mjs
+node scripts/smoke-history.mjs
+node scripts/smoke-editor-keeps-text.mjs
+```
+
+## 1. Write the notes, bump the version
+
+`RELEASE-<version>.md` at the repo root. Its body becomes the GitHub release, so
+write it for someone deciding whether to upgrade: what broke, how it was
+measured, and what you got wrong on the way.
+
+Bump the version in **four** files — they must agree, and `server.json` carries
+it twice:
+
+- `package.json`
+- `package-lock.json` (twice: top level and `packages.""`)
+- `server.json` (twice: `version` and `packages[0].version`)
+- `.claude-plugin/plugin.json`
+
+Open this as its own `release/<version>` PR. The `pr-links-issue` check has no
+issue to find, so open the body with a line like:
+
+```
+exempt: release PR — cuts <version> from work already merged under #NN, #NN.
+```
+
+**Check** before merging:
+
+```bash
+npm pack --dry-run           # right filename, ui/dist present, nothing stray
+```
+
+`ui/dist` is gitignored and built by `prepublishOnly`. If it is missing from the
+tarball, the workspace ships empty and nothing else in this list would notice.
+
+## 2. Publish to npm
+
+```bash
+npm publish                  # add --otp=<code> if 2FA is on
+```
+
+`prepublishOnly` rebuilds `ui/dist` first, so no manual build is needed.
+
+**Check:**
+
+```bash
+npm view magictex-mcp version
+```
+
+## 3. Publish to the MCP registry
+
+This is the step that was missed. `server.json` is not published by `npm publish`
+— it goes to the official registry separately, with `mcp-publisher`
+(https://github.com/modelcontextprotocol/registry). The `io.github.ZoeLinUTS/*`
+namespace authenticates against the matching GitHub account.
+
+**Check** — this is the authority, not the tool's own output:
+
+```bash
+curl -s "https://registry.modelcontextprotocol.io/v0/servers?search=magictex&limit=100" \
+  | grep -o '"version":"[^"]*"' | tail -3
+```
+
+The newest entry must be the version you just published, and its
+`isLatest` flag must be true.
+
+## 4. Tag and create the GitHub release
+
+```bash
+git tag -a v<version> -m "v<version>"
+git push origin v<version>
+gh release create v<version> --title "v<version>" --notes-file RELEASE-<version>.md --latest
+```
+
+**Check:** `gh release list` shows it as `Latest`.
+
+## 5. Verify what you published, not what you built
+
+Everything up to here tested the working tree. This tests the artifact users
+actually install — a clean install from the registry, driven through the real MCP
+protocol:
+
+```bash
+npm install --prefix /tmp/verify magictex-mcp@<version>
+```
+
+then run `bin/cli.mjs` from that prefix against a scratch project and call
+`render_preview`. Point `MAGICTEX_ASSETS_DIR` at assets you already have so this
+does not re-download 480 MB — **with native separators**; a path written with
+forward slashes was refused outright before 0.1.10.
+
+This check is not decoration. It is how #84 was found, half an hour after 0.1.9
+went out.
