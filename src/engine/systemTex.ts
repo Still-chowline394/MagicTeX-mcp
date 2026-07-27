@@ -2,7 +2,7 @@
 // 100% package fidelity (the WASM engine ships a subset). Used by default under
 // backend 'auto' when a local TeX is present; 'system' forces it, 'wasm' opts
 // out and keeps the zero-install path.
-import { execFile } from 'node:child_process';
+import { execFile, execFileSync, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
 import { readFile, mkdir } from 'node:fs/promises';
 import { basename, join } from 'node:path';
@@ -239,6 +239,44 @@ const ENGINE_FLAG: Record<Engine, string> = {
   xelatex: '-xelatex', lualatex: '-lualatex', pdflatex: '-pdf',
 };
 
+/**
+ * Stop waiting when latexmk has gone quiet, not when the clock says so.
+ *
+ * The old limit was a flat 180 s of wall time, which a real paper exceeds
+ * without anything being wrong: a multi-pass IEEE build (xelatex → bibtex →
+ * xelatex, reloading a large package set each pass, converting figures through
+ * Inkscape) simply takes longer than that. Two readers chased phantom LaTeX
+ * errors before either noticed the clock was pinned at exactly three minutes.
+ *
+ * A wedged compile and a slow one are indistinguishable by elapsed time, but not
+ * by output: latexmk narrates continuously, and a run blocked on a subprocess
+ * that will never return says nothing at all. So the idle timer is the real
+ * signal, and the cap is only a backstop against a process that chatters forever.
+ */
+const IDLE_LIMIT_MS = 120_000;
+const HARD_LIMIT_MS = 20 * 60_000;
+
+/**
+ * Kill the process and everything it started.
+ *
+ * `execFile`'s own `timeout` kills only the child it spawned. latexmk is a Perl
+ * script that spawns xelatex, which spawns Inkscape — so a timeout left the
+ * whole tree running. Measured with a deliberate three-level tree and a 3 s
+ * timeout: `killed=true signal=SIGTERM`, and the grandchild still ALIVE. On this
+ * machine two failed compiles of one paper left seven live processes holding
+ * handles on the build directory, which then slowed the next attempt into
+ * timing out as well.
+ */
+export function killTree(pid: number): void {
+  if (process.platform === 'win32') {
+    // No process groups; taskkill /T walks the child tree for us.
+    try { execFileSync('taskkill', ['/pid', String(pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true }); } catch { /* already gone */ }
+    return;
+  }
+  // Negative pid = the process group, which `detached: true` gave this child.
+  try { process.kill(-pid, 'SIGKILL'); } catch { try { process.kill(pid, 'SIGKILL'); } catch { /* already gone */ } }
+}
+
 /** Compile `mainRelPath` (relative to `root`) with local latexmk; artifacts go
  *  under .latex-preview/build so the project tree stays clean. */
 export async function compileWithSystemTex(root: string, mainRelPath: string, engine: Engine, shellEscape = false): Promise<CompileOutput> {
@@ -254,14 +292,77 @@ export async function compileWithSystemTex(root: string, mainRelPath: string, en
     ...(shellEscape ? ['-shell-escape'] : []),
     `-outdir=${outdir}`, mainRelPath,
   ];
-  try {
-    const { stdout, stderr } = await pexec('latexmk', args, { cwd: root, timeout: 180_000, maxBuffer: 32 * 1024 * 1024 });
-    const pdfPath = join(outdir, basename(mainRelPath).replace(/\.tex$/i, '') + '.pdf');
-    const pdf = new Uint8Array(await readFile(pdfPath));
-    return { success: true, exitCode: 0, pdf, pdfLen: pdf.length, log: stdout + stderr, ms: Date.now() - started };
-  } catch (e) {
-    const err = e as { stdout?: string; stderr?: string; code?: number; message?: string };
-    const log = (err.stdout ?? '') + (err.stderr ?? err.message ?? 'latexmk failed');
-    return { success: false, exitCode: err.code ?? 1, pdf: undefined, pdfLen: 0, log, ms: Date.now() - started, error: 'system latexmk compile failed' };
+
+  const { code, out, stopped } = await runLatexmk(root, args);
+
+  if (stopped) {
+    const waited = Math.round((Date.now() - started) / 1000);
+    const why = stopped === 'idle'
+      ? `your local TeX produced no output for ${IDLE_LIMIT_MS / 1000}s and was stopped after ${waited}s`
+      : `your local TeX was still running after ${waited}s and was stopped`;
+    return {
+      success: false, exitCode: code ?? 1, pdf: undefined, pdfLen: 0, log: out, ms: Date.now() - started,
+      // Named as a stop, not a failure: the document may be perfectly fine. The
+      // usual cause is a subprocess waiting on something — a package installer
+      // prompt, or a shell-escape tool the TeX distribution refuses to run.
+      error: `The compile was stopped, not finished — ${why}. The document may be fine: a local TeX usually wedges on a subprocess waiting for something (a package-manager prompt, or a shell-escape helper it will not run). Nothing here says your source has an error.`,
+    };
   }
+
+  if (code === 0) {
+    try {
+      const pdfPath = join(outdir, basename(mainRelPath).replace(/\.tex$/i, '') + '.pdf');
+      const pdf = new Uint8Array(await readFile(pdfPath));
+      return { success: true, exitCode: 0, pdf, pdfLen: pdf.length, log: out, ms: Date.now() - started };
+    } catch {
+      return { success: false, exitCode: 0, pdf: undefined, pdfLen: 0, log: out, ms: Date.now() - started, error: 'latexmk reported success but wrote no PDF' };
+    }
+  }
+  return { success: false, exitCode: code ?? 1, pdf: undefined, pdfLen: 0, log: out, ms: Date.now() - started, error: 'system latexmk compile failed' };
+}
+
+/** Run latexmk, collecting output and watching for silence. Resolves rather than
+ *  throws: a non-zero exit is an ordinary outcome here, not an exception. */
+function runLatexmk(cwd: string, args: string[]): Promise<{ code: number | null; out: string; stopped?: 'idle' | 'cap' }> {
+  return new Promise((resolve) => {
+    const child = spawn('latexmk', args, {
+      cwd,
+      windowsHide: true,
+      // POSIX: its own process group, so killTree can take the group down.
+      detached: process.platform !== 'win32',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    let out = '';
+    let stopped: 'idle' | 'cap' | undefined;
+    const CAP = 32 * 1024 * 1024;
+    const absorb = (b: Buffer) => {
+      if (out.length < CAP) out += b.toString();
+      bump();
+    };
+
+    let idle: NodeJS.Timeout;
+    const stop = (why: 'idle' | 'cap') => {
+      stopped = why;
+      if (child.pid) killTree(child.pid);
+    };
+    const bump = () => {
+      clearTimeout(idle);
+      idle = setTimeout(() => stop('idle'), IDLE_LIMIT_MS);
+    };
+    const cap = setTimeout(() => stop('cap'), HARD_LIMIT_MS);
+
+    child.stdout?.on('data', absorb);
+    child.stderr?.on('data', absorb);
+    bump();
+
+    child.on('error', (e) => {
+      clearTimeout(idle); clearTimeout(cap);
+      resolve({ code: 1, out: out + String(e.message) });
+    });
+    child.on('close', (code) => {
+      clearTimeout(idle); clearTimeout(cap);
+      resolve({ code, out, stopped });
+    });
+  });
 }
