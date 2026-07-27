@@ -38,6 +38,12 @@ node scripts/smoke-editor-keeps-text.mjs
 write it for someone deciding whether to upgrade: what broke, how it was
 measured, and what you got wrong on the way.
 
+**It is deliberately gitignored** (`/RELEASE-*.md`) — the notes live on the
+release page, not in the tree. So `git add -A` silently skips it, and a PR that
+claims to have added one has not: that happened while writing this file, and the
+claim went into a PR description before anyone noticed. It is a scratch file that
+step 4 reads; nothing else should expect to find it in a clone.
+
 Bump the version in **four** files — they must agree, and `server.json` carries
 it twice:
 
