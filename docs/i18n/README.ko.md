@@ -282,12 +282,15 @@ Overleaf와 완전히 같은 출력이 필요할 때 설치하세요. MagicTeX�
 |---|---|
 | macOS | [MacTeX](https://tug.org/mactex/) |
 | Linux | `texlive-full` |
-| Windows | [TeX Live](https://tug.org/texlive/) |
+| Windows | [TeX Live](https://tug.org/texlive/), or [MiKTeX](https://miktex.org/) **plus** [Strawberry Perl](https://strawberryperl.com/) |
 
 > MagicTeX이 `PATH`에서 찾는 것은 `latexmk`이지만, 이것은 따로 설치하는 물건이
 > 아니라 위 배포판에 포함된 드라이버 스크립트입니다. 설치 후 `which latexmk`로
-> 확인하세요. macOS에서는 먼저 `eval "$(/usr/libexec/path_helper)"`를 실행하거나
-> 터미널을 새로 열어야 할 수 있습니다.
+> 확인은 `which latexmk`가 아니라 **`latexmk -version`**으로 하세요. `latexmk`는
+> Perl 스크립트인데 MiKTeX은 `latexmk.exe`를 `PATH`에 두면서 그것을 실행할 Perl은
+> 함께 넣지 않습니다 — 파일은 찾아지는데도 실행되지 않습니다. macOS에서는 먼저
+> `eval "$(/usr/libexec/path_helper)"`를 실행하거나 터미널을 새로 열어야 할 수
+> 있습니다.
 
 모든 컴파일은 어느 쪽이 돌았는지 표시합니다 — `xelatex · system` 또는 `xelatex · wasm`.
 

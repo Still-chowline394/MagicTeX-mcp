@@ -311,13 +311,14 @@ MagicTeX picks it up on its own — no configuration:
 |---|---|
 | macOS | [MacTeX](https://tug.org/mactex/) |
 | Linux | `texlive-full`, via your package manager |
-| Windows | [TeX Live](https://tug.org/texlive/) |
+| Windows | [TeX Live](https://tug.org/texlive/), or [MiKTeX](https://miktex.org/) **plus** [Strawberry Perl](https://strawberryperl.com/) |
 
 > `latexmk` is what MagicTeX looks for on `PATH`, but it isn't something you
 > install on its own — it's a driver script that comes inside the distributions
-> above. Run `which latexmk` after installing to confirm it's on your `PATH`; on
-> macOS you may need `eval "$(/usr/libexec/path_helper)"` or a fresh terminal
-> first.
+> above. Check with **`latexmk -version`**, not `which latexmk`: `latexmk` is a
+> Perl script, and MiKTeX puts `latexmk.exe` on your `PATH` without shipping a
+> Perl to run it with — so the file is found and still cannot execute. On macOS
+> you may need `eval "$(/usr/libexec/path_helper)"` or a fresh terminal first.
 
 Every compile tells you which one ran — `xelatex · system` or `xelatex · wasm`.
 

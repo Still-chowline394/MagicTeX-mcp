@@ -300,11 +300,14 @@ d'Overleaf. MagicTeX la détecte seul, sans configuration :
 |---|---|
 | macOS | [MacTeX](https://tug.org/mactex/) |
 | Linux | `texlive-full` |
-| Windows | [TeX Live](https://tug.org/texlive/) |
+| Windows | [TeX Live](https://tug.org/texlive/), or [MiKTeX](https://miktex.org/) **plus** [Strawberry Perl](https://strawberryperl.com/) |
 
 > `latexmk` est ce que MagicTeX cherche dans le `PATH`, mais il ne s'installe
 > pas séparément : c'est un script fourni par les distributions ci-dessus.
-> Vérifiez avec `which latexmk` ; sur macOS, il faut parfois d'abord
+> Vérifiez avec **`latexmk -version`**, pas `which latexmk` : `latexmk` est un
+> script Perl, et MiKTeX met `latexmk.exe` dans le `PATH` sans fournir de Perl
+> pour l'exécuter — le fichier est donc trouvé et ne peut malgré tout pas
+> tourner. Sur macOS, il faut parfois d'abord
 > `eval "$(/usr/libexec/path_helper)"` ou un nouveau terminal.
 
 Chaque compilation indique laquelle a servi — `xelatex · system` ou `xelatex · wasm`.

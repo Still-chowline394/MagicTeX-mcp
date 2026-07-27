@@ -27,6 +27,15 @@ export const INSTALL_TEX_HELP = [
   '  Linux    texlive-full    (via your package manager)',
   '  Windows  TeX Live        https://tug.org/texlive/',
   '',
+  // Named because it is the common Windows distribution and the one that leaves
+  // a latexmk which cannot run: it is a Perl script and MiKTeX ships no Perl.
+  // Someone who already has MiKTeX and is told only "install TeX Live" reads
+  // that as advice they have already followed.
+  'On Windows MiKTeX also works, but only with Perl alongside it —',
+  'https://strawberryperl.com/ — because latexmk is a Perl script and MiKTeX',
+  'does not ship one. Check with `latexmk -version`, not `which latexmk`: the',
+  'file is on PATH either way, and only one of those tells you it can run.',
+  '',
   "You don't need one to use MagicTeX: the bundled WASM engine compiles with no",
   'install at all. But it is a subset of TeX Live, so packages like `svg` and most',
   "venue classes aren't in it. Install a distribution when you need output that",

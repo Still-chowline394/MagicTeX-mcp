@@ -270,11 +270,13 @@ flowchart LR
 |---|---|
 | macOS | [MacTeX](https://tug.org/mactex/) |
 | Linux | `texlive-full` |
-| Windows | [TeX Live](https://tug.org/texlive/) |
+| Windows | [TeX Live](https://tug.org/texlive/), or [MiKTeX](https://miktex.org/) **plus** [Strawberry Perl](https://strawberryperl.com/) |
 
 > MagicTeX 在 `PATH` 上找的是 `latexmk`，但它**不是一个可以单独安装的东西** ——
-> 它是上面这些发行版自带的驱动脚本。装完用 `which latexmk` 确认；macOS 上可能要
-> 先跑 `eval "$(/usr/libexec/path_helper)"` 或者重开一个终端。
+> 它是上面这些发行版自带的驱动脚本。确认要用 **`latexmk -version`**,不要用
+> `which latexmk`:`latexmk` 是个 Perl 脚本,而 MiKTeX 会把 `latexmk.exe` 放进
+> `PATH` 却不带能跑它的 Perl —— 文件找得到,照样执行不了。macOS 上可能要先跑
+> `eval "$(/usr/libexec/path_helper)"` 或者重开一个终端。
 
 每次编译都会说明用的是哪个 —— `xelatex · system` 还是 `xelatex · wasm`。
 

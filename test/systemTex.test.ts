@@ -38,7 +38,18 @@ test('a genuinely absent latexmk still gets the install help', () => {
   const msg = systemTexUnavailableMessage({ usable: false, reason: 'absent' });
   assert.match(msg, /no local TeX was found/);
   assert.match(msg, /tug\.org/, 'the distribution list is the point of this branch');
-  assert.doesNotMatch(msg, /perl/i, 'Perl is irrelevant when nothing is installed at all');
+  // This used to assert Perl was never mentioned here, on the grounds that it is
+  // irrelevant to someone with nothing installed. That stopped being true when
+  // the install help started naming MiKTeX: telling a Windows reader *before*
+  // they install that MiKTeX needs Perl alongside it is the whole point, and it
+  // is the trap this project walked into.
+  //
+  // What must still not happen is diagnosing a broken install for someone who
+  // has none — those are the two cases this function exists to separate.
+  assert.doesNotMatch(msg, /on PATH but could not run/,
+    'told someone with no TeX at all that their TeX cannot run');
+  assert.doesNotMatch(msg, /could not find the script engine/,
+    'reported a MiKTeX failure to someone who has not installed MiKTeX');
 });
 
 test('advice on a failed compile depends on what is actually on the machine', () => {

@@ -290,13 +290,15 @@ MagicTeX が自動的に検出します。設定は不要です：
 |---|---|
 | macOS | [MacTeX](https://tug.org/mactex/) |
 | Linux | `texlive-full` |
-| Windows | [TeX Live](https://tug.org/texlive/) |
+| Windows | [TeX Live](https://tug.org/texlive/), or [MiKTeX](https://miktex.org/) **plus** [Strawberry Perl](https://strawberryperl.com/) |
 
 > MagicTeX が `PATH` 上で探すのは `latexmk` ですが、これは単体でインストール
 > するものではなく、上記ディストリビューションに含まれるドライバスクリプトです。
-> インストール後に `which latexmk` で確認してください。macOS では先に
-> `eval "$(/usr/libexec/path_helper)"` を実行するか、端末を開き直す必要がある
-> ことがあります。
+> 確認は `which latexmk` ではなく **`latexmk -version`** で行ってください。
+> `latexmk` は Perl スクリプトで、MiKTeX は `latexmk.exe` を `PATH` に置く一方で
+> それを動かす Perl を同梱しません——ファイルは見つかるのに実行できません。
+> macOS では先に `eval "$(/usr/libexec/path_helper)"` を実行するか、端末を開き
+> 直す必要があることがあります。
 
 各コンパイルはどちらで実行したかを表示します — `xelatex · system` か `xelatex · wasm`。
 
