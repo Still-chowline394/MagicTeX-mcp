@@ -1,7 +1,9 @@
 // The one shared compile path: resolve main file -> gather project -> compile.
 // Both the render_preview MCP tool and (later) the file watcher call this.
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { resolveMainFile } from './resolveMainFile.js';
-import { collectProjectFiles } from './collectProjectFiles.js';
+import { collectProjectFiles, countProjectFiles, type CollectResult } from './collectProjectFiles.js';
 import { getFallbackStyles } from '../engine/fallbackStyles.js';
 import { compile, type CompileOutput } from '../engine/browserHost.js';
 import { probeSystemTex, compileWithSystemTex, systemTexUnavailableMessage, type SystemTexProbe, type SystemFallback } from '../engine/systemTex.js';
@@ -46,16 +48,27 @@ export interface CompileProjectOptions {
 
 export async function compileProject(opts: CompileProjectOptions): Promise<CompileProjectResult> {
   const mainFile = await resolveMainFile(opts.projectRoot, opts.mainFile);
-  const { files, truncated } = await collectProjectFiles(opts.projectRoot);
 
-  // Inject bundled fallback .sty for packages busytex omits — but only those the
-  // project doesn't already ship (a project's own copy always wins).
-  const present = new Set(files.map((f) => f.path.split('/').pop()));
-  const fallbacks = (await getFallbackStyles()).filter((f) => !present.has(f.path));
-  const allFiles = fallbacks.length ? [...files, ...fallbacks] : files;
+  // Deferred, because only the WASM engine needs it: it is handed every file as
+  // a string, so the whole project has to be in memory. latexmk is given a
+  // directory and reads from disk itself, so collecting for the system backend
+  // meant reading 32.4 MB of a real IEEE paper — author photos and all, capped
+  // at 60 MB — on every save, and dropping it on the floor.
+  let collected: CollectResult | undefined;
+  const collect = async (): Promise<CollectResult> => (collected ??= await collectProjectFiles(opts.projectRoot));
 
-  const main = allFiles.find((f) => f.path === mainFile || f.path.endsWith('/' + mainFile));
-  const mainSrc = main?.content ?? '';
+  // Engine detection needs the main source and nothing else.
+  let mainRel = mainFile;
+  let mainSrc = '';
+  try {
+    mainSrc = await readFile(join(opts.projectRoot, mainFile), 'utf8');
+  } catch {
+    // An explicit mainFile can name something nested, which resolveMainFile
+    // passes through untouched. Walking the project is the only way to find it —
+    // the same lookup as before, now only in the case that needs it.
+    const found = (await collect()).files.find((f) => f.path === mainFile || f.path.endsWith('/' + mainFile));
+    if (found) { mainRel = found.path; mainSrc = found.content ?? ''; }
+  }
   const engine: Engine = opts.engine ?? detectEngine(mainSrc);
 
   // Real-TeX backend: when forced ('system') or available under 'auto', latexmk
@@ -77,23 +90,29 @@ export async function compileProject(opts: CompileProjectOptions): Promise<Compi
   const sysProbe = await probeSystemTex();
   const wantSystem = backend === 'system' || (backend === 'auto' && sysProbe.usable);
   if (wantSystem) {
+    // How big the project is, for the caller's summary. Stats only — the system
+    // backend never needed the contents, and reading them was the waste this
+    // deferral removes. Reuses the collection when something already forced it.
+    const size = collected
+      ? { count: collected.files.length, truncated: collected.truncated }
+      : await countProjectFiles(opts.projectRoot);
     if (backend === 'system' && !sysProbe.usable) {
-      return { success: false, pdf: undefined, pdfLen: 0, log: '', ms: 0, error: systemTexUnavailableMessage(sysProbe), mainFile, engine, backend: 'system', fileCount: files.length, truncated };
+      return { success: false, pdf: undefined, pdfLen: 0, log: '', ms: 0, error: systemTexUnavailableMessage(sysProbe), mainFile, engine, backend: 'system', fileCount: size.count, truncated: size.truncated };
     }
-    const out = await compileWithSystemTex(opts.projectRoot, main ? main.path : mainFile, engine, opts.shellEscape ?? false);
+    const out = await compileWithSystemTex(opts.projectRoot, mainRel, engine, opts.shellEscape ?? false);
     const sysVerdict = classifyCompile(out.log ?? '', out.pdfLen);
 
     // Keep the system result whenever it produced something usable — a real TeX
     // with warnings still beats the bundled subset for fidelity.
     if (out.success && sysVerdict.usable) {
-      return { ...out, verdict: sysVerdict, mainFile, engine, backend: 'system', fileCount: files.length, truncated };
+      return { ...out, verdict: sysVerdict, mainFile, engine, backend: 'system', fileCount: size.count, truncated: size.truncated };
     }
 
     // Forced 'system' does not fall back. Asking for that backend is a statement
     // that you want that toolchain or an error; quietly substituting another one
     // would answer a question nobody asked.
     if (backend === 'system') {
-      return { ...out, success: false, verdict: sysVerdict, mainFile, engine, backend: 'system', fileCount: files.length, truncated };
+      return { ...out, success: false, verdict: sysVerdict, mainFile, engine, backend: 'system', fileCount: size.count, truncated: size.truncated };
     }
 
     // 'auto': the local TeX couldn't produce a PDF, so continue to the bundled
@@ -107,6 +126,16 @@ export async function compileProject(opts: CompileProjectOptions): Promise<Compi
     };
   }
 
+  // The bundled engine runs from here, and it is handed every file, so this is
+  // where the project actually has to be read.
+  const { files, truncated } = await collect();
+
+  // Inject bundled fallback .sty for packages busytex omits — but only those the
+  // project doesn't already ship (a project's own copy always wins).
+  const present = new Set(files.map((f) => f.path.split('/').pop()));
+  const fallbacks = (await getFallbackStyles()).filter((f) => !present.has(f.path));
+  const allFiles = fallbacks.length ? [...files, ...fallbacks] : files;
+
   // Enable a bib pass + reruns only when the document actually needs them —
   // avoids paying for extra passes on a simple doc.
   const hasBib = /\\(bibliography|addbibresource)\b/.test(mainSrc) || allFiles.some((f) => f.path.endsWith('.bib'));
@@ -114,7 +143,7 @@ export async function compileProject(opts: CompileProjectOptions): Promise<Compi
   const needsRerun = hasBib || /\\(ref|autoref|tableofcontents|label)\b/.test(mainSrc);
   const bibtex = hasBib && usesCite;
 
-  let out = await compile(allFiles, main ? main.path : mainFile, engine, { bibtex, rerun: needsRerun });
+  let out = await compile(allFiles, mainRel, engine, { bibtex, rerun: needsRerun });
   let verdict = classifyCompile(out.log ?? '', out.pdfLen);
   let stubbed: string[] = [];
 
@@ -128,7 +157,7 @@ export async function compileProject(opts: CompileProjectOptions): Promise<Compi
     const unused = verdict.missingPackages.filter((p) => !usesPackage(p, mainSrc));
     if (unused.length) {
       const stubs = unused.map((p) => ({ path: `${p}.sty`, content: stubPackage(p), encoding: 'utf8' as const }));
-      const retryOut = await compile([...allFiles, ...stubs], main ? main.path : mainFile, engine, { bibtex, rerun: needsRerun });
+      const retryOut = await compile([...allFiles, ...stubs], mainRel, engine, { bibtex, rerun: needsRerun });
       const retryVerdict = classifyCompile(retryOut.log ?? '', retryOut.pdfLen);
       // Keep the retry only if it actually got further; otherwise report the
       // original failure, which is the more informative one.

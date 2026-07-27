@@ -30,8 +30,27 @@ function extOf(name: string): string {
 
 const toPosix = (p: string) => p.split(sep).join('/');
 
-export async function collectProjectFiles(projectRoot: string): Promise<CollectResult> {
+export function collectProjectFiles(projectRoot: string): Promise<CollectResult> {
+  return walkProject(projectRoot, true);
+}
+
+/**
+ * How big the project is, without reading any of it.
+ *
+ * The same tree and the same caps as `collectProjectFiles`, so the number it
+ * reports means the same thing — but it only stats. The system backend hands
+ * latexmk a directory and lets it read from disk, so collecting the contents
+ * there was 32.4 MB read and discarded on every save of a real IEEE paper (the
+ * cap is 60 MB), purely to be able to say "49 files" at the end.
+ */
+export async function countProjectFiles(projectRoot: string): Promise<{ count: number; truncated: boolean; totalBytes: number }> {
+  const { count, truncated, totalBytes } = await walkProject(projectRoot, false);
+  return { count, truncated, totalBytes };
+}
+
+async function walkProject(projectRoot: string, readContents: boolean): Promise<CollectResult & { count: number }> {
   const files: EngineFile[] = [];
+  let count = 0;
   let totalBytes = 0;
   let truncated = false;
 
@@ -54,18 +73,23 @@ export async function collectProjectFiles(projectRoot: string): Promise<CollectR
 
       const s = await stat(full).catch(() => null);
       if (!s) continue;
-      if (files.length >= MAX_FILES || totalBytes + s.size > MAX_TOTAL_BYTES) { truncated = true; return; }
+      // Counted rather than `files.length`, so the caps land in the same place
+      // whether or not contents are being read — otherwise "how big is this
+      // project" and "what did we send the engine" could disagree.
+      if (count >= MAX_FILES || totalBytes + s.size > MAX_TOTAL_BYTES) { truncated = true; return; }
+      count++;
+      totalBytes += s.size;
 
+      if (!readContents) continue;
       const rel = toPosix(relative(projectRoot, full));
       if (isText) {
         files.push({ path: rel, content: await readFile(full, 'utf8'), encoding: 'utf8' });
       } else {
         files.push({ path: rel, content: (await readFile(full)).toString('base64'), encoding: 'base64' });
       }
-      totalBytes += s.size;
     }
   }
 
   await walk(projectRoot);
-  return { files, truncated, totalBytes };
+  return { files, truncated, totalBytes, count };
 }
