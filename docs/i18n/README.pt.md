@@ -294,11 +294,13 @@ MagicTeX a detecta sozinho, sem configuração:
 |---|---|
 | macOS | [MacTeX](https://tug.org/mactex/) |
 | Linux | `texlive-full` |
-| Windows | [TeX Live](https://tug.org/texlive/) |
+| Windows | [TeX Live](https://tug.org/texlive/), or [MiKTeX](https://miktex.org/) **plus** [Strawberry Perl](https://strawberryperl.com/) |
 
 > `latexmk` é o que o MagicTeX procura no `PATH`, mas não se instala
 > separadamente: é um script que vem dentro das distribuições acima. Confirme com
-> `which latexmk`; no macOS pode ser preciso antes
+> **`latexmk -version`**, não com `which latexmk`: `latexmk` é um script Perl, e
+> o MiKTeX coloca `latexmk.exe` no `PATH` sem trazer um Perl para executá-lo — o
+> arquivo é encontrado e mesmo assim não roda. No macOS pode ser preciso antes
 > `eval "$(/usr/libexec/path_helper)"` ou um terminal novo.
 
 Cada compilação diz qual rodou — `xelatex · system` ou `xelatex · wasm`.

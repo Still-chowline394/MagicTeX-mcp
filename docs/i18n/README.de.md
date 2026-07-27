@@ -295,12 +295,15 @@ entsprechen soll. MagicTeX findet sie von allein — ohne Konfiguration:
 |---|---|
 | macOS | [MacTeX](https://tug.org/mactex/) |
 | Linux | `texlive-full` |
-| Windows | [TeX Live](https://tug.org/texlive/) |
+| Windows | [TeX Live](https://tug.org/texlive/), or [MiKTeX](https://miktex.org/) **plus** [Strawberry Perl](https://strawberryperl.com/) |
 
 > `latexmk` ist das, wonach MagicTeX im `PATH` sucht, aber man installiert es
 > nicht einzeln — es ist ein Treiberskript aus den obigen Distributionen. Prüfe
-> nach der Installation mit `which latexmk`; unter macOS ggf. vorher
-> `eval "$(/usr/libexec/path_helper)"` oder ein neues Terminal.
+> mit **`latexmk -version`**, nicht mit `which latexmk`: `latexmk` ist ein
+> Perl-Skript, und MiKTeX legt `latexmk.exe` in den `PATH`, ohne ein Perl
+> mitzuliefern — die Datei wird also gefunden und kann trotzdem nicht laufen.
+> Unter macOS ggf. vorher `eval "$(/usr/libexec/path_helper)"` oder ein neues
+> Terminal.
 
 Jeder Lauf nennt die verwendete Variante — `xelatex · system` oder `xelatex · wasm`.
 
