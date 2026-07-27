@@ -4,7 +4,7 @@ import { resolveMainFile } from './resolveMainFile.js';
 import { collectProjectFiles } from './collectProjectFiles.js';
 import { getFallbackStyles } from '../engine/fallbackStyles.js';
 import { compile, type CompileOutput } from '../engine/browserHost.js';
-import { hasSystemTex, compileWithSystemTex, INSTALL_TEX_HELP } from '../engine/systemTex.js';
+import { probeSystemTex, compileWithSystemTex, systemTexUnavailableMessage, type SystemTexProbe } from '../engine/systemTex.js';
 import { classifyCompile, stubPackage, usesPackage, type CompileVerdict } from '../engine/compileLog.js';
 
 export type Engine = 'xelatex' | 'pdflatex' | 'lualatex';
@@ -27,6 +27,11 @@ export interface CompileProjectResult extends CompileOutput {
    *  can disclose the substitution — a fallback nobody is told about is how a
    *  broken toolchain gets reported as a success. */
   systemFallback?: { errors: string[]; missingPackages: string[]; missingClasses: string[] };
+  /** What we found when we looked for a local TeX. Carried even when the WASM
+   *  backend ran, because the case that needs explaining most is "the bundled
+   *  engine could not do this AND there is no local TeX" — where the reader is
+   *  currently shown a raw LaTeX log line and left to work out the rest. */
+  systemTex?: SystemTexProbe;
 }
 
 export interface CompileProjectOptions {
@@ -65,10 +70,15 @@ export async function compileProject(opts: CompileProjectOptions): Promise<Compi
   // better compiler was sitting right there.
   const backend: Backend = opts.backend ?? 'auto';
   let systemFallback: CompileProjectResult['systemFallback'];
-  const wantSystem = backend === 'system' || (backend === 'auto' && (await hasSystemTex()));
+  // Probed once here and reused: the two ways of being unusable need different
+  // answers from the reader, and "latexmk is on PATH but cannot run" reported as
+  // "no local TeX was found" is what sent a user off to install a distribution
+  // they already had.
+  const sysProbe = await probeSystemTex();
+  const wantSystem = backend === 'system' || (backend === 'auto' && sysProbe.usable);
   if (wantSystem) {
-    if (backend === 'system' && !(await hasSystemTex())) {
-      return { success: false, pdf: undefined, pdfLen: 0, log: '', ms: 0, error: `backend "system" was requested, but no local TeX was found — looked for \`latexmk\` on PATH.\n\n${INSTALL_TEX_HELP}`, mainFile, engine, backend: 'system', fileCount: files.length, truncated };
+    if (backend === 'system' && !sysProbe.usable) {
+      return { success: false, pdf: undefined, pdfLen: 0, log: '', ms: 0, error: systemTexUnavailableMessage(sysProbe), mainFile, engine, backend: 'system', fileCount: files.length, truncated };
     }
     const out = await compileWithSystemTex(opts.projectRoot, main ? main.path : mainFile, engine, opts.shellEscape ?? false);
     const sysVerdict = classifyCompile(out.log ?? '', out.pdfLen);
@@ -137,6 +147,7 @@ export async function compileProject(opts: CompileProjectOptions): Promise<Compi
     success: verdict.usable,
     verdict,
     stubbedPackages: stubbed,
+    systemTex: sysProbe,
     systemFallback,
     mainFile,
     engine,
