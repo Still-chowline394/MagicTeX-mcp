@@ -108,10 +108,20 @@ const clickSave = () => page.click('.editor-bar button:has-text("Save")');
  */
 const setBuffer = async (text) => {
   await page.click('.cm-content');
-  await page.keyboard.press('Control+a');
+  // ControlOrMeta, not Control: on macOS select-all is Cmd+A, and Control+A is
+  // emacs' move-to-line-start. Written as Control it selected nothing, Delete
+  // removed one character, and the replacement was inserted INTO the old
+  // document — which still compiled, so CI reported the chip as lying. The same
+  // trap as `Mod-s` in smoke-editor-keeps-text.mjs, hit a second time.
+  await page.keyboard.press('ControlOrMeta+a');
   await page.keyboard.press('Delete');
   await page.keyboard.insertText(text);
   await page.waitForTimeout(150);
+  // Never assume the edit landed: a buffer that did not change makes every
+  // check below pass or fail for reasons that have nothing to do with the chip.
+  const got = await page.locator('.cm-content').textContent();
+  const head = text.split('\n')[0];
+  if (!got?.includes(head)) throw new Error(`setBuffer did not take — editor starts ${JSON.stringify((got ?? '').slice(0, 60))}`);
 };
 /**
  * Wait for the chip to ENTER a state, then to leave it.
