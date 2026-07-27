@@ -22,7 +22,7 @@ import { canTrackHistory, historyStatus, listCheckpoints } from './git/checkpoin
 import { type Engine, type Backend } from './project/compileProject.js';
 import { MainFileError } from './project/resolveMainFile.js';
 import { summarizeErrors } from './project/parseLog.js';
-import { INSTALL_TEX_HELP, systemFallbackNote } from './engine/systemTex.js';
+import { INSTALL_TEX_HELP, systemFallbackNote, systemTexAdvice } from './engine/systemTex.js';
 import { blockedToolHelp } from './engine/compileLog.js';
 
 const PKG_ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -128,9 +128,20 @@ server.registerTool(RENDER_PREVIEW_NAME, renderPreviewConfig, async ({ mainFile,
     const clsHint = missingCls.length
       ? `\n\nThe document class ${missingCls.map((c) => `\`${c}.cls\``).join(', ')} is not in the bundled TeX Live subset, and a class cannot be stubbed the way an unused package can. Put the .cls next to the source — for a conference paper it comes with the author kit, and Overleaf projects can download it.${result.backend === 'system' ? '' : `\n\nA local TeX install would also have it, and MagicTeX picks one up automatically.\n\n${INSTALL_TEX_HELP}`}`
       : '';
+    // A package the source really uses is deliberately never stubbed — but until
+    // now that left the reader with a raw log line and nothing else. `newtxmath
+    // is required` told one user nothing about why, or that the bundled engine
+    // could not ever supply it, so an agent went and installed a whole TeX
+    // distribution to find out. Say the three things that actually decide what
+    // they do next: what is missing, that the bundled subset cannot provide it,
+    // and what the local-TeX situation on this machine really is.
+    const missingPkgs = (result.verdict?.missingPackages ?? []).filter((p) => !missingCls.includes(p));
+    const pkgHint = missingPkgs.length && result.backend !== 'system'
+      ? `\n\n${missingPkgs.map((p) => `\`${p}\``).join(', ')} ${missingPkgs.length > 1 ? 'are' : 'is'} not in the bundled TeX Live subset, and the source really uses ${missingPkgs.length > 1 ? 'them' : 'it'} — so ${missingPkgs.length > 1 ? 'they cannot' : 'it cannot'} be stubbed out without rendering something different from what you wrote.\n\n${systemTexAdvice(result.systemTex)}`
+      : '';
     return {
       isError: true,
-      content: [{ type: 'text', text: `✖ Compile of ${result.mainFile} failed (${result.engine}).\n\n${summarizeErrors(result.log || result.error || '')}${toolHint}${clsHint}` }],
+      content: [{ type: 'text', text: `✖ Compile of ${result.mainFile} failed (${result.engine}).\n\n${summarizeErrors(result.log || result.error || '')}${toolHint}${clsHint}${pkgHint}` }],
     };
   } catch (err) {
     const msg = err instanceof MainFileError ? err.message : String((err as Error).message ?? err);

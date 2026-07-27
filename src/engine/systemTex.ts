@@ -76,18 +76,120 @@ export function systemFallbackNote(f: SystemFallback): string {
   return `Your local TeX was tried first and failed — ${why}. Fell back to the bundled WASM engine, which got through it, so this PDF exists — but it came from a subset of TeX Live and may not match Overleaf.${fix}`;
 }
 
-let cached: 'latexmk' | null | undefined;
+/**
+ * Why the local TeX could not be used. `'absent'` and `'broken'` are different
+ * problems with opposite answers, and collapsing them cost a real afternoon: a
+ * user installed MiKTeX, MagicTeX went on saying no local TeX was found, and an
+ * agent eventually gave up and invoked the compiler itself.
+ */
+export interface SystemTexProbe {
+  usable: boolean;
+  reason?: 'absent' | 'broken';
+  /** What the OS or the tool actually said. The most useful line available here
+   *  is produced by MiKTeX, and used to be discarded by a bare catch. */
+  detail?: string;
+}
 
-/** Is a usable local TeX (latexmk) on PATH? Cached after the first check. */
-export async function hasSystemTex(): Promise<boolean> {
-  if (cached !== undefined) return cached !== null;
+let probe: SystemTexProbe | undefined;
+
+/** Is `latexmk` present AND able to run? */
+export async function probeSystemTex(): Promise<SystemTexProbe> {
+  // Only a negative result is re-checked, and only that one can change under us:
+  // people install TeX while the server is running — often *because* we just
+  // told them a package was missing — and this is a long-lived stdio process.
+  // A permanent memo meant that install never took effect for the rest of the
+  // session, and `backend: "system"` kept reporting "no local TeX was found"
+  // about a latexmk sitting on PATH.
+  //
+  // A positive result is kept: TeX does not uninstall itself mid-session, and
+  // re-probing before every compile would spawn a process for nothing.
+  if (probe?.usable) return probe;
   try {
     await pexec('latexmk', ['-version'], { timeout: 6000 });
-    cached = 'latexmk';
-  } catch {
-    cached = null;
+    probe = { usable: true };
+  } catch (e) {
+    const err = e as NodeJS.ErrnoException & { stdout?: string; stderr?: string };
+    // ENOENT is "no such executable". Anything else means latexmk was found and
+    // failed to run — on Windows that is nearly always MiKTeX, whose latexmk is
+    // a Perl script it ships no interpreter for, so the binary exists and can
+    // never execute. Reported as "not found", that sends people off to install
+    // a distribution they already have.
+    const absent = err.code === 'ENOENT';
+    const said = [err.stdout, err.stderr, err.message].filter(Boolean).join('\n').trim();
+    probe = {
+      usable: false,
+      reason: absent ? 'absent' : 'broken',
+      detail: absent ? undefined : said.slice(0, 600) || undefined,
+    };
   }
-  return cached !== null;
+  return probe;
+}
+
+/** Is a usable local TeX (latexmk) on PATH? */
+export async function hasSystemTex(): Promise<boolean> {
+  return (await probeSystemTex()).usable;
+}
+
+/** Reset the probe — for tests, and for anything that knows the environment
+ *  changed under us. */
+export function forgetSystemTex(): void {
+  probe = undefined;
+}
+
+/**
+ * What the reader should do about the local TeX, given what we found when we
+ * looked for one. Used when the bundled engine could not compile at all — the
+ * moment where "install a TeX distribution" is either the right answer or
+ * exactly the wrong one, and the difference is invisible from the log.
+ */
+export function systemTexAdvice(p?: SystemTexProbe): string {
+  if (p?.usable) {
+    return 'Your local TeX ran and did not get through this either — the missing package is not installed there. Install it with `tlmgr install <package>` (prefix with sudo on a system-wide TeX Live).';
+  }
+  if (p?.reason === 'broken') {
+    const perl = /script engine|perl/i.test(p.detail ?? '');
+    return [
+      'A local TeX would have this package, and MagicTeX uses one automatically when it can.',
+      '`latexmk` is on PATH here but could not run:',
+      ...(p.detail ? ['', p.detail.split('\n').map((l) => `  ${l}`).join('\n')] : []),
+      '',
+      ...(perl
+        ? ['latexmk is a Perl script and MiKTeX ships no Perl interpreter. Install Strawberry',
+           'Perl (https://strawberryperl.com/), or TeX Live for Windows (https://tug.org/texlive/),',
+           'which bundles one.']
+        : ['Fix that and MagicTeX will pick it up without any further configuration.']),
+    ].join('\n');
+  }
+  return `A local TeX install would have this package, and MagicTeX picks one up automatically once there is one.\n\n${INSTALL_TEX_HELP}`;
+}
+
+/**
+ * What to say when `backend: "system"` was asked for and cannot be honoured.
+ *
+ * The two cases need opposite things from the reader and used to get the same
+ * sentence. "Found but cannot execute" is the one that reads as a lie, because
+ * `latexmk` is right there on PATH.
+ */
+export function systemTexUnavailableMessage(p: SystemTexProbe): string {
+  if (p.reason !== 'broken') {
+    return `backend "system" was requested, but no local TeX was found — looked for \`latexmk\` on PATH.\n\n${INSTALL_TEX_HELP}`;
+  }
+  const perl = /script engine|perl/i.test(p.detail ?? '');
+  return [
+    'backend "system" was requested. `latexmk` is on PATH but could not run:',
+    ...(p.detail ? ['', p.detail.split('\n').map((l) => `  ${l}`).join('\n')] : []),
+    '',
+    ...(perl
+      ? [
+          'latexmk is a Perl script, and MiKTeX does not ship a Perl interpreter —',
+          'so its latexmk.exe can never execute on its own. Install Strawberry Perl',
+          '(https://strawberryperl.com/), or use TeX Live for Windows',
+          '(https://tug.org/texlive/), which bundles one.',
+          '',
+        ]
+      : []),
+    'Or use backend "wasm", which needs nothing installed.',
+  ].join('\n');
 }
 
 const ENGINE_FLAG: Record<Engine, string> = {
